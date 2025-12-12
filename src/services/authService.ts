@@ -44,10 +44,9 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
-// Hàm login: gọi endpoint /auth/login với body { email, password }
-// và xử lý response { accessToken: '...' }
+
 const login = async (credentials: LoginCredentials): Promise<AuthResponse> => {
-  // chuẩn hóa request body theo API bạn mô tả
+
   const body = {
     email: credentials.email ?? credentials.identifier,
     password: credentials.password,
@@ -55,7 +54,7 @@ const login = async (credentials: LoginCredentials): Promise<AuthResponse> => {
 
 
   const res = await api.post('/auth/login', body);
-  // giả sử API trả về { accessToken: '...' }
+
   const accessToken: string | undefined = res?.data?.accessToken;
 
   if (!accessToken) {

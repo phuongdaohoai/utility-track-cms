@@ -14,51 +14,60 @@ export interface FetchUsersResult {
   pageSize: number
 }
 
-// Mock data used for development. Replace with real HTTP calls when backend is ready.
-const sampleResidents: User[] = Array.from({ length: 57 }).map((_, i) => ({
-  id: i + 1,
-  name: `Resident ${String.fromCharCode(65 + (i % 26))} ${i + 1}`,
-  role: 'Resident',
-  room: (i % 50) + 1,
-  phone: '0903582' + String(200 + (i % 800)).slice(0, 3),
-  status: i % 3 === 0 ? 'Không hoạt động' : 'Hoạt động',
-}))
-
-const sampleStaff: User[] = Array.from({ length: 21 }).map((_, i) => ({
-  id: i + 1000,
-  name: `Staff ${String.fromCharCode(65 + (i % 26))}`,
-  role: i % 2 === 0 ? 'Admin' : 'Manager',
-  position: i % 2 === 0 ? 'Admin' : 'Staff',
-  phone: '0903582' + String(100 + (i % 900)).slice(0, 3),
-  status: i % 2 === 0 ? 'Hoạt động' : 'Không hoạt động',
-}))
-
-const delay = (ms: number) => new Promise((r) => setTimeout(r, ms))
+const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
 
 const fetchUsers = async (params: FetchUsersParams): Promise<FetchUsersResult> => {
   const { type, query = '', page = 1, pageSize = 10 } = params
-  // Simulate network
-  await delay(450)
+  
+  // 1. Lấy token từ localStorage
+  const token = localStorage.getItem('accessToken')
 
-  const source = type === 'residents' ? sampleResidents : sampleStaff
-  const normalized = query.trim().toLowerCase()
+  // 2. Xác định Endpoint dựa trên 'type' (residents hoặc staff)
+  // Nếu type là 'staff' -> /staff/getAll, ngược lại -> /residents/getAll
+  const endpoint = type === 'staff' ? '/staff/getAll' : '/residents/getAll'
 
-  const filtered = normalized
-    ? source.filter((u) => {
-        return (
-          u.name.toLowerCase().includes(normalized) ||
-          (u.phone && u.phone.includes(normalized)) ||
-          (u.room && u.room.toString().includes(normalized)) ||
-          (u.position && u.position.toLowerCase().includes(normalized))
-        )
-      })
-    : source
+  // 3. Tạo URLSearchParams để xử lý query string an toàn
+  const queryParams = new URLSearchParams({
+    search: query,             // query bên FE map sang 'search' bên BE
+    page: page.toString(),
+    pageSize: pageSize.toString(),
+  })
 
-  const total = filtered.length
-  const start = (page - 1) * pageSize
-  const items = filtered.slice(start, start + pageSize)
+  try {
+    // 4. Gọi API thực tế
+    const response = await fetch(`${API_URL}${endpoint}?${queryParams.toString()}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        // Gắn token vào Authorization header
+        'Authorization': token ? `Bearer ${token}` : '',
+      },
+    })
 
-  return { items, total, page, pageSize }
+    if (!response.ok) {
+      // Xử lý lỗi nếu server trả về 401, 403, 500...
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.message || `Lỗi khi lấy danh sách ${type}`)
+    }
+
+    // 5. Lấy dữ liệu JSON trả về
+    // Giả sử Backend trả về format: { data: User[], total: number }
+    const data = await response.json()
+
+    // Map dữ liệu server về đúng format của Frontend (FetchUsersResult)
+    // Lưu ý: Cần kiểm tra xem BE trả về biến tên là 'data', 'items' hay 'users' để sửa lại cho đúng
+    return {
+      items: data.data || [], // Fallback mảng rỗng nếu không có data
+      total: data.total || 0, // Fallback 0 nếu không có total
+      page,
+      pageSize,
+    }
+
+  } catch (error) {
+    console.error('Fetch users error:', error)
+    // Ném lỗi tiếp để Redux (createAsyncThunk) bắt được và chuyển sang state 'failed'
+    throw error
+  }
 }
 
 export default { fetchUsers }
