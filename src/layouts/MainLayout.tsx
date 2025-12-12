@@ -5,15 +5,21 @@ export const MainLayout: FC = () => {
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white shadow">
+      <header className="bg-white shadow z-10">
         <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <h1 className="text-2xl font-bold text-gray-900">Utility Track CMS</h1>
         </nav>
       </header>
 
-      {/* Main Content */}
-      <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
-        <Outlet />
+      {/* Main Content: make this a flex column and let Outlet area scroll */}
+      <main className="flex-1 flex min-h-0"> 
+        {/* min-h-0 is important so flex child can shrink and overflow works */}
+        <div className="flex-1 overflow-auto w-full">
+          <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
+            {/* Outlet sẽ render page ở đây */}
+            <Outlet />
+          </div>
+        </div>
       </main>
 
       {/* Footer */}

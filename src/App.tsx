@@ -1,12 +1,13 @@
 import type { FC } from 'react'
-import { UserProvider } from './store/userStore'
+import { Provider } from 'react-redux'
+import store from './store/store'
 
 const App: FC = () => {
   return (
-    <UserProvider>
+    <Provider store={store}>
       {/* Router is configured in main.tsx */}
       <div id="app"></div>
-    </UserProvider>
+    </Provider>
   )
 }
 

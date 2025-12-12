@@ -4,8 +4,8 @@ import AdminLayout from '../layouts/AdminLayout'
 import HomePage from '../pages/Home'
 import LoginPage from '../pages/Login'
 import AdminPage from '../pages/Admin'
-import UsersPage from '../pages/Admin/Users'
-
+import UsersPage from '../pages/Admin/ManagerUsers'
+import ProfileEdit from '../pages/Admin/EditUsers'
 export const router = createBrowserRouter([
   {
     path: '/',
@@ -33,6 +33,10 @@ export const router = createBrowserRouter([
         path: 'users',
         element: <UsersPage />,
       },
+      {
+        path: 'users/:id/edit',
+        element: <ProfileEdit />,
+      }
     ],
   },
 ])

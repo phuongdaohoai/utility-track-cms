@@ -1,10 +1,10 @@
-import forms from '@tailwindcss/forms';
+import forms from '@tailwindcss/forms'
 
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [
-    "./index.html",
-    "./src/**/*.{js,jsx,ts,tsx}",
+    './index.html',
+    './src/**/*.{ts,tsx}',
   ],
   theme: {
     extend: {
@@ -15,4 +15,4 @@ export default {
     },
   },
   plugins: [forms],
-};
+}
