@@ -1,16 +1,32 @@
 import React, { FC, useState } from 'react'
 import Button from '../../components/Button'
-
+import { useAppDispatch, useAppSelector } from '../../store/hooks'
+import { login } from '../../store/authSlice'
+import { useNavigate } from 'react-router-dom'
 export const LoginPage: FC = () => {
   const [emailOrPhone, setEmailOrPhone] = useState<string>('')
   const [password, setPassword] = useState<string>('')
   const [showPassword, setShowPassword] = useState<boolean>(false)
   const [locale, setLocale] = useState<'vi' | 'en'>('vi')
+  const navigate = useNavigate();
+  const dispatch = useAppDispatch()
+  const authState = useAppSelector((s) => s.auth)
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault()
-    // TODO: Implement login logic (call auth service)
-    console.log('Login:', { emailOrPhone, password, locale })
+    try {
+      const a = await dispatch(
+        login({ identifier: emailOrPhone, password, locale }) as any
+      ).unwrap()
+      // TODO: navigate to dashboard or show success — router is configured elsewhere
+      
+      // For now just log success
+      console.log('Login successful : ' + JSON.stringify(a))
+      alert('Đăng nhập thành công!');
+      navigate('/admin');
+    } catch (err) {
+      console.error('Login failed', err)
+    }
   }
 
   return (
@@ -115,9 +131,17 @@ export const LoginPage: FC = () => {
               </div>
 
               <div className="pt-2">
-                <Button type="submit" size="md" className="w-full bg-[#3a5a89]">
-                  Đăng Nhập
+                <Button
+                  type="submit"
+                  size="md"
+                  className="w-full bg-[#3a5a89]"
+                  disabled={authState.status === 'loading'}
+                >
+                  {authState.status === 'loading' ? 'Đang xử lý...' : 'Đăng Nhập'}
                 </Button>
+                {authState.error ? (
+                  <p className="text-sm text-red-600 mt-2">{authState.error}</p>
+                ) : null}
               </div>
             </form>
           </div>
