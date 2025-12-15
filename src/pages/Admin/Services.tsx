@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 /* ================== TYPES ================== */
 export interface Service {
@@ -11,7 +12,7 @@ export interface Service {
 }
 
 /* ================== MOCK DATA ================== */
-const initialServices: Service[] = [
+export const initialServices: Service[] = [
   { id: 1, name: "Hồ Bơi Người Lớn", pricePerHour: 30000, description: "Chiều Cao Trên M6", status: "active", capacity: 30 },
   { id: 2, name: "Gym", pricePerHour: 20000, description: "Không Mô Tả", status: "active", capacity: 30 },
   { id: 3, name: "Hồ Bơi Trẻ Em", pricePerHour: 20000, description: "Đang Bảo Trì", status: "inactive", capacity: 30 },
@@ -44,31 +45,21 @@ const iconDelete = (
 
 /* ================== MAIN ================== */
 const ServiceTable: React.FC = () => {
-  const [serviceList, setServiceList] = React.useState<Service[]>(initialServices);
-  const [selectedService, setSelectedService] = React.useState<Service | null>(null);
-  const [isOpen, setIsOpen] = React.useState(false);
-  const [modalMode, setModalMode] = React.useState<"edit" | "delete">("edit");
+  const navigate = useNavigate();
 
-  const openEditModal = (service: Service) => {
-    setSelectedService(service);
-    setModalMode("edit");
-    setIsOpen(true);
-  };
+  // ✅ STATE
+  const [services, setServices] = useState<Service[]>(initialServices);
 
-  const openDeleteModal = (service: Service) => {
-    setSelectedService(service);
-    setModalMode("delete");
-    setIsOpen(true);
-  };
+  // ✅ HANDLE DELETE
+  const handleDelete = (id: number) => {
+    const ok = window.confirm("Bạn có chắc muốn xóa dịch vụ này không?");
+    if (!ok) return;
 
-  const handleDelete = (serviceId: number) => {
-    setServiceList(prev => prev.filter(s => s.id !== serviceId));
-    setIsOpen(false);
+    setServices(prev => prev.filter(service => service.id !== id));
   };
 
   return (
     <div style={{ padding: 20, fontFamily: "Arial, sans-serif" }}>
-      {/* TABLE */}
       <div style={tableWrapperStyle}>
         <table style={tableStyle}>
           <thead style={theadStyle}>
@@ -83,24 +74,51 @@ const ServiceTable: React.FC = () => {
           </thead>
 
           <tbody>
-            {serviceList.map((service) => (
+            {services.length === 0 && (
+              <tr>
+                <td colSpan={6} style={{ textAlign: "center", padding: 20 }}>
+                  Không còn dịch vụ nào
+                </td>
+              </tr>
+            )}
+
+            {services.map(service => (
               <tr key={service.id} style={rowStyle}>
                 <td style={tdStyle}>{service.name}</td>
-                <td style={tdStyle}>{service.pricePerHour.toLocaleString("vi-VN")} đ</td>
+                <td style={tdStyle}>
+                  {service.pricePerHour.toLocaleString("vi-VN")} đ
+                </td>
                 <td style={tdStyle}>{service.description}</td>
                 <td style={tdStyle}>
-                  <span style={service.status === "active" ? statusActiveStyle : statusInactiveStyle}>
-                    {service.status === "active" ? "Hoạt động" : "Không hoạt động"}
+                  <span
+                    style={
+                      service.status === "active"
+                        ? statusActiveStyle
+                        : statusInactiveStyle
+                    }
+                  >
+                    {service.status === "active"
+                      ? "Hoạt động"
+                      : "Không hoạt động"}
                   </span>
                 </td>
                 <td style={tdStyle}>{service.capacity}</td>
 
                 <td style={tdStyle}>
                   <div style={{ display: "flex", gap: 10 }}>
-                    <button style={actionButtonStyle} onClick={() => openEditModal(service)}>
+                    <button
+                      style={actionButtonStyle}
+                      onClick={() =>
+                        navigate(`/admin/services/${service.id}`)
+                      }
+                    >
                       {iconEdit}
                     </button>
-                    <button style={actionButtonStyle} onClick={() => openDeleteModal(service)}>
+
+                    <button
+                      style={actionButtonStyle}
+                      onClick={() => handleDelete(service.id)} // ✅ XÓA
+                    >
                       {iconDelete}
                     </button>
                   </div>
@@ -110,125 +128,13 @@ const ServiceTable: React.FC = () => {
           </tbody>
         </table>
       </div>
-
-      {/* MODAL DETAIL */}
-      {isOpen && selectedService && (
-        <ServiceDetailModal
-          service={selectedService}
-          mode={modalMode}
-          onClose={() => setIsOpen(false)}
-          onDelete={handleDelete}
-          onSave={(updatedService) => {
-            setServiceList(prev =>
-              prev.map(s => (s.id === updatedService.id ? updatedService : s))
-            );
-            setIsOpen(false);
-          }}
-        />
-      )}
     </div>
   );
 };
 
-/* ================== MODAL ================== */
-interface ModalProps {
-  service: Service;
-  mode: "edit" | "delete";
-  onClose: () => void;
-  onDelete: (serviceId: number) => void;
-  onSave: (updatedService: Service) => void;
-}
+export default ServiceTable;
 
-const ServiceDetailModal: React.FC<ModalProps> = ({
-  service,
-  mode,
-  onClose,
-  onDelete,
-  onSave,
-}) => {
-  const [form, setForm] = React.useState<Service>(service);
-
-  React.useEffect(() => {
-    setForm(service);
-  }, [service]);
-
-  return (
-    <div style={overlayStyle}>
-      <div style={modalStyle}>
-        <h3 style={{ marginBottom: 20 }}>
-          {mode === "edit" ? "Thông Tin Dịch Vụ" : "Xác Nhận Xóa Dịch Vụ"}
-        </h3>
-
-        <label>Tên Dịch Vụ</label>
-        <input value={form.name} style={inputStyle} disabled />
-
-        <label>Mô Tả</label>
-        <input
-          value={form.description}
-          style={inputStyle}
-          onChange={(e) => setForm({ ...form, description: e.target.value })}
-          disabled={mode === "delete"}
-        />
-
-        <label>Sức Chứa</label>
-        <input
-          type="number"
-          value={form.capacity}
-          style={inputStyle}
-          onChange={(e) => setForm({ ...form, capacity: +e.target.value })}
-          disabled={mode === "delete"}
-        />
-
-        <label>Chi Phí (Giờ)</label>
-        <input
-          type="number"
-          value={form.pricePerHour}
-          style={inputStyle}
-          onChange={(e) => setForm({ ...form, pricePerHour: +e.target.value })}
-          disabled={mode === "delete"}
-        />
-
-        <label>Trạng Thái</label>
-        {mode === "delete" ? (
-          <input
-            value={form.status === "active" ? "Hoạt động" : "Không hoạt động"}
-            style={inputStyle}
-            disabled
-          />
-        ) : (
-          <select
-            value={form.status}
-            style={inputStyle}
-            onChange={(e) =>
-              setForm({ ...form, status: e.target.value as Service["status"] })
-            }
-          >
-            <option value="active">Hoạt động</option>
-            <option value="inactive">Không hoạt động</option>
-          </select>
-        )}
-
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
-          <button onClick={onClose} style={btnCancel}>
-            Đóng
-          </button>
-
-          {mode === "edit" ? (
-            <button style={btnSave} onClick={() => onSave(form)}>
-              Lưu Thông Tin
-            </button>
-          ) : (
-            <button style={btnDelete} onClick={() => onDelete(form.id)}>
-              Xóa
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-/* ================== STYLES ================== */
+/* ================== CSS ================== */
 
 const tableWrapperStyle: React.CSSProperties = {
   border: "1px solid #e5e7eb",
@@ -287,56 +193,3 @@ const actionButtonStyle: React.CSSProperties = {
   alignItems: "center",
   justifyContent: "center",
 };
-
-const overlayStyle: React.CSSProperties = {
-  position: "fixed",
-  inset: 0,
-  background: "rgba(0,0,0,0.3)",
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "center",
-  zIndex: 1000,
-};
-
-const modalStyle: React.CSSProperties = {
-  background: "#fff",
-  padding: 24,
-  width: 500,
-  borderRadius: 8,
-};
-
-const inputStyle: React.CSSProperties = {
-  width: "100%",
-  padding: 8,
-  marginBottom: 12,
-  border: "1px solid #e5e7eb",
-  borderRadius: 6,
-};
-
-const btnSave: React.CSSProperties = {
-  background: "#2563eb",
-  color: "#fff",
-  border: "none",
-  padding: "8px 14px",
-  borderRadius: 6,
-  cursor: "pointer",
-};
-
-const btnCancel: React.CSSProperties = {
-  background: "#e5e7eb",
-  border: "none",
-  padding: "8px 14px",
-  borderRadius: 6,
-  cursor: "pointer",
-};
-
-const btnDelete: React.CSSProperties = {
-  background: "#ef4444",
-  color: "#fff",
-  border: "none",
-  padding: "8px 14px",
-  borderRadius: 6,
-  cursor: "pointer",
-};
-
-export default ServiceTable;

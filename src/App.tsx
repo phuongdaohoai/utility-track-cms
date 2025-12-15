@@ -7,6 +7,7 @@ const App: FC = () => {
       {/* Router is configured in main.tsx */}
       <div id="app"></div>
     </UserProvider>
+    
   )
 }
 
