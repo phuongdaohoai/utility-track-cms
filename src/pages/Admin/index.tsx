@@ -1,21 +1,35 @@
-import type { FC } from 'react'
+import AdminStatCard from "../../components/AdminStatCard";
+import AdminChart from "../../components/AdminChart";
 
-export const AdminPage: FC = () => {
+import { FileText, BarChart2, Users } from "lucide-react";
+
+export default function AdminPage() {
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+      <h1 className="text-3xl font-bold">Admin Dashboard</h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Stats Cards */}
-        {['Total Users', 'Total Orders', 'Revenue', 'Pending Tasks'].map((stat, idx) => (
-          <div key={idx} className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-gray-500 text-sm font-medium">{stat}</h3>
-            <p className="text-2xl font-bold text-gray-900 mt-2">0</p>
-          </div>
-        ))}
+      {/* Thống kê */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <AdminStatCard
+          title="Tổng lượt check-in hôm nay"
+          value="142"
+          icon={FileText}
+        />
+        <AdminStatCard
+          title="Doanh thu ngày hôm nay"
+          value="2.000.000"
+          icon={BarChart2}
+          highlight
+        />
+        <AdminStatCard
+          title="Cư dân đang sử dụng dịch vụ"
+          value="5"
+          icon={Users}
+        />
       </div>
-    </div>
-  )
-}
 
-export default AdminPage
+      {/* Biểu đồ */}
+      <AdminChart />
+    </div>
+  );
+}
