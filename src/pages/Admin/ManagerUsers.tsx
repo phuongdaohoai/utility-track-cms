@@ -4,7 +4,9 @@ import { Link } from 'react-router-dom'
 import { useAppDispatch, useAppSelector } from '../../store/hooks'
 import { fetchUsers, setPage } from '../../store/usersSlice'
 import { useNavigate } from 'react-router-dom';
-
+import { deleteStaff } from '../../store/staffSlice';
+import { CSVImportButton } from "../../components/CSVImport";
+import { CreateStaffButton } from '../../components/staff/CreateStaffButton';
 type TabType = 'residents' | 'staff'
 
 export const UsersPage: FC = () => {
@@ -17,7 +19,10 @@ export const UsersPage: FC = () => {
 
   const dispatch = useAppDispatch()
   const { items, total, page, pageSize, status, error } = useAppSelector((s) => s.users)
-
+  const handleCreateSuccess = () => {
+  
+    dispatch(fetchUsers({ type: tab, query, page: 1, pageSize }));
+  };
   useEffect(() => {
 
     dispatch(fetchUsers({ type: tab, query, page, pageSize }))
@@ -26,12 +31,34 @@ export const UsersPage: FC = () => {
   const onPage = (p: number) => {
     dispatch(setPage(p))
   }
+  const handleDelete = async (id: number) => {
+    if (tab !== 'staff') {
+      alert("Chức năng xóa cư dân chưa được hỗ trợ ở đây.");
+      return;
+    }
+
+    if (window.confirm("Bạn có chắc chắn muốn xóa nhân viên này không?")) {
+      try {
+
+        await dispatch(deleteStaff(id)).unwrap();
+
+        alert("Xóa thành công!");
+
+
+        dispatch(fetchUsers({ type: tab, query, page, pageSize }));
+      } catch (err: any) {
+        alert("Xóa thất bại: " + (err || "Lỗi hệ thống"));
+      }
+    }
+  }
 
   return (
     <div className='overflow-auto'>
       <header className="bg-white shadow px-6 py-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-gray-900"></h2>
+          <h6 className="text-sm font-semibold text-[#8889ab]">
+            Quản lý phân quyền / <span className="text-[#333570] font-bold">Danh sách Admin</span>
+          </h6>
           <div className="flex items-center gap-4">
             <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-semibold">B</div>
             <div className="text-sm text-gray-600">
@@ -45,29 +72,31 @@ export const UsersPage: FC = () => {
       <div className="flex-1 overflow-auto p-6">
 
 
-        <div className="mb-6">
-          <p className="text-sm text-gray-500 mb-4">Quản lý người dùng / {tab === 'residents' ? 'Danh sách dân cư' : 'Danh sách nhân sự'}</p>
-
-          <div className="flex gap-8 border-b border-gray-200">
-            <button
-              onClick={() => setTab('residents')}
-              className={`pb-3 font-medium transition-colors ${tab === 'residents' ? 'text-indigo-700 border-b-2 border-indigo-700' : 'text-gray-600 hover:text-gray-900'}`}
-            >
-              Danh sách cư dân
-            </button>
-            <button
-              onClick={() => setTab('staff')}
-              className={`pb-3 font-medium transition-colors ${tab === 'staff' ? 'text-indigo-700 border-b-2 border-indigo-700' : 'text-gray-600 hover:text-gray-900'}`}
-            >
-              Danh sách nhân sự
-            </button>
-          </div>
+        <div className="flex gap-4 border-b border-[#cecfdd] mb-3">
+          <button
+            onClick={() => setTab('residents')}
+            className={`pb-3  transition-colors px-3 py-0 border-t border-x border-[#cecfdd] rounded-t-lg ${tab === 'residents'
+              ? 'text-indigo-700 font-bold  border-b-2 border-b-indigo-700'
+              : 'text-gray-600 hover:text-gray-900 border-b border-b-[#cecfdd]'
+              }`}
+          >
+            Danh sách cư dân
+          </button>
+          <button
+            onClick={() => setTab('staff')}
+            className={`pb-3  transition-colors px-3 border-t border-x border-[#cecfdd] rounded-t-lg ${tab === 'staff'
+              ? 'text-indigo-700 font-bold border-b-2 border-b-indigo-700'
+              : 'text-gray-600  hover:text-gray-900 border-b border-b-[#cecfdd]'
+              }`}
+          >
+            Danh sách nhân sự
+          </button>
         </div>
 
         <div className="mb-6">
           <div className="flex items-center justify-between">
             <div className="flex-1 pr-4">
-              <h3 className="text-lg font-semibold mb-2">{tab === 'residents' ? 'Danh sách cư dân' : 'Danh sách nhân sự'}</h3>
+
               <div className="flex gap-3">
                 <input
                   value={query}
@@ -85,8 +114,13 @@ export const UsersPage: FC = () => {
             </div>
 
             <div className="flex gap-3">
-              <button className="px-4 py-2 bg-indigo-700 text-white rounded">+ Import CSV</button>
-              <Link to={`/admin/users/new?type=${tab}`} className="px-4 py-2 bg-indigo-700 text-white rounded">+ Thêm Mới</Link>
+              {tab === 'residents' && (
+                <CSVImportButton importType="residents" />
+              )}
+              {tab === 'staff' && (
+                <CSVImportButton importType="staff" />
+              )}
+                <CreateStaffButton onSuccess={handleCreateSuccess} />
             </div>
           </div>
         </div>
@@ -124,13 +158,13 @@ export const UsersPage: FC = () => {
                       <div className="w-8 h-8 rounded-full bg-gray-200" />
                       <div>
                         <div className="font-medium">{u.fullName}</div>
-                        <div className="text-xs text-gray-500">{tab === 'residents' ? 'Cư dân' : u.roleId}</div>
+                        <div className="text-xs text-gray-500">{tab === 'residents' ? 'Cư dân' : null}</div>
                       </div>
                     </td>
-                    <td className="p-4">{tab === 'residents' ? u.room : u.position}</td>
+                    <td className="p-4">{tab === 'residents' ? u.room : u.role?.roleName}</td>
                     <td className="p-4">{u.phone}</td>
                     <td className="p-4">
-                      <span className={`px-3 py-1 rounded-full text-sm ${Number(u.status) === 1? 'bg-green-100 text-green-700': 'bg-red-100 text-red-700'}`}>
+                      <span className={`px-3 py-1 rounded-full text-sm ${Number(u.status) === 1 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                         {Number(u.status) === 1 ? 'Hoạt động' : 'Không hoạt động'}
                       </span>
                     </td>
@@ -144,7 +178,13 @@ export const UsersPage: FC = () => {
                         >
                           ✏️
                         </button>
-                        <button className="p-2 bg-white border rounded">🗑️</button>
+                        <button
+                          onClick={() => handleDelete(u.id)}
+                          className="p-2 bg-white border rounded hover:bg-red-50 hover:text-red-600 transition-colors"
+                          title="Xóa nhân viên"
+                        >
+                          🗑️
+                        </button>
                       </div>
                     </td>
                   </tr>
