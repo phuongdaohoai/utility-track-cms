@@ -10,8 +10,9 @@ type TabType = 'residents' | 'staff'
 export const UsersPage: FC = () => {
   const { name, role } = useAppSelector((state) => state.auth.user || { name: 'User', role: 'Guest' });
 
+
   const navigate = useNavigate();
-  const [tab, setTab] = useState<TabType>('residents')
+  const [tab, setTab] = useState<TabType>('staff')
   const [query, setQuery] = useState<string>('')
 
   const dispatch = useAppDispatch()
@@ -122,15 +123,15 @@ export const UsersPage: FC = () => {
                     <td className="p-4 flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-gray-200" />
                       <div>
-                        <div className="font-medium">{u.name}</div>
-                        <div className="text-xs text-gray-500">{tab === 'residents' ? 'Cư dân' : u.role}</div>
+                        <div className="font-medium">{u.fullName}</div>
+                        <div className="text-xs text-gray-500">{tab === 'residents' ? 'Cư dân' : u.roleId}</div>
                       </div>
                     </td>
                     <td className="p-4">{tab === 'residents' ? u.room : u.position}</td>
                     <td className="p-4">{u.phone}</td>
                     <td className="p-4">
-                      <span className={`px-3 py-1 rounded-full text-sm ${u.status === 'Hoạt động' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                        {u.status}
+                      <span className={`px-3 py-1 rounded-full text-sm ${Number(u.status) === 1? 'bg-green-100 text-green-700': 'bg-red-100 text-red-700'}`}>
+                        {Number(u.status) === 1 ? 'Hoạt động' : 'Không hoạt động'}
                       </span>
                     </td>
                     <td className="p-4">

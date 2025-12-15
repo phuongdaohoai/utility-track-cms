@@ -1,9 +1,9 @@
 export interface User {
   id: number
-  name: string
-  role?: string
+  fullName: string
+  roleId?: string
   room?: number
   position?: string
   phone?: string
-  status?: string
+  status?: int
 }
