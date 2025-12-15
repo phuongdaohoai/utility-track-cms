@@ -22,7 +22,7 @@ export const LoginPage: FC = () => {
       
       // For now just log success
       console.log('Login successful : ' + JSON.stringify(a))
-      alert('Đăng nhập thành công!');
+
       navigate('/admin');
     } catch (err) {
       console.error('Login failed', err)
