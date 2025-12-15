@@ -42,6 +42,10 @@ export const router = createBrowserRouter([
         element: <ServicesPage />,
       },
       {
+      path: 'services/:id',
+      element: <ServicesRepairPage />,
+    },
+      {
         path: 'history',
         element: <HistoryCheckinPage />,
       },

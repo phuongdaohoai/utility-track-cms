@@ -42,7 +42,6 @@ const Sidebar: FC = () => {
         {navItem('/admin/settings', 'Cấu hình hệ thống', FaUserFriends)}
        
         
-        
       </nav>
 
       <div className="mt-6 text-xs text-gray-400">© 2025 Utility Track CMS</div>
