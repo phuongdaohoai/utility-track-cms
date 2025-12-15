@@ -23,7 +23,7 @@ const fetchUsers = async (params: FetchUsersParams): Promise<FetchUsersResult> =
   const token = localStorage.getItem('accessToken')
 
  
-  const endpoint = type === 'staff' ? '/staff/getAll' : '/residents/getAll'
+  const endpoint = type === 'staff' ? '/staff/getAll' : '/residents'
 
  
   const queryParams = new URLSearchParams({
@@ -54,7 +54,7 @@ const fetchUsers = async (params: FetchUsersParams): Promise<FetchUsersResult> =
 
    
     return {
-      items: data.data.items || [], 
+      items: type === 'staff' ? data.data.items  : data , 
       total: data.data.totalItem || 0, 
       page : data.data.page || page,
       pageSize : data.data.pageSize || pageSize,

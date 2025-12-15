@@ -20,7 +20,7 @@ export const UsersPage: FC = () => {
   const dispatch = useAppDispatch()
   const { items, total, page, pageSize, status, error } = useAppSelector((s) => s.users)
   const handleCreateSuccess = () => {
-  
+
     dispatch(fetchUsers({ type: tab, query, page: 1, pageSize }));
   };
   useEffect(() => {
@@ -51,6 +51,7 @@ export const UsersPage: FC = () => {
       }
     }
   }
+  console.log('items', items);
 
   return (
     <div className='overflow-auto'>
@@ -120,7 +121,7 @@ export const UsersPage: FC = () => {
               {tab === 'staff' && (
                 <CSVImportButton importType="staff" />
               )}
-                <CreateStaffButton onSuccess={handleCreateSuccess} />
+              <CreateStaffButton onSuccess={handleCreateSuccess} />
             </div>
           </div>
         </div>
@@ -194,18 +195,53 @@ export const UsersPage: FC = () => {
           </table>
         </div>
 
-        <div className="mt-4 flex items-center justify-center gap-2 text-sm text-gray-600">
-          <button onClick={() => onPage(Math.max(1, page - 1))} className="px-3 py-1">&lt;</button>
-          {Array.from({ length: Math.max(1, Math.ceil(total / pageSize)) }).slice(0, 5).map((_, i) => (
-            <button
-              key={i}
-              onClick={() => onPage(i + 1)}
-              className={`px-3 py-1 ${page === i + 1 ? 'bg-indigo-700 text-white' : ''}`}
-            >
-              {i + 1}
-            </button>
-          ))}
-          <button onClick={() => onPage(Math.min(Math.ceil(total / pageSize), page + 1))} className="px-3 py-1">&gt;</button>
+        <div className="mt-4 flex items-center justify-center gap-1 text-sm">
+          <button
+            onClick={() => onPage(Math.max(1, page - 1))}
+            disabled={page === 1}
+            className="px-3 py-1 text-gray-600 hover:bg-gray-100 rounded disabled:opacity-50 disabled:cursor-not-allowed font-extrabold"
+          >
+            &lt;
+          </button>
+
+          {Array.from({ length: Math.min(5, Math.ceil(total / pageSize)) }).map((_, i) => {
+            const pageNum = i + 1;
+            return (
+              <button
+                key={i}
+                onClick={() => onPage(pageNum)}
+                className={`px-3 py-1 rounded ${page === pageNum
+                    ? 'bg-indigo-600 text-white font-medium'
+                    : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+              >
+                {pageNum}
+              </button>
+            );
+          })}
+
+          {Math.ceil(total / pageSize) > 5 && (
+            <>
+              <span className="px-2 text-gray-500">...</span>
+              <button
+                onClick={() => onPage(Math.ceil(total / pageSize))}
+                className={`px-3 py-1 rounded ${page === Math.ceil(total / pageSize)
+                    ? 'bg-indigo-600 text-white font-medium'
+                    : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+              >
+                {Math.ceil(total / pageSize)}
+              </button>
+            </>
+          )}
+
+          <button
+            onClick={() => onPage(Math.min(Math.ceil(total / pageSize), page + 1))}
+            disabled={page === Math.ceil(total / pageSize)}
+            className="px-3 py-1 text-gray-600 hover:bg-gray-100 rounded disabled:opacity-50 disabled:cursor-not-allowed font-extrabold"
+          >
+            &gt;
+          </button>
         </div>
       </div>
     </div>
