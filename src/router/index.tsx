@@ -9,12 +9,8 @@ import ProfileEdit from '../pages/Admin/EditUsers'
 export const router = createBrowserRouter([
   {
     path: '/',
-    // element: <MainLayout />,
+    element: <LoginPage />,
     children: [
-      {
-        index: true,
-        element: <HomePage />,
-      },
       {
         path: 'login',
         element: <LoginPage />,
@@ -34,7 +30,7 @@ export const router = createBrowserRouter([
         element: <UsersPage />,
       },
       {
-        path: 'users/:id/edit',
+        path: 'users/:id/edit', // vd /users/1/edit
         element: <ProfileEdit />,
       }
     ],
