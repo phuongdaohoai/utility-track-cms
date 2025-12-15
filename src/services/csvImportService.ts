@@ -132,37 +132,90 @@ export const csvImportService = {
     return headerMap[header.trim()] || header.toLowerCase().replace(/\s+/g, '');
   },
 
-  validateRow(row: CSVRow, rowIndex: number): ValidationError[] {
-    const errors: ValidationError[] = [];
+  // services/csvImportService.ts (phần validateRow cập nhật)
+validateRow(row: CSVRow, rowIndex: number): ValidationError[] {
+  const errors: ValidationError[] = [];
+  
+  // Helper function để lấy tên hiển thị
+  const getDisplayName = (): string => {
+    if (row.staffName?.trim()) return row.staffName;
+    if (row.fullName?.trim()) return row.fullName;
+    if (row.staffCode?.trim()) return `ID: ${row.staffCode}`;
+    if (row.residentCode?.trim()) return `ID: ${row.residentCode}`;
+    return `Dòng ${rowIndex + 1}`;
+  };
 
-    // Validate staff
-    if (row.staffCode && !row.staffName) {
-      errors.push({
-        rowIndex,
-        message: `${row.staffName || `Dòng ${rowIndex + 1}`} - Vị trí không hợp lệ`,
-        staffName: row.staffName
-      });
-    }
+  const displayName = getDisplayName();
 
-    if (row.staffCode && !row.position?.trim()) {
-      errors.push({
-        rowIndex,
-        field: 'position',
-        message: `${row.staffName || `Dòng ${rowIndex + 1}`} - Vị trí không hợp lệ`,
-        staffName: row.staffName
-      });
-    }
+  // Validate staff fields
+  if (row.staffCode) {
+    // Các trường bắt buộc cho nhân sự
+    const requiredStaffFields = [
+      { key: 'staffName', label: 'Tên nhân sự' },
+      { key: 'position', label: 'Vị trí' },
+      { key: 'department', label: 'Phòng ban' },
+      { key: 'role', label: 'Quyền' }
+    ];
 
-    if (row.email && !this.isValidEmail(row.email)) {
-      errors.push({
-        rowIndex,
-        field: 'email',
-        message: `Email không hợp lệ: ${row.email}`
-      });
-    }
+    requiredStaffFields.forEach(({ key, label }) => {
+      if (!row[key]?.trim()) {
+        errors.push({
+          rowIndex,
+          field: key,
+          message: `${displayName} - ${label} không hợp lệ`,
+          staffName: displayName
+        });
+      }
+    });
+  }
 
-    return errors;
-  },
+  // Validate resident fields
+  if (row.residentCode) {
+    // Các trường bắt buộc cho cư dân
+    const requiredResidentFields = [
+      { key: 'fullName', label: 'Tên cư dân' },
+      { key: 'room', label: 'Phòng' },
+      { key: 'phone', label: 'Số điện thoại' }
+    ];
+
+    requiredResidentFields.forEach(({ key, label }) => {
+      if (!row[key]?.trim()) {
+        errors.push({
+          rowIndex,
+          field: key,
+          message: `${displayName} - ${label} không hợp lệ`,
+          staffName: displayName
+        });
+      }
+    });
+  }
+
+  // Validate email format
+  if (row.email && !this.isValidEmail(row.email)) {
+    errors.push({
+      rowIndex,
+      field: 'email',
+      message: `${displayName} - Email không hợp lệ`
+    });
+  }
+
+  // Validate phone format (nếu có)
+  if (row.phone && !this.isValidPhone(row.phone)) {
+    errors.push({
+      rowIndex,
+      field: 'phone',
+      message: `${displayName} - Số điện thoại không hợp lệ`
+    });
+  }
+
+  return errors;
+},
+
+// Thêm hàm validate phone
+isValidPhone(phone: string): boolean {
+  const phoneRegex = /^(0|\+84)(\d{9,10})$/;
+  return phoneRegex.test(phone.replace(/\s/g, ''));
+},
 
   isValidEmail(email: string): boolean {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);

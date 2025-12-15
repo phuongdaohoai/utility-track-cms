@@ -1,12 +1,14 @@
 // store/staffSlice.ts
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import staffService, { Staff, UpdateStaffPayload } from '../services/staffService';
+import staffService, { Staff, UpdateStaffPayload, CreateStaffPayload } from '../services/staffService';
 
 interface StaffState {
   currentStaff: Staff | null;
   loading: boolean;
   error: string | null;
   updateStatus: 'idle' | 'loading' | 'success' | 'failed';
+  createStatus: 'idle' | 'loading' | 'success' | 'failed'; 
+  createMessage: string | null;
 }
 
 const initialState: StaffState = {
@@ -14,7 +16,20 @@ const initialState: StaffState = {
   loading: false,
   error: null,
   updateStatus: 'idle',
+  createStatus: 'idle', 
+  createMessage: null,
 };
+export const createStaff = createAsyncThunk(
+  'staff/create',
+  async (data: CreateStaffPayload, thunkAPI) => {
+    try {
+      const response = await staffService.create(data);
+      return response.data; // Trả về staff mới tạo
+    } catch (error: any) {
+      return thunkAPI.rejectWithValue(error.message);
+    }
+  }
+);
 
 // Thunk lấy thông tin chi tiết
 export const fetchStaffById = createAsyncThunk(
@@ -60,10 +75,14 @@ const staffSlice = createSlice({
   reducers: {
     resetUpdateStatus: (state) => {
       state.updateStatus = 'idle';
+    },
+    resetCreateStatus: (state) => { 
+      state.createStatus = 'idle';
+      state.createMessage = null;
     }
   },
   extraReducers: (builder) => {
-    // Xử lý fetchStaffById
+   
     builder
       .addCase(fetchStaffById.pending, (state) => {
         state.loading = true;
@@ -79,14 +98,14 @@ const staffSlice = createSlice({
         state.error = action.payload as string;
       });
 
-    // Xử lý updateStaff
+   
     builder
       .addCase(updateStaff.pending, (state) => {
         state.updateStatus = 'loading';
       })
       .addCase(updateStaff.fulfilled, (state, action) => {
         state.updateStatus = 'success';
-        // Có thể cập nhật lại currentStaff bằng dữ liệu mới trả về
+        
         if (state.currentStaff) {
              state.currentStaff = { ...state.currentStaff, ...action.payload };
         }
@@ -95,8 +114,25 @@ const staffSlice = createSlice({
         state.updateStatus = 'failed';
         state.error = action.payload as string;
       });
+
+      builder
+      .addCase(createStaff.pending, (state) => {
+        state.createStatus = 'loading';
+        state.createMessage = null;
+        state.error = null;
+      })
+      .addCase(createStaff.fulfilled, (state, action) => {
+        state.createStatus = 'success';
+        state.createMessage = 'Tạo nhân viên thành công!';
+        state.currentStaff = action.payload;
+      })
+      .addCase(createStaff.rejected, (state, action) => {
+        state.createStatus = 'failed';
+        state.createMessage = action.payload as string;
+        state.error = action.payload as string;
+      });
   },
 });
 
-export const { resetUpdateStatus } = staffSlice.actions;
+export const { resetUpdateStatus,  resetCreateStatus } = staffSlice.actions;
 export default staffSlice.reducer;

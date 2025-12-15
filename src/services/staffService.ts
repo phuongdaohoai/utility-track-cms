@@ -20,8 +20,9 @@ export interface UpdateStaffPayload {
   phone: string;
   status: number;
   roleId: number;
-  // avatar sẽ xử lý riêng nếu cần upload file multipart
+  // avatar sẽ xử lý riêng 
 }
+
 
 const getById = async (id: number | string) => {
   const token = localStorage.getItem('accessToken');
@@ -77,8 +78,54 @@ const deleteStaff = async (id: number | string) => {
 
   return response.json();
 };
+
+
+
+// services/staffService.ts - Thêm vào cuối file
+export interface CreateStaffPayload {
+  fullName: string;
+  phone: string;
+  email: string;
+  roleId: number;
+  avatar?: File; // Optional file
+  status?: number; // Default: 1 (Active)
+}
+
+const create = async (data: CreateStaffPayload) => {
+  const token = localStorage.getItem('accessToken');
+  
+  // Xử lý FormData nếu có file avatar
+  let formData = new FormData();
+  formData.append('fullName', data.fullName);
+  formData.append('phone', data.phone);
+  formData.append('email', data.email);
+  formData.append('roleId', data.roleId.toString());
+  formData.append('status', data.status?.toString() || '1');
+  
+  if (data.avatar) {
+    formData.append('avatar', data.avatar);
+  }
+  
+  const response = await fetch(`${API_BASE_URL}/staff/create`, {
+    method: 'POST',
+    headers: {
+      'Authorization': token ? `Bearer ${token}` : '',
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || 'Lỗi khi tạo nhân viên');
+  }
+
+  return response.json();
+};
+
+// Cập nhật staffService export
 const staffService = {
   getById,
+  create, 
   update,
   delete: deleteStaff,
 };

@@ -169,13 +169,7 @@ export default function ProfileEdit(): JSX.Element {
                   onChange={(e) => handleChange('fullName', e.target.value)}
                 />
 
-                <label className="text-sm text-gray-600">Phòng</label>
-                <input
-                  className="col-span-1 border-none bg-gray-100 rounded-md px-3 py-2 text-sm w-full"
-                  value={formData.roleId}
-                  onChange={(e) => handleChange('roleId', e.target.value)}
-                />
-
+                
                 <label className="text-sm  text-gray-600">Số Điện Thoại</label>
                 <input
                   className="col-span-1 border-none bg-gray-100 rounded-md px-3 py-2 text-sm w-full"

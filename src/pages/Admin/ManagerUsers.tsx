@@ -6,6 +6,7 @@ import { fetchUsers, setPage } from '../../store/usersSlice'
 import { useNavigate } from 'react-router-dom';
 import { deleteStaff } from '../../store/staffSlice';
 import { CSVImportButton } from "../../components/CSVImport";
+import { CreateStaffButton } from '../../components/staff/CreateStaffButton';
 type TabType = 'residents' | 'staff'
 
 export const UsersPage: FC = () => {
@@ -18,7 +19,10 @@ export const UsersPage: FC = () => {
 
   const dispatch = useAppDispatch()
   const { items, total, page, pageSize, status, error } = useAppSelector((s) => s.users)
-
+  const handleCreateSuccess = () => {
+  
+    dispatch(fetchUsers({ type: tab, query, page: 1, pageSize }));
+  };
   useEffect(() => {
 
     dispatch(fetchUsers({ type: tab, query, page, pageSize }))
@@ -47,6 +51,7 @@ export const UsersPage: FC = () => {
       }
     }
   }
+
   return (
     <div className='overflow-auto'>
       <header className="bg-white shadow px-6 py-4">
@@ -115,9 +120,7 @@ export const UsersPage: FC = () => {
               {tab === 'staff' && (
                 <CSVImportButton importType="staff" />
               )}
-              <Link to={`/admin/users/new?type=${tab}`} className="px-4 py-2 bg-indigo-700 text-white rounded">
-                + Thêm Mới
-              </Link>
+                <CreateStaffButton onSuccess={handleCreateSuccess} />
             </div>
           </div>
         </div>
