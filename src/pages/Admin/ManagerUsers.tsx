@@ -1,6 +1,6 @@
 import type { FC } from 'react'
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+
 import { useAppDispatch, useAppSelector } from '../../store/hooks'
 import { fetchUsers, setPage } from '../../store/usersSlice'
 import { useNavigate } from 'react-router-dom';
@@ -8,17 +8,43 @@ import { deleteStaff } from '../../store/staffSlice';
 import { CSVImportButton } from "../../components/CSVImport";
 import { CreateStaffButton } from '../../components/staff/CreateStaffButton';
 type TabType = 'residents' | 'staff'
-
+import { FilterModal, FilterConfig, FilterCondition } from '../../components/FilterModal';
+import { CreateResidentButton } from '../../components/residents/CreateResidentButton';
+import { deleteResident } from '../../store/residentsSlice';
 export const UsersPage: FC = () => {
   const { name, role } = useAppSelector((state) => state.auth.user || { name: 'User', role: 'Guest' });
-
-
   const navigate = useNavigate();
   const [tab, setTab] = useState<TabType>('staff')
   const [query, setQuery] = useState<string>('')
 
+
+// --- STATE CHO BỘ LỌC ---
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [activeFilters, setActiveFilters] = useState<FilterCondition[]>([]);
+
   const dispatch = useAppDispatch()
   const { items, total, page, pageSize, status, error } = useAppSelector((s) => s.users)
+
+
+
+// --- CẤU HÌNH CÁC TRƯỜNG LỌC ---
+  const residentFields: FilterConfig[] = [
+    { key: 'fullName', label: 'Tên cư dân', type: 'string' },
+    { key: 'phone', label: 'Số điện thoại', type: 'string' },
+    { key: 'room', label: 'Phòng', type: 'string' }, 
+    { key: 'status', label: 'Trạng thái', type: 'select', options: [{label: 'Hoạt động', value: 1}, {label: 'Không hoạt động', value: 0}] },
+    { key: 'joinDate', label: 'Ngày gia nhập', type: 'date' },
+  ];
+
+  const staffFields: FilterConfig[] = [
+    { key: 'fullName', label: 'Tên nhân sự', type: 'string' },
+    { key: 'phone', label: 'Số điện thoại', type: 'string' },
+    { key: 'roleId', label: 'Chức vụ', type: 'select', options: [{label: 'Admin', value: 1}, {label: 'Manager', value: 2}, {label: 'Staff', value: 3}] },
+    { key: 'status', label: 'Trạng thái', type: 'select', options: [{label: 'Hoạt động', value: 1}, {label: 'Không hoạt động', value: 0}] },
+  ];
+
+  const currentFields = tab === 'residents' ? residentFields : staffFields;
+
   const handleCreateSuccess = () => {
 
     dispatch(fetchUsers({ type: tab, query, page: 1, pageSize }));
@@ -32,29 +58,47 @@ export const UsersPage: FC = () => {
     dispatch(setPage(p))
   }
   const handleDelete = async (id: number) => {
-    if (tab !== 'staff') {
-      alert("Chức năng xóa cư dân chưa được hỗ trợ ở đây.");
-      return;
-    }
+    const isStaff = tab === 'staff';
+    const confirmMessage = isStaff 
+      ? "Bạn có chắc chắn muốn xóa nhân viên này không?"
+      : "Bạn có chắc chắn muốn xóa cư dân này không?";
 
-    if (window.confirm("Bạn có chắc chắn muốn xóa nhân viên này không?")) {
+    if (window.confirm(confirmMessage)) {
       try {
-
-        await dispatch(deleteStaff(id)).unwrap();
+        if (isStaff) {
+           // Xóa Nhân viên
+           await dispatch(deleteStaff(id)).unwrap();
+        } else {
+           // Xóa Cư dân (Gọi action mới)
+           await dispatch(deleteResident(id)).unwrap();
+        }
 
         alert("Xóa thành công!");
-
-
+        
+        // Refresh lại danh sách
         dispatch(fetchUsers({ type: tab, query, page, pageSize }));
       } catch (err: any) {
         alert("Xóa thất bại: " + (err || "Lỗi hệ thống"));
       }
     }
   }
-  console.log('items', items);
+  
+  const handleApplyFilter = (filters: FilterCondition[]) => {
+    setActiveFilters(filters);
+    console.log("Applying filters:", filters);
+    // Logic call API sẽ nằm ở useEffect hoặc dispatch ngay tại đây
+  };
 
   return (
     <div className='overflow-auto'>
+      {/* --- BỔ SUNG DÒNG NÀY --- */}
+      <FilterModal 
+        isOpen={isFilterOpen}
+        onClose={() => setIsFilterOpen(false)}
+        onApply={handleApplyFilter}
+        availableFields={currentFields}
+      />
+      {/* ----------------------- */}
       <header className="bg-white shadow px-6 py-4">
         <div className="flex items-center justify-between">
           <h6 className="text-sm font-semibold text-[#8889ab]">
@@ -111,17 +155,38 @@ export const UsersPage: FC = () => {
                 >
                   Tìm Kiếm
                 </button>
+              {/* --- NÚT BỘ LỌC MỚI --- */}
+                <button
+                  onClick={() => setIsFilterOpen(true)}
+                  className={`flex items-center gap-2 px-4 py-2 border rounded bg-white hover:bg-gray-50 transition-colors ${activeFilters.length > 0 ? 'border-indigo-500 text-indigo-700 bg-indigo-50' : 'border-gray-300 text-gray-700'}`}
+                >
+                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                   </svg>
+                   Bộ lọc
+                   {activeFilters.length > 0 && (
+                     <span className="bg-indigo-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                       {activeFilters.length}
+                     </span>
+                   )}
+                </button>
               </div>
             </div>
-
             <div className="flex gap-3">
               {tab === 'residents' && (
-                <CSVImportButton importType="residents" />
+                <>
+                  <CSVImportButton importType="residents" />
+                  {/* 2. Dùng Component Button Mới - Rất gọn */}
+                  <CreateResidentButton onSuccess={handleCreateSuccess} />
+                </>
               )}
+              
               {tab === 'staff' && (
-                <CSVImportButton importType="staff" />
+                <>
+                  <CSVImportButton importType="staff" />
+                  <CreateStaffButton onSuccess={handleCreateSuccess} />
+                </>
               )}
-              <CreateStaffButton onSuccess={handleCreateSuccess} />
             </div>
           </div>
         </div>
@@ -159,7 +224,7 @@ export const UsersPage: FC = () => {
                       <div className="w-8 h-8 rounded-full bg-gray-200" />
                       <div>
                         <div className="font-medium">{u.fullName}</div>
-                        <div className="text-xs text-gray-500">{tab === 'residents' ? 'Cư dân' : null}</div>
+                      
                       </div>
                     </td>
                     <td className="p-4">{tab === 'residents' ? u.room : u.role?.roleName}</td>
@@ -182,7 +247,7 @@ export const UsersPage: FC = () => {
                         <button
                           onClick={() => handleDelete(u.id)}
                           className="p-2 bg-white border rounded hover:bg-red-50 hover:text-red-600 transition-colors"
-                          title="Xóa nhân viên"
+                          title={tab === 'residents' ? "Xóa cư dân" : "Xóa nhân viên"}
                         >
                           🗑️
                         </button>
