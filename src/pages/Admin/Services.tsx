@@ -20,42 +20,26 @@ export const initialServices: Service[] = [
   { id: 5, name: "Xông Hơi", pricePerHour: 15000, description: "Không mùi", status: "active", capacity: 10 },
 ];
 
-/* ================== ICONS ================== */
-const iconEdit = (
-  <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
-    <path
-      d="M17.414 2.586a2 2 0 0 0-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 0 0 0-2.828z"
-      stroke="#4b5563"
-      strokeWidth="1.5"
-    />
-  </svg>
-);
-
-const iconDelete = (
-  <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
-    <path
-      d="M9 3h6m2 0h-10m12 3H6m1 0v12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V6"
-      stroke="#ef4444"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
-
 /* ================== MAIN ================== */
 const ServiceTable: React.FC = () => {
   const navigate = useNavigate();
 
-  // ✅ STATE
-  const [services, setServices] = useState<Service[]>(initialServices);
+  // 🔥 STATE dùng sessionStorage
+  const [services, setServices] = useState<Service[]>(() => {
+    const data = sessionStorage.getItem("services");
+    if (data) return JSON.parse(data);
 
-  // ✅ HANDLE DELETE
+    sessionStorage.setItem("services", JSON.stringify(initialServices));
+    return initialServices;
+  });
+
+  // ✅ DELETE
   const handleDelete = (id: number) => {
-    const ok = window.confirm("Bạn có chắc muốn xóa dịch vụ này không?");
-    if (!ok) return;
+    if (!window.confirm("Bạn có chắc muốn xóa dịch vụ này không?")) return;
 
-    setServices(prev => prev.filter(service => service.id !== id));
+    const updated = services.filter(s => s.id !== id);
+    setServices(updated);
+    sessionStorage.setItem("services", JSON.stringify(updated));
   };
 
   return (
@@ -112,14 +96,14 @@ const ServiceTable: React.FC = () => {
                         navigate(`/admin/services/${service.id}`)
                       }
                     >
-                      {iconEdit}
+                      ✏️
                     </button>
 
                     <button
                       style={actionButtonStyle}
-                      onClick={() => handleDelete(service.id)} // ✅ XÓA
+                      onClick={() => handleDelete(service.id)}
                     >
-                      {iconDelete}
+                      🗑️
                     </button>
                   </div>
                 </td>
@@ -189,7 +173,4 @@ const actionButtonStyle: React.CSSProperties = {
   border: "1px solid #e5e7eb",
   background: "#fff",
   cursor: "pointer",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
 };
