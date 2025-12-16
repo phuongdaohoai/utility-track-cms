@@ -1,13 +1,22 @@
 import React, { useState } from "react";
 
+interface CheckinItem {
+  id: number;
+  type: string;
+  desc: string;
+  status: "active" | "inactive";
+}
+
 const SystemConfiguration: React.FC = () => {
-  const [formState] = useState({
+  // State cho form cấu hình
+  const [formState, setFormState] = useState({
     operatingHours: "5h00 - 21h00",
     activity: "Bảo Trì",
     guestCheckIn: "Bật",
   });
 
-  const checkinList = [
+  // State cho danh sách checkin
+  const [checkinList, setCheckinList] = useState<CheckinItem[]>([
     { id: 1, type: "Thẻ", desc: "Thẻ Cư Dân", status: "active" },
     { id: 2, type: "Thủ Công", desc: "Không Mô Tả", status: "active" },
     { id: 3, type: "FaceID", desc: "Đang Bảo Trì", status: "inactive" },
@@ -18,7 +27,77 @@ const SystemConfiguration: React.FC = () => {
     { id: 8, type: "OTP", desc: "Mã Xác Thực", status: "active" },
     { id: 9, type: "Camera AI", desc: "Nhận Diện Khuôn Mặt", status: "inactive" },
     { id: 10, type: "Bluetooth", desc: "Thiết Bị Gần", status: "active" },
-  ];
+  ]);
+
+  // State cho item đang chỉnh sửa
+  const [editingItem, setEditingItem] = useState<CheckinItem | null>(null);
+
+  // ====================== FORM HANDLERS ======================
+  
+  const handleFormChange = (field: keyof typeof formState, value: string) => {
+    setFormState(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleSaveForm = () => {
+    alert(`Cấu hình đã được lưu:\n- Giờ hoạt động: ${formState.operatingHours}\n- Hoạt động: ${formState.activity}\n- Check-in khách ngoài: ${formState.guestCheckIn}`);
+    // Thực tế: Gọi API để lưu dữ liệu
+  };
+
+  const handleDeleteForm = () => {
+    if (window.confirm("Bạn có chắc chắn muốn xóa cấu hình hệ thống không?")) {
+      setFormState({
+        operatingHours: "",
+        activity: "",
+        guestCheckIn: "Bật"
+      });
+      alert("Cấu hình đã được xóa");
+    }
+  };
+
+  // ====================== TABLE HANDLERS ======================
+  
+  const handleEditItem = (item: CheckinItem) => {
+    setEditingItem({ ...item });
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingItem) return;
+
+    setCheckinList(prev => 
+      prev.map(item => 
+        item.id === editingItem.id ? editingItem : item
+      )
+    );
+    
+    alert(`Đã cập nhật phương thức "${editingItem.type}"`);
+    setEditingItem(null);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingItem(null);
+  };
+
+  const handleDeleteItem = (id: number) => {
+    if (window.confirm("Bạn có chắc chắn muốn xóa phương thức này không?")) {
+      setCheckinList(prev => prev.filter(item => item.id !== id));
+      alert("Đã xóa phương thức thành công");
+    }
+  };
+
+  const handleEditChange = (field: keyof CheckinItem, value: string) => {
+    if (!editingItem) return;
+    
+    setEditingItem(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        [field]: field === 'status' ? value as "active" | "inactive" : value
+      };
+    });
+  };
 
   return (
     <div style={styles.page}>
@@ -30,8 +109,8 @@ const SystemConfiguration: React.FC = () => {
             <input
               type="text"
               value={formState.operatingHours}
+              onChange={(e) => handleFormChange('operatingHours', e.target.value)}
               style={styles.input}
-              readOnly
             />
           </div>
 
@@ -40,8 +119,8 @@ const SystemConfiguration: React.FC = () => {
             <input
               type="text"
               value={formState.activity}
+              onChange={(e) => handleFormChange('activity', e.target.value)}
               style={styles.input}
-              readOnly
             />
           </div>
 
@@ -49,7 +128,8 @@ const SystemConfiguration: React.FC = () => {
             <label style={styles.label}>Check-In Khách Ngoài</label>
             <select
               style={styles.input}
-              defaultValue={formState.guestCheckIn}
+              value={formState.guestCheckIn}
+              onChange={(e) => handleFormChange('guestCheckIn', e.target.value)}
             >
               <option value="Bật">Bật</option>
               <option value="Tắt">Tắt</option>
@@ -59,8 +139,12 @@ const SystemConfiguration: React.FC = () => {
 
         {/* ================= ACTION BUTTONS ================= */}
         <div style={styles.actionRow}>
-          <button style={styles.deleteBtn}>Xóa</button>
-          <button style={styles.saveBtn}>Lưu Thông Tin</button>
+          <button style={styles.deleteBtn} onClick={handleDeleteForm}>
+            Xóa
+          </button>
+          <button style={styles.saveBtn} onClick={handleSaveForm}>
+            Lưu Thông Tin
+          </button>
         </div>
 
         {/* ================= TITLE ================= */}
@@ -82,21 +166,80 @@ const SystemConfiguration: React.FC = () => {
               <tbody>
                 {checkinList.map((item) => (
                   <tr key={item.id} style={styles.tr}>
-                    <td style={styles.td}>{item.type}</td>
-                    <td style={styles.td}>{item.desc}</td>
-                    <td style={styles.td}>
-                      {item.status === "active" ? (
-                        <span style={styles.badgeActive}>Hoạt động</span>
-                      ) : (
-                        <span style={styles.badgeInactive}>
-                          Không hoạt động
-                        </span>
-                      )}
-                    </td>
-                    <td style={styles.td}>
-                      <button style={styles.editBtn}>✏️</button>
-                      <button style={styles.deleteIconBtn}>🗑️</button>
-                    </td>
+                    {editingItem?.id === item.id ? (
+                      // ========== EDIT MODE ==========
+                      <>
+                        <td style={styles.td}>
+                          <input
+                            type="text"
+                            value={editingItem.type}
+                            onChange={(e) => handleEditChange('type', e.target.value)}
+                            style={styles.editInput}
+                          />
+                        </td>
+                        <td style={styles.td}>
+                          <input
+                            type="text"
+                            value={editingItem.desc}
+                            onChange={(e) => handleEditChange('desc', e.target.value)}
+                            style={styles.editInput}
+                          />
+                        </td>
+                        <td style={styles.td}>
+                          <select
+                            value={editingItem.status}
+                            onChange={(e) => handleEditChange('status', e.target.value)}
+                            style={styles.editSelect}
+                          >
+                            <option value="active">Hoạt động</option>
+                            <option value="inactive">Không hoạt động</option>
+                          </select>
+                        </td>
+                        <td style={styles.td}>
+                          <button 
+                            style={styles.saveIconBtn}
+                            onClick={handleSaveEdit}
+                          >
+                            💾
+                          </button>
+                          <button 
+                            style={styles.cancelIconBtn}
+                            onClick={handleCancelEdit}
+                          >
+                            ❌
+                          </button>
+                        </td>
+                      </>
+                    ) : (
+                      // ========== VIEW MODE ==========
+                      <>
+                        <td style={styles.td}>{item.type}</td>
+                        <td style={styles.td}>{item.desc}</td>
+                        <td style={styles.td}>
+                          {item.status === "active" ? (
+                            <span style={styles.badgeActive}>Hoạt động</span>
+                          ) : (
+                            <span style={styles.badgeInactive}>
+                              Không hoạt động
+                            </span>
+                          )}
+                        </td>
+                        <td style={styles.td}>
+                          <button 
+                            style={styles.editBtn}
+                            onClick={() => handleEditItem(item)}
+                          >
+                            ✏️
+                          </button>
+                          <button 
+                            style={styles.deleteIconBtn}
+                            onClick={() => handleDeleteItem(item.id)}
+                          >
+                            🗑️
+                          </button>
+                        </td>
+                      </>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -119,6 +262,7 @@ const baseButton: React.CSSProperties = {
   fontSize: "14px",
   fontWeight: 600,
   cursor: "pointer",
+  transition: "all 0.2s ease",
 };
 
 const styles: Record<string, React.CSSProperties> = {
@@ -127,6 +271,8 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: "center",
     padding: "40px",
     fontFamily: "Inter, sans-serif",
+    backgroundColor: "#f5f7fa",
+    minHeight: "100vh",
   },
 
   container: {
@@ -151,15 +297,17 @@ const styles: Record<string, React.CSSProperties> = {
   label: {
     width: "300px",
     fontWeight: 600,
+    color: "#374151",
   },
 
   input: {
-    flex: 1, // 🔥 QUAN TRỌNG: input & select dài bằng nhau
+    flex: 1,
     padding: "10px 12px",
     borderRadius: "6px",
-    border: "1px solid #ddd",
+    border: "1px solid #d1d5db",
     fontSize: "14px",
     background: "#fff",
+    transition: "border 0.2s ease",
   },
 
   actionRow: {
@@ -172,6 +320,11 @@ const styles: Record<string, React.CSSProperties> = {
   deleteBtn: {
     ...baseButton,
     minWidth: "120px",
+    background: "#f3f4f6",
+    color: "#374151",
+  },
+  
+  deleteBtnHover: {
     background: "#e5e7eb",
   },
 
@@ -181,10 +334,16 @@ const styles: Record<string, React.CSSProperties> = {
     background: "#3B82F6",
     color: "#fff",
   },
+  
+  saveBtnHover: {
+    background: "#2563eb",
+  },
 
   title: {
     marginBottom: "12px",
     fontWeight: 600,
+    color: "#1f2937",
+    fontSize: "18px",
   },
 
   tableBox: {
@@ -195,7 +354,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
 
   tableWrapper: {
-    maxHeight: "280px", // hiển thị ~4 dòng
+    maxHeight: "400px",
     overflowY: "auto",
   },
 
@@ -213,6 +372,7 @@ const styles: Record<string, React.CSSProperties> = {
     top: 0,
     background: "#fff",
     zIndex: 1,
+    color: "#374151",
   },
 
   tr: {
@@ -222,6 +382,7 @@ const styles: Record<string, React.CSSProperties> = {
   td: {
     padding: "12px 0",
     fontSize: "14px",
+    color: "#4b5563",
   },
 
   badgeActive: {
@@ -231,6 +392,7 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: "999px",
     fontWeight: 600,
     fontSize: "13px",
+    display: "inline-block",
   },
 
   badgeInactive: {
@@ -240,24 +402,136 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: "999px",
     fontWeight: 600,
     fontSize: "13px",
+    display: "inline-block",
   },
 
   editBtn: {
-    background: "#e5e7eb",
+    background: "#f3f4f6",
     border: "none",
     borderRadius: "6px",
-    padding: "6px 10px",
+    padding: "8px 12px",
     cursor: "pointer",
     marginRight: "8px",
+    fontSize: "16px",
+    transition: "background 0.2s ease",
+  },
+  
+  editBtnHover: {
+    background: "#e5e7eb",
   },
 
   deleteIconBtn: {
     background: "#fee2e2",
     border: "none",
     borderRadius: "6px",
-    padding: "6px 10px",
+    padding: "8px 12px",
     cursor: "pointer",
+    fontSize: "16px",
+    transition: "background 0.2s ease",
+  },
+  
+  deleteIconBtnHover: {
+    background: "#fecaca",
+  },
+
+  editInput: {
+    padding: "8px 12px",
+    borderRadius: "6px",
+    border: "1px solid #d1d5db",
+    fontSize: "14px",
+    width: "100%",
+    boxSizing: "border-box",
+  },
+
+  editSelect: {
+    padding: "8px 12px",
+    borderRadius: "6px",
+    border: "1px solid #d1d5db",
+    fontSize: "14px",
+    background: "#fff",
+    width: "100%",
+  },
+
+  saveIconBtn: {
+    background: "#d1fae5",
+    border: "none",
+    borderRadius: "6px",
+    padding: "8px 12px",
+    cursor: "pointer",
+    marginRight: "8px",
+    fontSize: "16px",
+    transition: "background 0.2s ease",
+  },
+  
+  saveIconBtnHover: {
+    background: "#a7f3d0",
+  },
+
+  cancelIconBtn: {
+    background: "#fef3c7",
+    border: "none",
+    borderRadius: "6px",
+    padding: "8px 12px",
+    cursor: "pointer",
+    fontSize: "16px",
+    transition: "background 0.2s ease",
+  },
+  
+  cancelIconBtnHover: {
+    background: "#fde68a",
   },
 };
+
+// Thêm hiệu ứng hover
+const addHoverEffects = () => {
+  const styleSheet = document.styleSheets[0];
+  
+  // Xóa button hover
+  styleSheet.insertRule(`
+    button[style*="background: #f3f4f6"]:hover {
+      background: #e5e7eb !important;
+    }
+  `);
+  
+  // Lưu button hover
+  styleSheet.insertRule(`
+    button[style*="background: #3B82F6"]:hover {
+      background: #2563eb !important;
+    }
+  `);
+  
+  // Edit icon hover
+  styleSheet.insertRule(`
+    button[style*="background: #f3f4f6"]:hover {
+      background: #e5e7eb !important;
+    }
+  `);
+  
+  // Xóa icon hover
+  styleSheet.insertRule(`
+    button[style*="background: #fee2e2"]:hover {
+      background: #fecaca !important;
+    }
+  `);
+  
+  // Lưu icon hover
+  styleSheet.insertRule(`
+    button[style*="background: #d1fae5"]:hover {
+      background: #a7f3d0 !important;
+    }
+  `);
+  
+  // Hủy icon hover
+  styleSheet.insertRule(`
+    button[style*="background: #fef3c7"]:hover {
+      background: #fde68a !important;
+    }
+  `);
+};
+
+// Gọi hàm thêm hover effects khi component mount
+if (typeof window !== 'undefined') {
+  setTimeout(addHoverEffects, 100);
+}
 
 export default SystemConfiguration;
