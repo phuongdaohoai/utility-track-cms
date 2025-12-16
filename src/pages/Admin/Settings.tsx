@@ -30,7 +30,7 @@ const SystemConfiguration: React.FC = () => {
             <input
               type="text"
               value={formState.operatingHours}
-              style={styles.inputLong}
+              style={styles.input}
               readOnly
             />
           </div>
@@ -40,7 +40,7 @@ const SystemConfiguration: React.FC = () => {
             <input
               type="text"
               value={formState.activity}
-              style={styles.inputLong}
+              style={styles.input}
               readOnly
             />
           </div>
@@ -48,7 +48,7 @@ const SystemConfiguration: React.FC = () => {
           <div style={styles.formRow}>
             <label style={styles.label}>Check-In Khách Ngoài</label>
             <select
-              style={styles.selectShort}
+              style={styles.input}
               defaultValue={formState.guestCheckIn}
             >
               <option value="Bật">Bật</option>
@@ -144,25 +144,17 @@ const styles: Record<string, React.CSSProperties> = {
   formRow: {
     display: "flex",
     alignItems: "center",
-    justifyContent: "space-between",
+    gap: "20px",
     marginBottom: "18px",
   },
 
   label: {
-    width: "220px",
+    width: "300px",
     fontWeight: 600,
   },
 
-  inputLong: {
-    width: "72%",
-    padding: "10px 12px",
-    borderRadius: "6px",
-    border: "1px solid #ddd",
-    fontSize: "14px",
-  },
-
-  selectShort: {
-    width: "60%",
+  input: {
+    flex: 1, // 🔥 QUAN TRỌNG: input & select dài bằng nhau
     padding: "10px 12px",
     borderRadius: "6px",
     border: "1px solid #ddd",
@@ -203,7 +195,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
 
   tableWrapper: {
-    maxHeight: "268px", // ~ 4 dòng
+    maxHeight: "280px", // hiển thị ~4 dòng
     overflowY: "auto",
   },
 
