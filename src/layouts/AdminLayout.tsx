@@ -6,10 +6,13 @@ export const AdminLayout: FC = () => {
     <div className="flex h-screen bg-white">
       <Sidebar />
 
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col overflow-hidden">    
+      <main className="flex-1 flex flex-col overflow-auto">
+        <div className="flex-1 px-6 py-6 md:px-8 lg:px-10">
           <Outlet />
+        </div>
+
       </main>
+
     </div>
   )
 }
