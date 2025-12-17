@@ -30,12 +30,13 @@ export default function AdminChart() {
             {/* Header */}
             <div className="mb-4 flex items-center justify-between">
                 <h2 className="font-semibold">Biểu đồ</h2>
-                <select className="rounded-md border px-3 py-1 text-sm">
+                <select className="w-[130px] rounded-md border px-4 py-2 text-sm">
                     <option>Năm</option>
                     <option>Tháng</option>
                     <option>Ngày</option>
                 </select>
             </div>
+
 
             {/* Chart */}
             <ResponsiveContainer width="100%" height={320}>

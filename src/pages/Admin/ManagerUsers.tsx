@@ -12,13 +12,13 @@ import { FilterModal, FilterConfig, FilterCondition } from '../../components/Fil
 import { CreateResidentButton } from '../../components/residents/CreateResidentButton';
 import { deleteResident } from '../../store/residentsSlice';
 export const UsersPage: FC = () => {
-  const { name, role } = useAppSelector((state) => state.auth.user || { name: 'User', role: 'Guest' });
+  //const { name, role } = useAppSelector((state) => state.auth.user || { name: 'User', role: 'Guest' });
   const navigate = useNavigate();
   const [tab, setTab] = useState<TabType>('staff')
   const [query, setQuery] = useState<string>('')
 
 
-// --- STATE CHO BỘ LỌC ---
+  // --- STATE CHO BỘ LỌC ---
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [activeFilters, setActiveFilters] = useState<FilterCondition[]>([]);
 
@@ -27,20 +27,20 @@ export const UsersPage: FC = () => {
 
 
 
-// --- CẤU HÌNH CÁC TRƯỜNG LỌC ---
+  // --- CẤU HÌNH CÁC TRƯỜNG LỌC ---
   const residentFields: FilterConfig[] = [
     { key: 'fullName', label: 'Tên cư dân', type: 'string' },
     { key: 'phone', label: 'Số điện thoại', type: 'string' },
-    { key: 'room', label: 'Phòng', type: 'string' }, 
-    { key: 'status', label: 'Trạng thái', type: 'select', options: [{label: 'Hoạt động', value: 1}, {label: 'Không hoạt động', value: 0}] },
+    { key: 'room', label: 'Phòng', type: 'string' },
+    { key: 'status', label: 'Trạng thái', type: 'select', options: [{ label: 'Hoạt động', value: 1 }, { label: 'Không hoạt động', value: 0 }] },
     { key: 'joinDate', label: 'Ngày gia nhập', type: 'date' },
   ];
 
   const staffFields: FilterConfig[] = [
     { key: 'fullName', label: 'Tên nhân sự', type: 'string' },
     { key: 'phone', label: 'Số điện thoại', type: 'string' },
-    { key: 'roleId', label: 'Chức vụ', type: 'select', options: [{label: 'Admin', value: 1}, {label: 'Manager', value: 2}, {label: 'Staff', value: 3}] },
-    { key: 'status', label: 'Trạng thái', type: 'select', options: [{label: 'Hoạt động', value: 1}, {label: 'Không hoạt động', value: 0}] },
+    { key: 'roleId', label: 'Chức vụ', type: 'select', options: [{ label: 'Admin', value: 1 }, { label: 'Manager', value: 2 }, { label: 'Staff', value: 3 }] },
+    { key: 'status', label: 'Trạng thái', type: 'select', options: [{ label: 'Hoạt động', value: 1 }, { label: 'Không hoạt động', value: 0 }] },
   ];
 
   const currentFields = tab === 'residents' ? residentFields : staffFields;
@@ -59,22 +59,22 @@ export const UsersPage: FC = () => {
   }
   const handleDelete = async (id: number) => {
     const isStaff = tab === 'staff';
-    const confirmMessage = isStaff 
+    const confirmMessage = isStaff
       ? "Bạn có chắc chắn muốn xóa nhân viên này không?"
       : "Bạn có chắc chắn muốn xóa cư dân này không?";
 
     if (window.confirm(confirmMessage)) {
       try {
         if (isStaff) {
-           // Xóa Nhân viên
-           await dispatch(deleteStaff(id)).unwrap();
+          // Xóa Nhân viên
+          await dispatch(deleteStaff(id)).unwrap();
         } else {
-           // Xóa Cư dân (Gọi action mới)
-           await dispatch(deleteResident(id)).unwrap();
+          // Xóa Cư dân (Gọi action mới)
+          await dispatch(deleteResident(id)).unwrap();
         }
 
         alert("Xóa thành công!");
-        
+
         // Refresh lại danh sách
         dispatch(fetchUsers({ type: tab, query, page, pageSize }));
       } catch (err: any) {
@@ -82,7 +82,7 @@ export const UsersPage: FC = () => {
       }
     }
   }
-  
+
   const handleApplyFilter = (filters: FilterCondition[]) => {
     setActiveFilters(filters);
     console.log("Applying filters:", filters);
@@ -92,28 +92,13 @@ export const UsersPage: FC = () => {
   return (
     <div className='overflow-auto'>
       {/* --- BỔ SUNG DÒNG NÀY --- */}
-      <FilterModal 
+      <FilterModal
         isOpen={isFilterOpen}
         onClose={() => setIsFilterOpen(false)}
         onApply={handleApplyFilter}
         availableFields={currentFields}
       />
       {/* ----------------------- */}
-      <header className="bg-white shadow px-6 py-4">
-        <div className="flex items-center justify-between">
-          <h6 className="text-sm font-semibold text-[#8889ab]">
-            Quản lý phân quyền / <span className="text-[#333570] font-bold">Danh sách Admin</span>
-          </h6>
-          <div className="flex items-center gap-4">
-            <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-semibold">B</div>
-            <div className="text-sm text-gray-600">
-              {name}<br />
-              <span className="text-xs text-gray-400">{role}</span>
-            </div>
-          </div>
-        </div>
-      </header>
-
       <div className="flex-1 overflow-auto p-6">
 
 
@@ -155,20 +140,20 @@ export const UsersPage: FC = () => {
                 >
                   Tìm Kiếm
                 </button>
-              {/* --- NÚT BỘ LỌC MỚI --- */}
+                {/* --- NÚT BỘ LỌC MỚI --- */}
                 <button
                   onClick={() => setIsFilterOpen(true)}
                   className={`flex items-center gap-2 px-4 py-2 border rounded bg-white hover:bg-gray-50 transition-colors ${activeFilters.length > 0 ? 'border-indigo-500 text-indigo-700 bg-indigo-50' : 'border-gray-300 text-gray-700'}`}
                 >
-                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-                   </svg>
-                   Bộ lọc
-                   {activeFilters.length > 0 && (
-                     <span className="bg-indigo-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                       {activeFilters.length}
-                     </span>
-                   )}
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                  </svg>
+                  Bộ lọc
+                  {activeFilters.length > 0 && (
+                    <span className="bg-indigo-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                      {activeFilters.length}
+                    </span>
+                  )}
                 </button>
               </div>
             </div>
@@ -180,7 +165,7 @@ export const UsersPage: FC = () => {
                   <CreateResidentButton onSuccess={handleCreateSuccess} />
                 </>
               )}
-              
+
               {tab === 'staff' && (
                 <>
                   <CSVImportButton importType="staff" />
@@ -224,7 +209,7 @@ export const UsersPage: FC = () => {
                       <div className="w-8 h-8 rounded-full bg-gray-200" />
                       <div>
                         <div className="font-medium">{u.fullName}</div>
-                      
+
                       </div>
                     </td>
                     <td className="p-4">{tab === 'residents' ? u.room : u.role?.roleName}</td>
@@ -276,8 +261,8 @@ export const UsersPage: FC = () => {
                 key={i}
                 onClick={() => onPage(pageNum)}
                 className={`px-3 py-1 rounded ${page === pageNum
-                    ? 'bg-indigo-600 text-white font-medium'
-                    : 'text-gray-700 hover:bg-gray-100'
+                  ? 'bg-indigo-600 text-white font-medium'
+                  : 'text-gray-700 hover:bg-gray-100'
                   }`}
               >
                 {pageNum}
@@ -291,8 +276,8 @@ export const UsersPage: FC = () => {
               <button
                 onClick={() => onPage(Math.ceil(total / pageSize))}
                 className={`px-3 py-1 rounded ${page === Math.ceil(total / pageSize)
-                    ? 'bg-indigo-600 text-white font-medium'
-                    : 'text-gray-700 hover:bg-gray-100'
+                  ? 'bg-indigo-600 text-white font-medium'
+                  : 'text-gray-700 hover:bg-gray-100'
                   }`}
               >
                 {Math.ceil(total / pageSize)}
