@@ -1,5 +1,5 @@
 import { createBrowserRouter } from 'react-router-dom'
-import MainLayout from '../layouts/MainLayout'
+
 import AdminLayout from '../layouts/AdminLayout'
 import HomePage from '../pages/Home'
 import LoginPage from '../pages/Login'
@@ -35,10 +35,7 @@ export const router = createBrowserRouter([
         path: 'users',
         element: <UsersPage />,
       },
-      {
-        path: 'users/:id/edit', // vd /users/1/edit
-        element: <ProfileEdit />,
-      },{
+     {
         path: 'services',
         element: <ServicesPage />,
       },

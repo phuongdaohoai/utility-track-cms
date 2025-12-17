@@ -7,7 +7,7 @@ export const AdminLayout: FC = () => {
       <Sidebar />
 
       <main className="flex-1 flex flex-col overflow-auto">
-        <div className="flex-1 px-6 py-6 md:px-8 lg:px-10">
+        <div className="flex-1">
           <Outlet />
         </div>
 

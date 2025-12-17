@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-
+import PageHeader from '../../components/PageHeader'
 interface CheckinItem {
   id: number;
   type: string;
@@ -100,7 +100,10 @@ const SystemConfiguration: React.FC = () => {
   };
 
   return (
-    <div style={styles.page}>
+    <>      
+    <PageHeader breadcrumbs={['Cấu hình hệ thống', 'Cài đặt chung']} />
+
+    <div style={styles.page} className="mx-5 sm:mx-14 mt-7">
       <div style={styles.container}>
         {/* ================= FORM ================= */}
         <div style={styles.box}>
@@ -248,6 +251,7 @@ const SystemConfiguration: React.FC = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 
@@ -269,7 +273,7 @@ const styles: Record<string, React.CSSProperties> = {
   page: {
     display: "flex",
     justifyContent: "center",
-    padding: "40px",
+    
     fontFamily: "Inter, sans-serif",
     backgroundColor: "#f5f7fa",
     minHeight: "100vh",

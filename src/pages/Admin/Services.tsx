@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-
+import PageHeader from '../../components/PageHeader' 
 /* ================== TYPES ================== */
 export interface Service {
   id: number;
@@ -43,7 +43,9 @@ const ServiceTable: React.FC = () => {
   };
 
   return (
-    <div style={{ padding: 20, fontFamily: "Arial, sans-serif" }}>
+    <>
+      <PageHeader breadcrumbs={['Quản lý dịch vụ', 'Danh sách dịch vụ']} />
+    <div style={{  fontFamily: "Arial, sans-serif" }} className="mx-5 sm:mx-14 mt-7" >
       <div style={tableWrapperStyle}>
         <table style={tableStyle}>
           <thead style={theadStyle}>
@@ -113,6 +115,7 @@ const ServiceTable: React.FC = () => {
         </table>
       </div>
     </div>
+    </>
   );
 };
 

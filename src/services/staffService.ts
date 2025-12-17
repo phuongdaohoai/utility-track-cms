@@ -7,19 +7,25 @@ export interface Staff {
   phone: string;
   email: string;
   role: {
+    id: number;
     roleName: string;
   } | null;
   status: number; // 1: Active, 0: Inactive
-  avatar: string | null;
+  avatar?: File;
   roleId: number;
+  version: number;
+  
 }
 
 export interface UpdateStaffPayload {
   staffId: number;
   fullName: string;
   phone: string;
+  email: string;
   status: number;
   roleId: number;
+  version: number;
+  avatar?: File;
   // avatar sẽ xử lý riêng 
 }
 
@@ -39,18 +45,35 @@ const getById = async (id: number | string) => {
     throw new Error(error.message || 'Lỗi khi lấy thông tin nhân viên');
   }
 
-  return response.json(); 
+  return response.json();
 };
 
 const update = async (data: UpdateStaffPayload) => {
   const token = localStorage.getItem('accessToken');
-  const response = await fetch(`${API_BASE_URL}/staff/update`, {
+  const formData = new FormData();
+  
+  // Append các trường text
+  formData.append('staffId', data.staffId.toString());
+  formData.append('fullName', data.fullName);
+  formData.append('phone', data.phone);
+  formData.append('email', data.email);
+  formData.append('roleId', data.roleId.toString());
+  formData.append('status', data.status.toString());
+  formData.append('version', data.version.toString());
+
+  // 2. Chỉ append avatar nếu người dùng có chọn file mới
+  if (data.avatar instanceof File) {
+    formData.append('avatar', data.avatar);
+  }
+
+  // 3. Gọi API
+  const response = await fetch(`${API_BASE_URL}/staff/update/${data.staffId}`, {
     method: 'PUT', 
     headers: {
-      'Content-Type': 'application/json',
       'Authorization': token ? `Bearer ${token}` : '',
+   
     },
-    body: JSON.stringify(data),
+    body: formData, 
   });
 
   if (!response.ok) {
@@ -62,7 +85,7 @@ const update = async (data: UpdateStaffPayload) => {
 };
 const deleteStaff = async (id: number | string) => {
   const token = localStorage.getItem('accessToken');
- 
+
   const response = await fetch(`${API_BASE_URL}/staff/delete/${id}`, {
     method: 'DELETE',
     headers: {
@@ -93,7 +116,7 @@ export interface CreateStaffPayload {
 
 const create = async (data: CreateStaffPayload) => {
   const token = localStorage.getItem('accessToken');
-  
+
   // Xử lý FormData nếu có file avatar
   let formData = new FormData();
   formData.append('fullName', data.fullName);
@@ -101,11 +124,11 @@ const create = async (data: CreateStaffPayload) => {
   formData.append('email', data.email);
   formData.append('roleId', data.roleId.toString());
   formData.append('status', data.status?.toString() || '1');
-  
+
   if (data.avatar) {
     formData.append('avatar', data.avatar);
   }
-  
+
   const response = await fetch(`${API_BASE_URL}/staff/create`, {
     method: 'POST',
     headers: {
@@ -125,7 +148,7 @@ const create = async (data: CreateStaffPayload) => {
 // Cập nhật staffService export
 const staffService = {
   getById,
-  create, 
+  create,
   update,
   delete: deleteStaff,
 };

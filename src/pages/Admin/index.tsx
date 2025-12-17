@@ -1,11 +1,13 @@
 import AdminStatCard from "../../components/AdminStatCard";
 import AdminChart from "../../components/AdminChart";
-
+import PageHeader from '../../components/PageHeader'
 import { FileText, BarChart2, Users } from "lucide-react";
 
 export default function AdminPage() {
   return (
-    <div className="space-y-6">
+    <>
+    <PageHeader breadcrumbs={['Trang chủ', 'Dashboard']} />
+    <div className="space-y-6  mx-5 sm:mx-14 mt-7">
       <h1 className="text-3xl font-bold">Admin Dashboard</h1>
 
       {/* Thống kê */}
@@ -31,5 +33,6 @@ export default function AdminPage() {
       {/* Biểu đồ */}
       <AdminChart />
     </div>
+    </>
   );
 }

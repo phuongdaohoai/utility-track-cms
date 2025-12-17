@@ -1,9 +1,8 @@
 import type { FC } from 'react'
 import { useEffect, useState } from 'react'
-
+import PageHeader from '../../components/PageHeader'
 import { useAppDispatch, useAppSelector } from '../../store/hooks'
 import { fetchUsers, setPage } from '../../store/usersSlice'
-import { useNavigate } from 'react-router-dom';
 import { deleteStaff } from '../../store/staffSlice';
 import { CSVImportButton } from "../../components/CSVImport";
 import { CreateStaffButton } from '../../components/staff/CreateStaffButton';
@@ -11,13 +10,16 @@ type TabType = 'residents' | 'staff'
 import { FilterModal, FilterConfig, FilterCondition } from '../../components/FilterModal';
 import { CreateResidentButton } from '../../components/residents/CreateResidentButton';
 import { deleteResident } from '../../store/residentsSlice';
+import { EditStaffModal } from '../../components/staff/EditStaffModal';
+
+import { EditResidentModal } from '../../components/residents/EditResidentModal';
 export const UsersPage: FC = () => {
-  const { name, role } = useAppSelector((state) => state.auth.user || { name: 'User', role: 'Guest' });
-  const navigate = useNavigate();
+
+
   const [tab, setTab] = useState<TabType>('staff')
   const [query, setQuery] = useState<string>('')
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
-
+  const [editingId, setEditingId] = useState<number | null>(null);
 
 
   // --- STATE CHO BỘ LỌC ---
@@ -127,10 +129,30 @@ export const UsersPage: FC = () => {
     setSelectedIds([])
     dispatch(fetchUsers({ type: tab, query, page, pageSize }))
   }
-
+  const handleSuccess = () => {
+    dispatch(fetchUsers({ type: tab, query, page, pageSize }));
+    setEditingId(null);
+  };
   return (
-    <div className='overflow-auto'>
-      {/* --- BỔ SUNG DÒNG NÀY --- */}
+    <div className='overflow-auto '>
+      {editingId && tab === 'staff' && (
+        <EditStaffModal
+          isOpen={true}
+          staffId={editingId}
+          onClose={() => setEditingId(null)}
+          onSuccess={handleSuccess}
+        />
+      )}
+
+      {editingId && tab === 'residents' && (
+        <EditResidentModal
+          isOpen={true}
+          residentId={editingId}
+          onClose={() => setEditingId(null)}
+          onSuccess={handleSuccess}
+        />
+      )}
+      {/* --- Bộ lọc --- */}
       <FilterModal
         isOpen={isFilterOpen}
         onClose={() => setIsFilterOpen(false)}
@@ -138,22 +160,9 @@ export const UsersPage: FC = () => {
         availableFields={currentFields}
       />
       {/* ----------------------- */}
-      <header className="bg-white shadow px-6 py-4">
-        <div className="flex items-center justify-between">
-          <h6 className="text-sm font-semibold text-[#8889ab]">
-            Quản lý phân quyền / <span className="text-[#333570] font-bold">Danh sách Admin</span>
-          </h6>
-          <div className="flex items-center gap-4">
-            <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-semibold">B</div>
-            <div className="text-sm text-gray-600">
-              {name}<br />
-              <span className="text-xs text-gray-400">{role}</span>
-            </div>
-          </div>
-        </div>
-      </header>
+      <PageHeader breadcrumbs={['Quản lý người dùng', tab === 'residents' ? 'Danh sách cư dân' : 'Danh sách nhân sự']} />
 
-      <div className="flex-1 overflow-auto p-6">
+      <div className="flex-1 overflow-auto mx-5 sm:mx-14 mt-7">
 
 
         <div className="flex gap-4 border-b border-[#cecfdd] mb-3">
@@ -281,8 +290,7 @@ export const UsersPage: FC = () => {
                     <td className="p-4">
                       <div className="flex gap-2">
                         <button
-                          // 3. Thêm sự kiện onClick chuyển hướng
-                          onClick={() => navigate(`/admin/users/${u.id}/edit`)}
+                          onClick={() => setEditingId(u.id)} // Set ID chung
                           className="p-2 bg-white border rounded hover:bg-gray-50 transition-colors"
                           title="Chỉnh sửa"
                         >

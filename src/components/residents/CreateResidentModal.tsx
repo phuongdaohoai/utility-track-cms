@@ -12,8 +12,18 @@ export const CreateResidentModal: React.FC<CreateResidentModalProps> = ({ isOpen
   const [isLoading, setIsLoading] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string>('');
-  
 
+  const formatPhoneNumber = (value: string) => {
+    if (!value) return value;
+    const phoneNumber = value.replace(/[^\d]/g, ''); // Chỉ giữ lại số
+    const phoneNumberLength = phoneNumber.length;
+
+    if (phoneNumberLength < 5) return phoneNumber;
+    if (phoneNumberLength < 8) {
+      return `${phoneNumber.slice(0, 4)}-${phoneNumber.slice(4)}`;
+    }
+    return `${phoneNumber.slice(0, 4)}-${phoneNumber.slice(4, 7)}-${phoneNumber.slice(7, 10)}`;
+  };
   const [formData, setFormData] = useState({
     fullName: '',
     phone: '',
@@ -27,9 +37,24 @@ export const CreateResidentModal: React.FC<CreateResidentModalProps> = ({ isOpen
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const handlePhoneChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const { value } = e.target;
 
+    const rawValue = value.replace(/\D/g, '');
+
+    if (rawValue.length > 10) return;
+
+    const formattedValue = formatPhoneNumber(rawValue);
+
+    setFormData(prev => ({ ...prev, phone: formattedValue }));
+
+    // 4. Xóa lỗi nếu có (Validate trên rawValue)
+    if (errors.phone) {
+      setErrors(prev => ({ ...prev, phone: '' }));
+    }
+  };
   const handleClose = () => {
- 
+
     setFormData({
       fullName: '', phone: '', email: '', citizenCard: '', gender: 'Nam',
       birthday: '', apartmentId: '', qrCode: '', faceIdData: ''
@@ -45,7 +70,7 @@ export const CreateResidentModal: React.FC<CreateResidentModalProps> = ({ isOpen
     const newErrors: Record<string, string> = {};
 
     if (!formData.fullName.trim()) newErrors.fullName = 'Họ tên là bắt buộc';
-    
+
     if (!formData.phone.trim()) {
       newErrors.phone = 'SĐT là bắt buộc';
     } else if (!/^\d{10,11}$/.test(formData.phone)) {
@@ -59,7 +84,7 @@ export const CreateResidentModal: React.FC<CreateResidentModalProps> = ({ isOpen
     }
 
     if (!formData.birthday) newErrors.birthday = 'Ngày sinh là bắt buộc';
-    
+
     // Nếu apartmentId bắt buộc thì uncomment dòng dưới
     // if (!formData.apartmentId) newErrors.apartmentId = 'Mã căn hộ là bắt buộc';
 
@@ -88,27 +113,27 @@ export const CreateResidentModal: React.FC<CreateResidentModalProps> = ({ isOpen
 
     setIsLoading(true);
     try {
-  
+
       const submitData = new FormData();
-      
-    
+
+
       Object.entries(formData).forEach(([key, value]) => {
-       
+
         if (value) submitData.append(key, value);
       });
 
-     
+
       if (avatarFile) {
         submitData.append('avatar', avatarFile);
       }
 
       const token = localStorage.getItem('accessToken');
-      
+
       const response = await fetch(`${API_BASE_URL}/residents/create`, {
         method: 'POST',
         headers: {
           'Authorization': token ? `Bearer ${token}` : '',
-        
+
         },
         body: submitData
       });
@@ -119,9 +144,9 @@ export const CreateResidentModal: React.FC<CreateResidentModalProps> = ({ isOpen
         throw new Error(resJson.message || 'Lỗi khi tạo cư dân');
       }
 
-    
+
       alert('Tạo cư dân thành công!');
-      onSuccess(); 
+      onSuccess();
       handleClose();
 
     } catch (error: any) {
@@ -137,7 +162,7 @@ export const CreateResidentModal: React.FC<CreateResidentModalProps> = ({ isOpen
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm p-4">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        
+
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white z-10">
           <h2 className="text-xl font-bold text-[#333570]">Thêm Mới Cư Dân</h2>
@@ -146,27 +171,27 @@ export const CreateResidentModal: React.FC<CreateResidentModalProps> = ({ isOpen
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          
+
           {/* Avatar Upload */}
           <div className="flex flex-col items-center gap-2 mb-4">
-             <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-gray-200 bg-gray-50 flex items-center justify-center relative group">
-                {preview ? (
-                  <img src={preview} alt="Preview" className="w-full h-full object-cover" />
-                ) : (
-                  <span className="text-gray-400 text-xs">Ảnh đại diện</span>
-                )}
-             </div>
-             <label className="cursor-pointer px-3 py-1 bg-indigo-50 text-indigo-700 text-xs rounded border border-indigo-200 hover:bg-indigo-100 transition-colors">
-                Chọn ảnh
-                <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
-             </label>
+            <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-gray-200 bg-gray-50 flex items-center justify-center relative group">
+              {preview ? (
+                <img src={preview} alt="Preview" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-gray-400 text-xs">Ảnh đại diện</span>
+              )}
+            </div>
+            <label className="cursor-pointer px-3 py-1 bg-indigo-50 text-indigo-700 text-xs rounded border border-indigo-200 hover:bg-indigo-100 transition-colors">
+              Chọn ảnh
+              <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+            </label>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Fullname */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Họ và tên <span className="text-red-500">*</span></label>
-              <input 
+              <input
                 name="fullName"
                 value={formData.fullName}
                 onChange={handleChange}
@@ -179,12 +204,12 @@ export const CreateResidentModal: React.FC<CreateResidentModalProps> = ({ isOpen
             {/* Phone */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Số điện thoại <span className="text-red-500">*</span></label>
-              <input 
+              <input
                 name="phone"
                 value={formData.phone}
-                onChange={handleChange}
+                onChange={handlePhoneChange}
                 className={`w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 ${errors.phone ? 'border-red-500 focus:ring-red-200' : 'border-gray-300 focus:ring-indigo-200'}`}
-                placeholder="0901234567"
+                placeholder="0000-000-000"
               />
               {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
             </div>
@@ -192,7 +217,7 @@ export const CreateResidentModal: React.FC<CreateResidentModalProps> = ({ isOpen
             {/* Email */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-              <input 
+              <input
                 name="email"
                 type="email"
                 value={formData.email}
@@ -202,10 +227,10 @@ export const CreateResidentModal: React.FC<CreateResidentModalProps> = ({ isOpen
               />
             </div>
 
-             {/* CCCD */}
-             <div>
+            {/* CCCD */}
+            <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">CCCD (12 số) <span className="text-red-500">*</span></label>
-              <input 
+              <input
                 name="citizenCard"
                 value={formData.citizenCard}
                 onChange={handleChange}
@@ -218,9 +243,9 @@ export const CreateResidentModal: React.FC<CreateResidentModalProps> = ({ isOpen
             {/* Gender */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Giới tính <span className="text-red-500">*</span></label>
-              <select 
-                name="gender" 
-                value={formData.gender} 
+              <select
+                name="gender"
+                value={formData.gender}
                 onChange={handleChange}
                 className="w-full border border-gray-300 rounded px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200"
               >
@@ -233,7 +258,7 @@ export const CreateResidentModal: React.FC<CreateResidentModalProps> = ({ isOpen
             {/* Birthday */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Ngày sinh <span className="text-red-500">*</span></label>
-              <input 
+              <input
                 name="birthday"
                 type="date"
                 value={formData.birthday}
@@ -246,7 +271,7 @@ export const CreateResidentModal: React.FC<CreateResidentModalProps> = ({ isOpen
             {/* Apartment ID */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Mã căn hộ (ID)</label>
-              <input 
+              <input
                 name="apartmentId"
                 type="number"
                 value={formData.apartmentId}
@@ -259,7 +284,7 @@ export const CreateResidentModal: React.FC<CreateResidentModalProps> = ({ isOpen
             {/* QR Code */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Mã QR</label>
-              <input 
+              <input
                 name="qrCode"
                 value={formData.qrCode}
                 onChange={handleChange}
@@ -268,10 +293,10 @@ export const CreateResidentModal: React.FC<CreateResidentModalProps> = ({ isOpen
               />
             </div>
 
-             {/* FaceID Data */}
-             <div className="md:col-span-2">
+            {/* FaceID Data */}
+            <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">Dữ liệu FaceID</label>
-              <input 
+              <input
                 name="faceIdData"
                 value={formData.faceIdData}
                 onChange={handleChange}
@@ -283,15 +308,15 @@ export const CreateResidentModal: React.FC<CreateResidentModalProps> = ({ isOpen
 
           {/* Footer Actions */}
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 mt-4 sticky bottom-0 bg-white">
-            <button 
+            <button
               type="button"
-              onClick={handleClose} 
+              onClick={handleClose}
               className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded hover:bg-gray-50 text-sm font-medium transition-colors"
             >
               Hủy bỏ
             </button>
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               disabled={isLoading}
               className="px-6 py-2 bg-indigo-700 text-white rounded hover:bg-indigo-800 text-sm font-medium disabled:bg-indigo-300 flex items-center gap-2 transition-colors"
             >

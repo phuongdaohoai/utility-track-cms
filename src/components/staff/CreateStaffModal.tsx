@@ -1,4 +1,4 @@
-// components/staff/CreateStaffModal.tsx
+
 import { FC, useState, useRef, ChangeEvent, useEffect } from 'react';
 import { X, Upload, User, Phone, Mail, Shield, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
@@ -7,7 +7,7 @@ import { fetchRoles } from '../../store/roleSlice';
 interface CreateStaffModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess?: () => void; // Callback khi tạo thành công
+  onSuccess?: () => void; 
 }
 
 
@@ -27,7 +27,7 @@ export const CreateStaffModal: FC<CreateStaffModalProps> = ({
     fullName: '',
     phone: '',
     email: '',
-    roleId: 3, // Mặc định là Lễ tân
+    roleId: 3, 
     status: 1,
   });
 

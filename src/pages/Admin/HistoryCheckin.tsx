@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import * as XLSX from "xlsx";
 import saveAs from "file-saver";
-
+import PageHeader from '../../components/PageHeader'
 const UsageHistory: React.FC = () => {
   const [inputText, setInputText] = useState(""); // input tạm
   const [searchText, setSearchText] = useState(""); // filter
@@ -83,7 +83,9 @@ const UsageHistory: React.FC = () => {
   };
 
   return (
-    <div style={styles.page}>
+    <>
+      <PageHeader breadcrumbs={['Quản lý lịch sử checkin', 'Danh sách lịch sử']} />
+    <div style={styles.page} className="mx-5 sm:mx-14 mt-7">
       {/* SEARCH + EXCEL */}
       <div style={styles.topBar}>
         <div style={styles.searchWrap}>
@@ -210,6 +212,7 @@ const UsageHistory: React.FC = () => {
         />
       )}
     </div>
+    </>
   );
 };
 
@@ -292,7 +295,7 @@ const DetailModal = ({ user, onClose }: any) => {
           STYLES
 ============================ */
 const styles: { [key: string]: React.CSSProperties } = {
-  page: { padding: "24px 40px", fontFamily: "Inter, sans-serif" },
+  page: { fontFamily: "Inter, sans-serif" },
   topBar: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
   searchWrap: { display: "flex", gap: 10, flex: 1, maxWidth: 520 },
   searchInput: { flex: 1, height: 42, borderRadius: 8, border: "1px solid #DDE2E4", paddingLeft: 12, fontSize: 14, outline: "none" },
