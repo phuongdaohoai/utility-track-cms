@@ -46,17 +46,6 @@ const SystemConfiguration: React.FC = () => {
     // Thực tế: Gọi API để lưu dữ liệu
   };
 
-  const handleDeleteForm = () => {
-    if (window.confirm("Bạn có chắc chắn muốn xóa cấu hình hệ thống không?")) {
-      setFormState({
-        operatingHours: "",
-        activity: "",
-        guestCheckIn: "Bật"
-      });
-      alert("Cấu hình đã được xóa");
-    }
-  };
-
   // ====================== TABLE HANDLERS ======================
   
   const handleEditItem = (item: CheckinItem) => {
@@ -139,9 +128,6 @@ const SystemConfiguration: React.FC = () => {
 
         {/* ================= ACTION BUTTONS ================= */}
         <div style={styles.actionRow}>
-          <button style={styles.deleteBtn} onClick={handleDeleteForm}>
-            Xóa
-          </button>
           <button style={styles.saveBtn} onClick={handleSaveForm}>
             Lưu Thông Tin
           </button>
@@ -310,11 +296,10 @@ const styles: Record<string, React.CSSProperties> = {
   },
 
   actionRow: {
-    display: "flex",
-    justifyContent: "flex-end",
-    gap: "12px",
-    marginBottom: "20px",
-  },
+  display: "flex",
+  justifyContent: "flex-end",
+  marginBottom: "20px",
+},
 
   deleteBtn: {
     ...baseButton,
