@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react'
 
 import { useAppDispatch, useAppSelector } from '../../store/hooks'
 import { fetchUsers, setPage } from '../../store/usersSlice'
-import { useNavigate } from 'react-router-dom';
 import { deleteStaff } from '../../store/staffSlice';
 import { CSVImportButton } from "../../components/CSVImport";
 import { CreateStaffButton } from '../../components/staff/CreateStaffButton';
@@ -11,11 +10,16 @@ type TabType = 'residents' | 'staff'
 import { FilterModal, FilterConfig, FilterCondition } from '../../components/FilterModal';
 import { CreateResidentButton } from '../../components/residents/CreateResidentButton';
 import { deleteResident } from '../../store/residentsSlice';
+import { EditStaffModal } from '../../components/staff/EditStaffModal';
+
+import { EditResidentModal } from '../../components/residents/EditResidentModal';
 export const UsersPage: FC = () => {
   //const { name, role } = useAppSelector((state) => state.auth.user || { name: 'User', role: 'Guest' });
-  const navigate = useNavigate();
+
   const [tab, setTab] = useState<TabType>('staff')
   const [query, setQuery] = useState<string>('')
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [editingId, setEditingId] = useState<number | null>(null);
 
 
   // --- STATE CHO BỘ LỌC ---
@@ -66,16 +70,16 @@ export const UsersPage: FC = () => {
     if (window.confirm(confirmMessage)) {
       try {
         if (isStaff) {
-          // Xóa Nhân viên
+        
           await dispatch(deleteStaff(id)).unwrap();
         } else {
-          // Xóa Cư dân (Gọi action mới)
+         
           await dispatch(deleteResident(id)).unwrap();
         }
 
         alert("Xóa thành công!");
 
-        // Refresh lại danh sách
+      
         dispatch(fetchUsers({ type: tab, query, page, pageSize }));
       } catch (err: any) {
         alert("Xóa thất bại: " + (err || "Lỗi hệ thống"));
@@ -86,12 +90,70 @@ export const UsersPage: FC = () => {
   const handleApplyFilter = (filters: FilterCondition[]) => {
     setActiveFilters(filters);
     console.log("Applying filters:", filters);
-    // Logic call API sẽ nằm ở useEffect hoặc dispatch ngay tại đây
+
   };
 
+  const isAllSelected = items.length > 0 && selectedIds.length === items.length;
+
+  const handleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(items.map((u) => u.id));
+    }
+  };
+  const handleSelectOne = (id: number) => {
+    setSelectedIds((prev) =>
+      prev.includes(id)
+        ? prev.filter((i) => i !== id)
+        : [...prev, id]
+    );
+  };
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [tab, page]);
+
+  const handleDeleteSelected = async () => {
+    if (selectedIds.length === 0) return
+
+    if (!window.confirm(`Xóa ${selectedIds.length} mục đã chọn?`)) return
+
+    for (const id of selectedIds) {
+      if (tab === 'staff') {
+        await dispatch(deleteStaff(id)).unwrap()
+      } else {
+        await dispatch(deleteResident(id)).unwrap()
+      }
+    }
+
+    setSelectedIds([])
+    dispatch(fetchUsers({ type: tab, query, page, pageSize }))
+  }
+  const handleSuccess = () => {
+    dispatch(fetchUsers({ type: tab, query, page, pageSize }));
+    setEditingId(null);
+  };
   return (
     <div className='overflow-auto'>
-      {/* --- BỔ SUNG DÒNG NÀY --- */}
+      {editingId && tab === 'staff' && (
+        <EditStaffModal
+          isOpen={true}
+          staffId={editingId}
+          onClose={() => setEditingId(null)}
+          onSuccess={handleSuccess}
+        />
+      )}
+
+      {editingId && tab === 'residents' && (
+        <EditResidentModal
+          isOpen={true}
+          residentId={editingId}
+          onClose={() => setEditingId(null)}
+          onSuccess={handleSuccess}
+        />
+      )}
+      {/* --- Bộ lọc --- */}
+  
       <FilterModal
         isOpen={isFilterOpen}
         onClose={() => setIsFilterOpen(false)}
@@ -180,7 +242,7 @@ export const UsersPage: FC = () => {
           <table className="w-full table-auto">
             <thead className="bg-gray-50">
               <tr>
-                <th className="p-4 w-[72px] h-[72px]"><input type="checkbox" /></th>
+                <th className="p-4 w-[72px] h-[72px]"><input type="checkbox" checked={isAllSelected} onChange={handleSelectAll} /></th>
                 <th className="text-left p-4">{tab === 'residents' ? 'Tên Cư Dân' : 'Tên Nhân Sự'}</th>
                 <th className="text-left p-4">{tab === 'residents' ? 'Phòng' : 'Role'}</th>
                 <th className="text-left p-4">Số Điện Thoại</th>
@@ -204,7 +266,12 @@ export const UsersPage: FC = () => {
               ) : (
                 items.map((u) => (
                   <tr key={u.id} className="border-t">
-                    <td className=" pl-[28px] w-[72px] h-[72px]"><input type="checkbox" /></td>
+                    <td className=" pl-[28px] w-[72px] h-[72px]"><input
+                      type="checkbox"
+                      checked={selectedIds.includes(u.id)}
+                      onChange={() => handleSelectOne(u.id)}
+                    />
+                    </td>
                     <td className="p-4 flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-gray-200" />
                       <div>
@@ -222,8 +289,7 @@ export const UsersPage: FC = () => {
                     <td className="p-4">
                       <div className="flex gap-2">
                         <button
-                          // 3. Thêm sự kiện onClick chuyển hướng
-                          onClick={() => navigate(`/admin/users/${u.id}/edit`)}
+                          onClick={() => setEditingId(u.id)} // Set ID chung
                           className="p-2 bg-white border rounded hover:bg-gray-50 transition-colors"
                           title="Chỉnh sửa"
                         >
@@ -244,6 +310,16 @@ export const UsersPage: FC = () => {
             </tbody>
           </table>
         </div>
+        <button
+          onClick={handleDeleteSelected}
+          disabled={selectedIds.length === 0}
+          className={`px-4 py-2 mt-5 rounded text-white transition
+    ${selectedIds.length === 0
+              ? 'bg-gray-400 cursor-not-allowed'
+              : 'bg-red-600 hover:bg-red-700'}`}
+        >
+          Xóa đã chọn ({selectedIds.length})
+        </button>
 
         <div className="mt-4 flex items-center justify-center gap-1 text-sm">
           <button

@@ -29,5 +29,6 @@ export default function AdminPage() {
       {/* Biểu đồ */}
       <AdminChart />
     </div>
+  
   );
 }

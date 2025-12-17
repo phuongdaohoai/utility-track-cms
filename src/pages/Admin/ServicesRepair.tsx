@@ -32,7 +32,9 @@ const ServicesRepairPage: React.FC = () => {
   };
 
   return (
-    <div style={pageStyle}>
+    <>    
+
+    <div style={pageStyle} className="mx-5 sm:mx-14 mt-7">
       <div style={cardStyle}>
         <FormRow label="Tên Dịch Vụ">
           <input value={form.name} disabled style={inputStyle} />
@@ -96,6 +98,7 @@ const ServicesRepairPage: React.FC = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 
@@ -116,7 +119,7 @@ const FormRow: React.FC<{ label: string; children: React.ReactNode }> = ({
 /* ================= STYLES ================= */
 
 const pageStyle: React.CSSProperties = {
-  padding: 24,
+ 
   background: "#f8fafc",
   minHeight: "100vh",
 };

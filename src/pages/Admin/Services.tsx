@@ -145,6 +145,7 @@ const ServiceTable: React.FC = () => {
         </table>
       </div>
     </div>
+
   );
 };
 
