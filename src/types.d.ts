@@ -6,7 +6,11 @@ export interface User {
     roleName?: string;
    
   };
-  room?: number
+  apartment: {
+    building: string;
+    floorNumber: number;
+    roomNumber: string;
+  };
   position?: string
   phone?: string
   status?: int
