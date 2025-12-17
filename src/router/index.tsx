@@ -1,54 +1,59 @@
 import { createBrowserRouter } from 'react-router-dom'
-import MainLayout from '../layouts/MainLayout'
 import AdminLayout from '../layouts/AdminLayout'
-import HomePage from '../pages/Home'
+
+// Pages
 import LoginPage from '../pages/Login'
 import AdminPage from '../pages/Admin'
 import UsersPage from '../pages/Admin/ManagerUsers'
 import ProfileEdit from '../pages/Admin/EditUsers'
 import HistoryCheckinPage from '../pages/Admin/HistoryCheckin'
 import ServicesPage from '../pages/Admin/Services'
-import SettingsPage from '../pages/Admin/Settings'
 import ServicesRepairPage from '../pages/Admin/ServicesRepair'
+import SettingsPage from '../pages/Admin/Settings'
 
 export const router = createBrowserRouter([
   {
     path: '/',
     element: <LoginPage />,
-    children: [
-      {
-        path: 'login',
-        element: <LoginPage />,
-      },
-    ],
   },
+
   {
     path: '/admin',
     element: <AdminLayout />,
     children: [
+      // Dashboard
       {
         index: true,
         element: <AdminPage />,
       },
+
+      // Users
       {
         path: 'users',
         element: <UsersPage />,
       },
       {
-        path: 'users/:id/edit', // vd /users/1/edit
+        path: 'users/:id/edit',
         element: <ProfileEdit />,
-      },{
+      },
+
+      // Services
+      {
         path: 'services',
         element: <ServicesPage />,
       },
       {
-      path: 'services/:id',
-      element: <ServicesRepairPage />,
-    },
+        path: 'services/:id',
+        element: <ServicesRepairPage />,
+      },
+
+      // History
       {
         path: 'history',
         element: <HistoryCheckinPage />,
       },
+
+      // Settings
       {
         path: 'settings',
         element: <SettingsPage />,
