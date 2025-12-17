@@ -35,6 +35,18 @@ export const CreateStaffModal: FC<CreateStaffModalProps> = ({
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const formatPhone = (value: string) => {
+    const digits = value.replace(/\D/g, '').slice(0, 10);
+
+    if (digits.length <= 4) return digits;
+    if (digits.length <= 7) return `${digits.slice(0, 4)}-${digits.slice(4)}`;
+
+    return `${digits.slice(0, 4)}-${digits.slice(4, 7)}-${digits.slice(7)}`;
+  };
+
+  const normalizePhone = (value: string) => {
+    return value.replace(/\D/g, '');
+  };
 
   // Reset form khi modal mở
   useEffect(() => {
@@ -83,11 +95,14 @@ export const CreateStaffModal: FC<CreateStaffModalProps> = ({
       errors.fullName = 'Họ và tên là bắt buộc';
     }
 
-    if (!formData.phone.trim()) {
+    const rawPhone = normalizePhone(formData.phone);
+
+    if (!rawPhone) {
       errors.phone = 'Số điện thoại là bắt buộc';
-    } else if (!/^(0|\+84)(\d{9,10})$/.test(formData.phone.replace(/\s/g, ''))) {
+    } else if (!/^(0\d{9})$/.test(rawPhone)) {
       errors.phone = 'Số điện thoại không hợp lệ';
     }
+
 
     if (!formData.email.trim()) {
       errors.email = 'Email là bắt buộc';
@@ -104,14 +119,31 @@ export const CreateStaffModal: FC<CreateStaffModalProps> = ({
   };
 
   // Xử lý thay đổi input
-  const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleInputChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
+
+    if (name === 'phone') {
+      const formatted = formatPhone(value);
+
+      setFormData(prev => ({
+        ...prev,
+        phone: formatted
+      }));
+
+      if (formErrors.phone) {
+        setFormErrors(prev => ({ ...prev, phone: '' }));
+      }
+
+      return;
+    }
+
     setFormData(prev => ({
       ...prev,
       [name]: name === 'roleId' ? Number(value) : value
     }));
 
-    // Clear error khi user bắt đầu nhập
     if (formErrors[name]) {
       setFormErrors(prev => ({ ...prev, [name]: '' }));
     }
@@ -173,9 +205,11 @@ export const CreateStaffModal: FC<CreateStaffModalProps> = ({
     try {
       const payload = {
         ...formData,
+        phone: normalizePhone(formData.phone),
         avatar: avatarFile || undefined,
         roleId: Number(formData.roleId),
       };
+
 
       await dispatch(createStaff(payload)).unwrap();
     } catch (error) {
@@ -357,7 +391,7 @@ export const CreateStaffModal: FC<CreateStaffModalProps> = ({
 
 
             {/* Role */}
-           <div>
+            <div>
               <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                 <Shield className="w-4 h-4" />
                 Vai trò *
