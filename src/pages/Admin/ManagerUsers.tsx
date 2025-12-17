@@ -1,6 +1,6 @@
 import type { FC } from 'react'
 import { useEffect, useState } from 'react'
-import PageHeader from '../../components/PageHeader'
+
 import { useAppDispatch, useAppSelector } from '../../store/hooks'
 import { fetchUsers, setPage } from '../../store/usersSlice'
 import { deleteStaff } from '../../store/staffSlice';
@@ -14,7 +14,7 @@ import { EditStaffModal } from '../../components/staff/EditStaffModal';
 
 import { EditResidentModal } from '../../components/residents/EditResidentModal';
 export const UsersPage: FC = () => {
-
+  //const { name, role } = useAppSelector((state) => state.auth.user || { name: 'User', role: 'Guest' });
 
   const [tab, setTab] = useState<TabType>('staff')
   const [query, setQuery] = useState<string>('')
@@ -70,16 +70,16 @@ export const UsersPage: FC = () => {
     if (window.confirm(confirmMessage)) {
       try {
         if (isStaff) {
-
+        
           await dispatch(deleteStaff(id)).unwrap();
         } else {
-
+         
           await dispatch(deleteResident(id)).unwrap();
         }
 
         alert("Xóa thành công!");
 
-        // Refresh lại danh sách
+      
         dispatch(fetchUsers({ type: tab, query, page, pageSize }));
       } catch (err: any) {
         alert("Xóa thất bại: " + (err || "Lỗi hệ thống"));
@@ -90,7 +90,7 @@ export const UsersPage: FC = () => {
   const handleApplyFilter = (filters: FilterCondition[]) => {
     setActiveFilters(filters);
     console.log("Applying filters:", filters);
-    // Logic call API sẽ nằm ở useEffect hoặc dispatch ngay tại đây
+
   };
 
   const isAllSelected = items.length > 0 && selectedIds.length === items.length;
@@ -134,7 +134,7 @@ export const UsersPage: FC = () => {
     setEditingId(null);
   };
   return (
-    <div className='overflow-auto '>
+    <div className='overflow-auto'>
       {editingId && tab === 'staff' && (
         <EditStaffModal
           isOpen={true}
@@ -153,6 +153,7 @@ export const UsersPage: FC = () => {
         />
       )}
       {/* --- Bộ lọc --- */}
+  
       <FilterModal
         isOpen={isFilterOpen}
         onClose={() => setIsFilterOpen(false)}
@@ -160,9 +161,7 @@ export const UsersPage: FC = () => {
         availableFields={currentFields}
       />
       {/* ----------------------- */}
-      <PageHeader breadcrumbs={['Quản lý người dùng', tab === 'residents' ? 'Danh sách cư dân' : 'Danh sách nhân sự']} />
-
-      <div className="flex-1 overflow-auto mx-5 sm:mx-14 mt-7">
+      <div className="flex-1 overflow-auto p-6">
 
 
         <div className="flex gap-4 border-b border-[#cecfdd] mb-3">

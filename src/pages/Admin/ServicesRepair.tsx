@@ -1,7 +1,7 @@
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import type { Service } from "./Services";
-import PageHeader from '../../components/PageHeader'
+
 const ServicesRepairPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -33,7 +33,7 @@ const ServicesRepairPage: React.FC = () => {
 
   return (
     <>    
-    <PageHeader breadcrumbs={['Quản lý dịch vụ', 'Sửa dịch vụ']} />
+
     <div style={pageStyle} className="mx-5 sm:mx-14 mt-7">
       <div style={cardStyle}>
         <FormRow label="Tên Dịch Vụ">

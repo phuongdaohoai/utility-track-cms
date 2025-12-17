@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import PageHeader from '../../components/PageHeader'
+
 interface CheckinItem {
   id: number;
   type: string;
@@ -46,17 +46,6 @@ const SystemConfiguration: React.FC = () => {
     // Thực tế: Gọi API để lưu dữ liệu
   };
 
-  const handleDeleteForm = () => {
-    if (window.confirm("Bạn có chắc chắn muốn xóa cấu hình hệ thống không?")) {
-      setFormState({
-        operatingHours: "",
-        activity: "",
-        guestCheckIn: "Bật"
-      });
-      alert("Cấu hình đã được xóa");
-    }
-  };
-
   // ====================== TABLE HANDLERS ======================
   
   const handleEditItem = (item: CheckinItem) => {
@@ -101,7 +90,7 @@ const SystemConfiguration: React.FC = () => {
 
   return (
     <>      
-    <PageHeader breadcrumbs={['Cấu hình hệ thống', 'Cài đặt chung']} />
+   
 
     <div style={styles.page} className="mx-5 sm:mx-14 mt-7">
       <div style={styles.container}>
@@ -142,9 +131,6 @@ const SystemConfiguration: React.FC = () => {
 
         {/* ================= ACTION BUTTONS ================= */}
         <div style={styles.actionRow}>
-          <button style={styles.deleteBtn} onClick={handleDeleteForm}>
-            Xóa
-          </button>
           <button style={styles.saveBtn} onClick={handleSaveForm}>
             Lưu Thông Tin
           </button>
@@ -271,16 +257,15 @@ const baseButton: React.CSSProperties = {
 
 const styles: Record<string, React.CSSProperties> = {
   page: {
-    display: "flex",
-    justifyContent: "center",
-    
+    padding: "24px 40px",
     fontFamily: "Inter, sans-serif",
     backgroundColor: "#f5f7fa",
     minHeight: "100vh",
   },
 
   container: {
-    width: "1000px",
+    maxWidth: "1400px",
+    margin: "0 auto",
   },
 
   box: {
@@ -315,11 +300,10 @@ const styles: Record<string, React.CSSProperties> = {
   },
 
   actionRow: {
-    display: "flex",
-    justifyContent: "flex-end",
-    gap: "12px",
-    marginBottom: "20px",
-  },
+  display: "flex",
+  justifyContent: "flex-end",
+  marginBottom: "20px",
+},
 
   deleteBtn: {
     ...baseButton,

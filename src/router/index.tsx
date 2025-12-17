@@ -1,16 +1,17 @@
 import { createBrowserRouter } from 'react-router-dom'
 
 import AdminLayout from '../layouts/AdminLayout'
-import HomePage from '../pages/Home'
+
+// Pages
 import LoginPage from '../pages/Login'
 import AdminPage from '../pages/Admin'
 import UsersPage from '../pages/Admin/ManagerUsers'
-import ProfileEdit from '../pages/Admin/EditUsers'
 import HistoryCheckinPage from '../pages/Admin/HistoryCheckin'
 import ServicesPage from '../pages/Admin/Services'
-import SettingsPage from '../pages/Admin/Settings'
 import ServicesRepairPage from '../pages/Admin/ServicesRepair'
 import Demo from '../pages/Admin/demo'
+import SettingsPage from '../pages/Admin/Settings'
+
 export const router = createBrowserRouter([
   {
     path: '/',
@@ -23,14 +24,18 @@ export const router = createBrowserRouter([
       
     ],
   },
+
   {
     path: '/admin',
     element: <AdminLayout />,
     children: [
+      // Dashboard
       {
         index: true,
         element: <AdminPage />,
       },
+
+      // Users
       {
         path: 'users',
         element: <UsersPage />,
@@ -40,13 +45,17 @@ export const router = createBrowserRouter([
         element: <ServicesPage />,
       },
       {
-      path: 'services/:id',
-      element: <ServicesRepairPage />,
-    },
+        path: 'services/:id',
+        element: <ServicesRepairPage />,
+      },
+
+      // History
       {
         path: 'history',
         element: <HistoryCheckinPage />,
       },
+
+      // Settings
       {
         path: 'settings',
         element: <SettingsPage />,
