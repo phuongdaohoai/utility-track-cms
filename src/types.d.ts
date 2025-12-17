@@ -48,3 +48,20 @@ export interface ImportResponse {
     errors: string[];
   }>;
 }
+
+export type FilterType =
+  | "string"
+  | "number"
+  | "select"
+  | "date"
+  | "tag";      // 👈 THÊM
+
+
+export type FilterItem = {
+  field: string;
+  label: string;
+  type: FilterType;
+  operator: string;
+  value: any;
+};
+

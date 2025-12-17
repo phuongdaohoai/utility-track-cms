@@ -3,22 +3,14 @@ import { FC, useState, useRef, ChangeEvent, useEffect } from 'react';
 import { X, Upload, User, Phone, Mail, Shield, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { createStaff, resetCreateStatus } from '../../store/staffSlice';
-
+import { fetchRoles } from '../../store/roleSlice';
 interface CreateStaffModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void; // Callback khi tạo thành công
 }
 
-// Danh sách roles từ API (bạn có thể fetch từ API thực tế)
-const ROLE_OPTIONS = [
-  { id: 1, name: 'Admin' },
-  { id: 2, name: 'Quản lý' },
-  { id: 3, name: 'Lễ tân' },
-  { id: 4, name: 'Bảo vệ' },
-  { id: 5, name: 'Kế toán' },
-  { id: 6, name: 'Kỹ thuật' },
-];
+
 
 export const CreateStaffModal: FC<CreateStaffModalProps> = ({
   isOpen,
@@ -27,7 +19,10 @@ export const CreateStaffModal: FC<CreateStaffModalProps> = ({
 }) => {
   const dispatch = useAppDispatch();
   const { createStatus, createMessage, error } = useAppSelector((state) => state.staff);
-  
+  const { roles } = useAppSelector((state) => state.roles || { roles: [] });
+  useEffect(() => {
+    dispatch(fetchRoles());
+  }, [dispatch]);
   const [formData, setFormData] = useState({
     fullName: '',
     phone: '',
@@ -35,13 +30,13 @@ export const CreateStaffModal: FC<CreateStaffModalProps> = ({
     roleId: 3, // Mặc định là Lễ tân
     status: 1,
   });
-  
+
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-   // Reset form khi modal mở
+  // Reset form khi modal mở
   useEffect(() => {
     if (isOpen) {
       resetForm();
@@ -57,14 +52,14 @@ export const CreateStaffModal: FC<CreateStaffModalProps> = ({
         handleClose();
         if (onSuccess) onSuccess();
       }, 2000);
-      
+
       return () => clearTimeout(timer);
     }
   }, [createStatus, onSuccess]);
 
   if (!isOpen) return null;
 
- 
+
 
   // Reset form
   const resetForm = () => {
@@ -83,27 +78,27 @@ export const CreateStaffModal: FC<CreateStaffModalProps> = ({
   // Validate form
   const validateForm = (): boolean => {
     const errors: Record<string, string> = {};
-    
+
     if (!formData.fullName.trim()) {
       errors.fullName = 'Họ và tên là bắt buộc';
     }
-    
+
     if (!formData.phone.trim()) {
       errors.phone = 'Số điện thoại là bắt buộc';
     } else if (!/^(0|\+84)(\d{9,10})$/.test(formData.phone.replace(/\s/g, ''))) {
       errors.phone = 'Số điện thoại không hợp lệ';
     }
-    
+
     if (!formData.email.trim()) {
       errors.email = 'Email là bắt buộc';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       errors.email = 'Email không hợp lệ';
     }
-    
+
     if (!formData.roleId) {
       errors.roleId = 'Vai trò là bắt buộc';
     }
-    
+
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -113,9 +108,9 @@ export const CreateStaffModal: FC<CreateStaffModalProps> = ({
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'roleId' ? parseInt(value) : value
+      [name]: name === 'roleId' ? Number(value) : value
     }));
-    
+
     // Clear error khi user bắt đầu nhập
     if (formErrors[name]) {
       setFormErrors(prev => ({ ...prev, [name]: '' }));
@@ -170,7 +165,7 @@ export const CreateStaffModal: FC<CreateStaffModalProps> = ({
   // Submit form
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -179,8 +174,9 @@ export const CreateStaffModal: FC<CreateStaffModalProps> = ({
       const payload = {
         ...formData,
         avatar: avatarFile || undefined,
+        roleId: Number(formData.roleId),
       };
-      
+
       await dispatch(createStaff(payload)).unwrap();
     } catch (error) {
       console.error('Lỗi tạo nhân viên:', error);
@@ -194,7 +190,7 @@ export const CreateStaffModal: FC<CreateStaffModalProps> = ({
         return;
       }
     }
-    
+
     resetForm();
     dispatch(resetCreateStatus());
     onClose();
@@ -229,7 +225,7 @@ export const CreateStaffModal: FC<CreateStaffModalProps> = ({
                 </div>
               </div>
             )}
-            
+
             {createStatus === 'failed' && (
               <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
                 <div className="flex items-center gap-2 text-red-700">
@@ -251,9 +247,8 @@ export const CreateStaffModal: FC<CreateStaffModalProps> = ({
                 value={formData.fullName}
                 onChange={handleInputChange}
                 disabled={createStatus === 'loading'}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-                  formErrors.fullName ? 'border-red-500' : 'border-gray-300'
-                } disabled:bg-gray-100`}
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${formErrors.fullName ? 'border-red-500' : 'border-gray-300'
+                  } disabled:bg-gray-100`}
                 placeholder="Nhập họ và tên"
               />
               {formErrors.fullName && (
@@ -273,9 +268,8 @@ export const CreateStaffModal: FC<CreateStaffModalProps> = ({
                 value={formData.phone}
                 onChange={handleInputChange}
                 disabled={createStatus === 'loading'}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-                  formErrors.phone ? 'border-red-500' : 'border-gray-300'
-                } disabled:bg-gray-100`}
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${formErrors.phone ? 'border-red-500' : 'border-gray-300'
+                  } disabled:bg-gray-100`}
                 placeholder="Nhập số điện thoại"
               />
               {formErrors.phone && (
@@ -295,9 +289,8 @@ export const CreateStaffModal: FC<CreateStaffModalProps> = ({
                 value={formData.email}
                 onChange={handleInputChange}
                 disabled={createStatus === 'loading'}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-                  formErrors.email ? 'border-red-500' : 'border-gray-300'
-                } disabled:bg-gray-100`}
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${formErrors.email ? 'border-red-500' : 'border-gray-300'
+                  } disabled:bg-gray-100`}
                 placeholder="Nhập email"
               />
               {formErrors.email && (
@@ -314,8 +307,7 @@ export const CreateStaffModal: FC<CreateStaffModalProps> = ({
                   (jpg, png, webp, gif - tối đa 5MB)
                 </span>
               </label>
-              
-              {/* Avatar Preview */}
+
               {avatarPreview ? (
                 <div className="mb-3">
                   <div className="relative w-24 h-24 rounded-lg overflow-hidden border">
@@ -334,36 +326,38 @@ export const CreateStaffModal: FC<CreateStaffModalProps> = ({
                     </button>
                   </div>
                 </div>
-              ) : null}
-              
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-indigo-400 transition-colors">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".jpg,.jpeg,.png,.webp,.gif"
-                  onChange={handleAvatarChange}
-                  disabled={createStatus === 'loading'}
-                  className="hidden"
-                />
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={createStatus === 'loading'}
-                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
-                >
-                  Choose File
-                </button>
-                <p className="mt-2 text-sm text-gray-500">
-                  {avatarFile ? avatarFile.name : 'Chưa chọn file nào'}
-                </p>
-              </div>
+              ) : (
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-indigo-400 transition-colors">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".jpg,.jpeg,.png,.webp,.gif"
+                    onChange={handleAvatarChange}
+                    disabled={createStatus === 'loading'}
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={createStatus === 'loading'}
+                    className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+                  >
+                    Choose File
+                  </button>
+                  <p className="mt-2 text-sm text-gray-500">
+                    Chưa chọn file nào
+                  </p>
+                </div>
+              )}
+
               {formErrors.avatar && (
                 <p className="mt-1 text-sm text-red-600">{formErrors.avatar}</p>
               )}
             </div>
 
+
             {/* Role */}
-            <div>
+           <div>
               <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                 <Shield className="w-4 h-4" />
                 Vai trò *
@@ -373,20 +367,17 @@ export const CreateStaffModal: FC<CreateStaffModalProps> = ({
                 value={formData.roleId}
                 onChange={handleInputChange}
                 disabled={createStatus === 'loading'}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-                  formErrors.roleId ? 'border-red-500' : 'border-gray-300'
-                } disabled:bg-gray-100`}
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${formErrors.roleId ? 'border-red-500' : 'border-gray-300'
+                  } disabled:bg-gray-100`}
               >
                 <option value="">Chọn vai trò</option>
-                {ROLE_OPTIONS.map(role => (
+                {/* 5. Map dữ liệu từ Redux store */}
+                {roles && roles.map((role: any) => (
                   <option key={role.id} value={role.id}>
-                    {role.id}={role.name}
+                    {role.roleName}
                   </option>
                 ))}
               </select>
-              <p className="mt-1 text-sm text-gray-500">
-                1=Admin, 2=Quản lý, 3=Lễ tân, 4=Bảo vệ...
-              </p>
               {formErrors.roleId && (
                 <p className="mt-1 text-sm text-red-600">{formErrors.roleId}</p>
               )}

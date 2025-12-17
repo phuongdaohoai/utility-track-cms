@@ -16,9 +16,11 @@ export const UsersPage: FC = () => {
   const navigate = useNavigate();
   const [tab, setTab] = useState<TabType>('staff')
   const [query, setQuery] = useState<string>('')
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
 
-// --- STATE CHO BỘ LỌC ---
+
+  // --- STATE CHO BỘ LỌC ---
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [activeFilters, setActiveFilters] = useState<FilterCondition[]>([]);
 
@@ -27,20 +29,20 @@ export const UsersPage: FC = () => {
 
 
 
-// --- CẤU HÌNH CÁC TRƯỜNG LỌC ---
+  // --- CẤU HÌNH CÁC TRƯỜNG LỌC ---
   const residentFields: FilterConfig[] = [
     { key: 'fullName', label: 'Tên cư dân', type: 'string' },
     { key: 'phone', label: 'Số điện thoại', type: 'string' },
-    { key: 'room', label: 'Phòng', type: 'string' }, 
-    { key: 'status', label: 'Trạng thái', type: 'select', options: [{label: 'Hoạt động', value: 1}, {label: 'Không hoạt động', value: 0}] },
+    { key: 'room', label: 'Phòng', type: 'string' },
+    { key: 'status', label: 'Trạng thái', type: 'select', options: [{ label: 'Hoạt động', value: 1 }, { label: 'Không hoạt động', value: 0 }] },
     { key: 'joinDate', label: 'Ngày gia nhập', type: 'date' },
   ];
 
   const staffFields: FilterConfig[] = [
     { key: 'fullName', label: 'Tên nhân sự', type: 'string' },
     { key: 'phone', label: 'Số điện thoại', type: 'string' },
-    { key: 'roleId', label: 'Chức vụ', type: 'select', options: [{label: 'Admin', value: 1}, {label: 'Manager', value: 2}, {label: 'Staff', value: 3}] },
-    { key: 'status', label: 'Trạng thái', type: 'select', options: [{label: 'Hoạt động', value: 1}, {label: 'Không hoạt động', value: 0}] },
+    { key: 'roleId', label: 'Chức vụ', type: 'select', options: [{ label: 'Admin', value: 1 }, { label: 'Manager', value: 2 }, { label: 'Staff', value: 3 }] },
+    { key: 'status', label: 'Trạng thái', type: 'select', options: [{ label: 'Hoạt động', value: 1 }, { label: 'Không hoạt động', value: 0 }] },
   ];
 
   const currentFields = tab === 'residents' ? residentFields : staffFields;
@@ -59,22 +61,22 @@ export const UsersPage: FC = () => {
   }
   const handleDelete = async (id: number) => {
     const isStaff = tab === 'staff';
-    const confirmMessage = isStaff 
+    const confirmMessage = isStaff
       ? "Bạn có chắc chắn muốn xóa nhân viên này không?"
       : "Bạn có chắc chắn muốn xóa cư dân này không?";
 
     if (window.confirm(confirmMessage)) {
       try {
         if (isStaff) {
-           // Xóa Nhân viên
-           await dispatch(deleteStaff(id)).unwrap();
+
+          await dispatch(deleteStaff(id)).unwrap();
         } else {
-           // Xóa Cư dân (Gọi action mới)
-           await dispatch(deleteResident(id)).unwrap();
+
+          await dispatch(deleteResident(id)).unwrap();
         }
 
         alert("Xóa thành công!");
-        
+
         // Refresh lại danh sách
         dispatch(fetchUsers({ type: tab, query, page, pageSize }));
       } catch (err: any) {
@@ -82,17 +84,54 @@ export const UsersPage: FC = () => {
       }
     }
   }
-  
+
   const handleApplyFilter = (filters: FilterCondition[]) => {
     setActiveFilters(filters);
     console.log("Applying filters:", filters);
     // Logic call API sẽ nằm ở useEffect hoặc dispatch ngay tại đây
   };
 
+  const isAllSelected = items.length > 0 && selectedIds.length === items.length;
+
+  const handleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(items.map((u) => u.id));
+    }
+  };
+  const handleSelectOne = (id: number) => {
+    setSelectedIds((prev) =>
+      prev.includes(id)
+        ? prev.filter((i) => i !== id)
+        : [...prev, id]
+    );
+  };
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [tab, page]);
+
+  const handleDeleteSelected = async () => {
+    if (selectedIds.length === 0) return
+
+    if (!window.confirm(`Xóa ${selectedIds.length} mục đã chọn?`)) return
+
+    for (const id of selectedIds) {
+      if (tab === 'staff') {
+        await dispatch(deleteStaff(id)).unwrap()
+      } else {
+        await dispatch(deleteResident(id)).unwrap()
+      }
+    }
+
+    setSelectedIds([])
+    dispatch(fetchUsers({ type: tab, query, page, pageSize }))
+  }
+
   return (
     <div className='overflow-auto'>
       {/* --- BỔ SUNG DÒNG NÀY --- */}
-      <FilterModal 
+      <FilterModal
         isOpen={isFilterOpen}
         onClose={() => setIsFilterOpen(false)}
         onApply={handleApplyFilter}
@@ -155,20 +194,20 @@ export const UsersPage: FC = () => {
                 >
                   Tìm Kiếm
                 </button>
-              {/* --- NÚT BỘ LỌC MỚI --- */}
+                {/* --- NÚT BỘ LỌC MỚI --- */}
                 <button
                   onClick={() => setIsFilterOpen(true)}
                   className={`flex items-center gap-2 px-4 py-2 border rounded bg-white hover:bg-gray-50 transition-colors ${activeFilters.length > 0 ? 'border-indigo-500 text-indigo-700 bg-indigo-50' : 'border-gray-300 text-gray-700'}`}
                 >
-                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-                   </svg>
-                   Bộ lọc
-                   {activeFilters.length > 0 && (
-                     <span className="bg-indigo-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                       {activeFilters.length}
-                     </span>
-                   )}
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                  </svg>
+                  Bộ lọc
+                  {activeFilters.length > 0 && (
+                    <span className="bg-indigo-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                      {activeFilters.length}
+                    </span>
+                  )}
                 </button>
               </div>
             </div>
@@ -180,7 +219,7 @@ export const UsersPage: FC = () => {
                   <CreateResidentButton onSuccess={handleCreateSuccess} />
                 </>
               )}
-              
+
               {tab === 'staff' && (
                 <>
                   <CSVImportButton importType="staff" />
@@ -195,7 +234,7 @@ export const UsersPage: FC = () => {
           <table className="w-full table-auto">
             <thead className="bg-gray-50">
               <tr>
-                <th className="p-4 w-[72px] h-[72px]"><input type="checkbox" /></th>
+                <th className="p-4 w-[72px] h-[72px]"><input type="checkbox" checked={isAllSelected} onChange={handleSelectAll} /></th>
                 <th className="text-left p-4">{tab === 'residents' ? 'Tên Cư Dân' : 'Tên Nhân Sự'}</th>
                 <th className="text-left p-4">{tab === 'residents' ? 'Phòng' : 'Role'}</th>
                 <th className="text-left p-4">Số Điện Thoại</th>
@@ -219,12 +258,17 @@ export const UsersPage: FC = () => {
               ) : (
                 items.map((u) => (
                   <tr key={u.id} className="border-t">
-                    <td className=" pl-[28px] w-[72px] h-[72px]"><input type="checkbox" /></td>
+                    <td className=" pl-[28px] w-[72px] h-[72px]"><input
+                      type="checkbox"
+                      checked={selectedIds.includes(u.id)}
+                      onChange={() => handleSelectOne(u.id)}
+                    />
+                    </td>
                     <td className="p-4 flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-gray-200" />
                       <div>
                         <div className="font-medium">{u.fullName}</div>
-                      
+
                       </div>
                     </td>
                     <td className="p-4">{tab === 'residents' ? u.room : u.role?.roleName}</td>
@@ -259,6 +303,16 @@ export const UsersPage: FC = () => {
             </tbody>
           </table>
         </div>
+        <button
+          onClick={handleDeleteSelected}
+          disabled={selectedIds.length === 0}
+          className={`px-4 py-2 mt-5 rounded text-white transition
+    ${selectedIds.length === 0
+              ? 'bg-gray-400 cursor-not-allowed'
+              : 'bg-red-600 hover:bg-red-700'}`}
+        >
+          Xóa đã chọn ({selectedIds.length})
+        </button>
 
         <div className="mt-4 flex items-center justify-center gap-1 text-sm">
           <button
@@ -276,8 +330,8 @@ export const UsersPage: FC = () => {
                 key={i}
                 onClick={() => onPage(pageNum)}
                 className={`px-3 py-1 rounded ${page === pageNum
-                    ? 'bg-indigo-600 text-white font-medium'
-                    : 'text-gray-700 hover:bg-gray-100'
+                  ? 'bg-indigo-600 text-white font-medium'
+                  : 'text-gray-700 hover:bg-gray-100'
                   }`}
               >
                 {pageNum}
@@ -291,8 +345,8 @@ export const UsersPage: FC = () => {
               <button
                 onClick={() => onPage(Math.ceil(total / pageSize))}
                 className={`px-3 py-1 rounded ${page === Math.ceil(total / pageSize)
-                    ? 'bg-indigo-600 text-white font-medium'
-                    : 'text-gray-700 hover:bg-gray-100'
+                  ? 'bg-indigo-600 text-white font-medium'
+                  : 'text-gray-700 hover:bg-gray-100'
                   }`}
               >
                 {Math.ceil(total / pageSize)}

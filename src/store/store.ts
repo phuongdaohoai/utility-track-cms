@@ -3,12 +3,14 @@ import authReducer from './authSlice'
 import usersReducer from './usersSlice'
 import staffReducer from './staffSlice'
 import csvImportReducer from './csvImportSlice'
+import roleReducer from './roleSlice'
 export const store = configureStore({
   reducer: {
     auth: authReducer,
     users: usersReducer,
     staff: staffReducer,
     csvImport: csvImportReducer,
+    roles: roleReducer,
   },
 })
 
