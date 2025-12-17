@@ -6,9 +6,7 @@ import LoginPage from '../pages/Login'
 import AdminPage from '../pages/Admin'
 import UsersPage from '../pages/Admin/ManagerUsers'
 import ProfileEdit from '../pages/Admin/EditUsers'
-import HistoryCheckinPage from '../pages/Admin/HistoryCheckin'
 import ServicesPage from '../pages/Admin/Services'
-import SettingsPage from '../pages/Admin/Settings'
 import ServicesRepairPage from '../pages/Admin/ServicesRepair'
 
 export const router = createBrowserRouter([
@@ -45,14 +43,6 @@ export const router = createBrowserRouter([
       path: 'services/:id',
       element: <ServicesRepairPage />,
     },
-      {
-        path: 'history',
-        element: <HistoryCheckinPage />,
-      },
-      {
-        path: 'settings',
-        element: <SettingsPage />,
-      },
     ],
   },
 ])
