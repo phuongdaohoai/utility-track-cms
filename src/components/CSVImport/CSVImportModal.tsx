@@ -6,7 +6,7 @@ import { CSVPreviewTable } from './CSVPreviewTable';
 
 export const CSVImportModal: FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   const {
     isModalOpen,
     importType,
@@ -20,6 +20,20 @@ export const CSVImportModal: FC = () => {
     errors,
     resetImport
   } = useCSVImport();
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      await parseCSVFile(file);
+    }
+  };
 
   const handleFileSelect = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -90,7 +104,10 @@ export const CSVImportModal: FC = () => {
               <div
                 className="border-2 border-dashed border-gray-300 rounded-lg p-8 hover:border-indigo-400 transition-colors cursor-pointer"
                 onClick={() => fileInputRef.current?.click()}
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
               >
+
                 <input
                   type="file"
                   ref={fileInputRef}
@@ -129,7 +146,7 @@ export const CSVImportModal: FC = () => {
             <div className="text-sm text-gray-500">
               {data.length > 0 && (
                 <span>
-                  Đã tải lên {data.length} bản ghi • 
+                  Đã tải lên {data.length} bản ghi •
                   {errors.length > 0 ? (
                     <span className="text-red-600 ml-1"> {errors.length} lỗi cần sửa</span>
                   ) : (
@@ -138,7 +155,7 @@ export const CSVImportModal: FC = () => {
                 </span>
               )}
             </div>
-            
+
             <div className="flex gap-3">
               <button
                 onClick={handleClose}
@@ -150,11 +167,10 @@ export const CSVImportModal: FC = () => {
               <button
                 onClick={handleConfirm}
                 disabled={isLoading || uploadStatus === 'uploading' || data.length === 0 || errors.length > 0}
-                className={`px-5 py-2.5 rounded-lg transition-colors min-w-[100px] ${
-                  isLoading || uploadStatus === 'uploading' || data.length === 0 || errors.length > 0
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    : 'bg-indigo-600 text-white hover:bg-indigo-700'
-                }`}
+                className={`px-5 py-2.5 rounded-lg transition-colors min-w-[100px] ${isLoading || uploadStatus === 'uploading' || data.length === 0 || errors.length > 0
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                  }`}
               >
                 {uploadStatus === 'uploading' ? 'Đang import...' : 'Xác nhận'}
               </button>
