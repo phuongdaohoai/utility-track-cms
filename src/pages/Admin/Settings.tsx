@@ -267,16 +267,15 @@ const baseButton: React.CSSProperties = {
 
 const styles: Record<string, React.CSSProperties> = {
   page: {
-    display: "flex",
-    justifyContent: "center",
-    padding: "40px",
+    padding: "24px 40px",
     fontFamily: "Inter, sans-serif",
     backgroundColor: "#f5f7fa",
     minHeight: "100vh",
   },
 
   container: {
-    width: "1000px",
+    maxWidth: "1400px",
+    margin: "0 auto",
   },
 
   box: {

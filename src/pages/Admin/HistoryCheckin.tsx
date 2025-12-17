@@ -292,7 +292,16 @@ const DetailModal = ({ user, onClose }: any) => {
           STYLES
 ============================ */
 const styles: { [key: string]: React.CSSProperties } = {
-  page: { padding: "24px 40px", fontFamily: "Inter, sans-serif" },
+  page: {
+    padding: "24px 40px",
+    fontFamily: "Inter, sans-serif",
+    backgroundColor: "#f5f7fa",
+    minHeight: "100vh",
+  },
+  container: {
+    maxWidth: "1400px",
+    margin: "0 auto",
+  },
   topBar: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
   searchWrap: { display: "flex", gap: 10, flex: 1, maxWidth: 520 },
   searchInput: { flex: 1, height: 42, borderRadius: 8, border: "1px solid #DDE2E4", paddingLeft: 12, fontSize: 14, outline: "none" },
@@ -303,7 +312,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   legendItem: { display: "flex", alignItems: "center", gap: 6, fontSize: 14 },
   legendColor: { width: 14, height: 14, borderRadius: 4 },
 
-  tableContainer: { border: "1px solid #E0E0E0", borderRadius: 12, overflow: "hidden", maxHeight: 480, overflowY: "auto" },
+  tableContainer: { border: "1px solid #E0E0E0", borderRadius: 12, overflow: "hidden"},
   table: { width: "100%", borderCollapse: "collapse" },
   th: { background: "#F5F7FA", padding: "14px 20px", textAlign: "left", color: "#4F4F4F", fontSize: 14, fontWeight: 600, borderBottom: "1px solid #E0E0E0", position: "sticky", top: 0, zIndex: 2 },
   tr: { borderBottom: "1px solid #EDEDED" },
