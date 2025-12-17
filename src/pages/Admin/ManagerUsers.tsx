@@ -279,7 +279,7 @@ export const UsersPage: FC = () => {
 
                       </div>
                     </td>
-                    <td className="p-4">{tab === 'residents' ? u.room : u.role?.roleName}</td>
+                    <td className="p-4">{tab === 'residents' ? u.apartment?.floorNumber : u.role?.roleName}</td>
                     <td className="p-4">{u.phone}</td>
                     <td className="p-4">
                       <span className={`px-3 py-1 rounded-full text-sm ${Number(u.status) === 1 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
