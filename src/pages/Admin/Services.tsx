@@ -24,7 +24,7 @@ export const initialServices: Service[] = [
 const ServiceTable: React.FC = () => {
   const navigate = useNavigate();
 
-  // 🔥 STATE dùng sessionStorage
+  /* ===== DATA ===== */
   const [services, setServices] = useState<Service[]>(() => {
     const data = sessionStorage.getItem("services");
     if (data) return JSON.parse(data);
@@ -33,7 +33,19 @@ const ServiceTable: React.FC = () => {
     return initialServices;
   });
 
-  // ✅ DELETE
+  /* ===== FILTER ===== */
+  const [keyword, setKeyword] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
+
+  const filteredServices = services.filter(service => {
+    const matchName = service.name.toLowerCase().includes(keyword.toLowerCase());
+    const matchStatus =
+      statusFilter === "all" || service.status === statusFilter;
+
+    return matchName && matchStatus;
+  });
+
+  /* ===== DELETE ===== */
   const handleDelete = (id: number) => {
     if (!window.confirm("Bạn có chắc muốn xóa dịch vụ này không?")) return;
 
@@ -44,6 +56,28 @@ const ServiceTable: React.FC = () => {
 
   return (
     <div style={{ padding: 20, fontFamily: "Arial, sans-serif" }}>
+
+      {/* ================= FILTER AREA ================= */}
+      <div style={filterWrapperStyle}>
+        <input
+          placeholder="Tìm theo tên dịch vụ..."
+          value={keyword}
+          onChange={e => setKeyword(e.target.value)}
+          style={inputStyle}
+        />
+
+        <select
+          value={statusFilter}
+          onChange={e => setStatusFilter(e.target.value as any)}
+          style={selectStyle}
+        >
+          <option value="all">Tất cả trạng thái</option>
+          <option value="active">Hoạt động</option>
+          <option value="inactive">Không hoạt động</option>
+        </select>
+      </div>
+
+      {/* ================= TABLE ================= */}
       <div style={tableWrapperStyle}>
         <table style={tableStyle}>
           <thead style={theadStyle}>
@@ -58,15 +92,15 @@ const ServiceTable: React.FC = () => {
           </thead>
 
           <tbody>
-            {services.length === 0 && (
+            {filteredServices.length === 0 && (
               <tr>
                 <td colSpan={6} style={{ textAlign: "center", padding: 20 }}>
-                  Không còn dịch vụ nào
+                  Không có dịch vụ phù hợp
                 </td>
               </tr>
             )}
 
-            {services.map(service => (
+            {filteredServices.map(service => (
               <tr key={service.id} style={rowStyle}>
                 <td style={tdStyle}>{service.name}</td>
                 <td style={tdStyle}>
@@ -92,9 +126,7 @@ const ServiceTable: React.FC = () => {
                   <div style={{ display: "flex", gap: 10 }}>
                     <button
                       style={actionButtonStyle}
-                      onClick={() =>
-                        navigate(`/admin/services/${service.id}`)
-                      }
+                      onClick={() => navigate(`/admin/services/${service.id}`)}
                     >
                       ✏️
                     </button>
@@ -120,11 +152,34 @@ export default ServiceTable;
 
 /* ================== CSS ================== */
 
+const filterWrapperStyle: React.CSSProperties = {
+  display: "flex",
+  gap: 12,
+  marginBottom: 16,
+};
+
+const inputStyle: React.CSSProperties = {
+  padding: "8px 12px",
+  borderRadius: 6,
+  border: "1px solid #e5e7eb",
+  width: 240,
+};
+
+const selectStyle: React.CSSProperties = {
+  padding: "8px 40px 8px 12px", // chừa chỗ mũi tên
+  borderRadius: 6,
+  border: "1px solid #e5e7eb",
+  appearance: "none",          // 🔥 bỏ mũi tên mặc định
+  WebkitAppearance: "none",    // Safari
+  MozAppearance: "none",       // Firefox
+  backgroundColor: "#fff",
+};
+
 const tableWrapperStyle: React.CSSProperties = {
   border: "1px solid #e5e7eb",
   borderRadius: 8,
-  maxHeight: 250,
-  overflowY: "auto",
+  maxHeight: 354,      // ~ 5 dòng
+  overflowY: "auto",   // bật thanh cuộn
 };
 
 const tableStyle: React.CSSProperties = {
