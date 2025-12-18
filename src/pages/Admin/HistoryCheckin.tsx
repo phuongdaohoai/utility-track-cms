@@ -85,7 +85,7 @@ const UsageHistory: React.FC = () => {
   return (
     <>
      
-    <div style={styles.page} className="mx-5 sm:mx-14 mt-7">
+    <div style={styles.page} className="">
       {/* SEARCH + EXCEL */}
       <div style={styles.topBar}>
         <div style={styles.searchWrap}>

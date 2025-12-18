@@ -92,7 +92,7 @@ const SystemConfiguration: React.FC = () => {
     <>      
    
 
-    <div style={styles.page} className="mx-5 sm:mx-14 mt-7">
+    <div style={styles.page} className="">
       <div style={styles.container}>
         {/* ================= FORM ================= */}
         <div style={styles.box}>
