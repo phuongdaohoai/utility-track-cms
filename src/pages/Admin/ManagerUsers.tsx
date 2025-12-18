@@ -223,6 +223,7 @@ const handleApplyFilter = (filters: FilterCondition[]) => {
         availableFields={currentFields}
         tagData={serverSuggestions}
         onSearchChange={handleFilterSearch}
+        initialFilters={activeFilters}
       />
 
 

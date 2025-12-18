@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 
 // --- Định nghĩa các Type ---
 import { TagInput } from './TagInput';
-import { TAG_DATA } from './mockup.config';
+
 export type FilterType = 'string' | 'number' | 'select' | 'date';
 
 export interface FilterConfig {
@@ -26,7 +26,8 @@ interface FilterModalProps {
   onApply: (filters: FilterCondition[]) => void;
   availableFields: FilterConfig[];
   tagData?: Record<string, string[]>;
-  onSearchChange?: (key: string, value: string) => void; // <--- THÊM DÒNG NÀY
+  onSearchChange?: (key: string, value: string) => void;
+  initialFilters?: FilterCondition[];
 }
 
 // --- Cấu hình Operators ---
@@ -60,16 +61,14 @@ const OPERATORS: Record<FilterType, { value: string; label: string }[]> = {
   ],
 };
 
-export const FilterModal: React.FC<FilterModalProps> = ({ isOpen, onClose, onApply, availableFields, tagData = {}, onSearchChange }) => {
+export const FilterModal: React.FC<FilterModalProps> = ({ isOpen, onClose, initialFilters = [], onApply, availableFields, tagData = {}, onSearchChange }) => {
   const [filters, setFilters] = useState<FilterCondition[]>([]);
   const [isAdding, setIsAdding] = useState(false);
-
-  // Reset khi đóng mở
   useEffect(() => {
     if (isOpen) {
-      // Có thể load filters cũ từ props nếu cần nhớ trạng thái
+      setFilters(initialFilters);
     }
-  }, [isOpen]);
+  }, [isOpen, initialFilters]);
 
   const handleAddFilter = (fieldKey: string) => {
     const fieldConfig = availableFields.find((f) => f.key === fieldKey);
@@ -106,8 +105,15 @@ export const FilterModal: React.FC<FilterModalProps> = ({ isOpen, onClose, onApp
     );
   };
 
-  const handleClearAll = () => setFilters([]);
-
+  const handleClearAll = () =>{
+    setFilters([]); 
+    onApply([]);   
+    onClose();     
+  };
+const handleClearForm = () => {
+      setFilters([]); 
+      onApply([]);
+  }
   const handleApply = () => {
     onApply(filters);
     onClose();
@@ -120,7 +126,8 @@ export const FilterModal: React.FC<FilterModalProps> = ({ isOpen, onClose, onApp
     // 1. Xử lý Date
     if (config.type === 'date') {
       return (
-        <div className="flex items-center gap-2 w-full">
+        <div className="flex flex-col items-center gap-1  w-full">
+          
           <input
             type="date"
             className="border border-gray-300 rounded px-2 py-1.5 text-sm w-full focus:outline-none focus:border-indigo-500"
@@ -129,7 +136,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({ isOpen, onClose, onApp
           />
           {isRange && (
             <>
-              <span className="text-gray-500">~</span>
+              
               <input
                 type="date"
                 className="border border-gray-300 rounded px-2 py-1.5 text-sm w-full focus:outline-none focus:border-indigo-500"
@@ -161,7 +168,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({ isOpen, onClose, onApp
     }
 
     if (config.type === 'string') {
-     
+
       const suggestions = tagData[config.key] || [];
       return (
         <TagInput
@@ -170,13 +177,13 @@ export const FilterModal: React.FC<FilterModalProps> = ({ isOpen, onClose, onApp
           onChange={(tags) => updateFilter(filter.id, 'values', tags)}
           placeholder="Nhập hoặc chọn..."
           onInputChange={(val) => {
-             if (onSearchChange) onSearchChange(config.key, val);
+            if (onSearchChange) onSearchChange(config.key, val);
           }}
         />
       );
     }
     return (
-      <div className="flex items-center gap-2 w-full">
+      <div className="flex flex-col items-center gap-2 w-full">
         <input
           type="number"
           placeholder="Nhập giá trị..."
@@ -212,7 +219,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({ isOpen, onClose, onApp
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <h2 className="text-xl font-bold text-gray-800">Bộ lọc nâng cao</h2>
-          <button onClick={handleClearAll} className="text-sm text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
+          <button onClick={handleClearForm} className="text-sm text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
             </svg>
