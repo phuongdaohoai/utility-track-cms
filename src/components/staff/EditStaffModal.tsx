@@ -38,7 +38,7 @@ export const EditStaffModal: FC<EditStaffModalProps> = ({
     const [formErrors, setFormErrors] = useState<Record<string, string>>({});
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // 1. Fetch dữ liệu khi mở Modal
+   
     useEffect(() => {
         if (isOpen && staffId) {
             dispatch(fetchRoles());
@@ -48,7 +48,6 @@ export const EditStaffModal: FC<EditStaffModalProps> = ({
         }
     }, [isOpen, staffId, dispatch]);
 
-    // 2. Điền dữ liệu vào Form (Pre-fill)
     useEffect(() => {
         if (currentStaff && isOpen) {
             setFormData({
@@ -71,7 +70,7 @@ export const EditStaffModal: FC<EditStaffModalProps> = ({
         }
     }, [currentStaff, isOpen]);
 
-    // 3. Đóng modal khi update thành công
+    
     useEffect(() => {
         if (updateStatus === 'success') {
             const timer = setTimeout(() => {
@@ -82,31 +81,31 @@ export const EditStaffModal: FC<EditStaffModalProps> = ({
         }
     }, [updateStatus, onClose, onSuccess]);
 
-    // --- VALIDATE FORM (Giống CreateModal) ---
+   
     const validateForm = (): boolean => {
         const errors: Record<string, string> = {};
         const cleanPhone = formData.phone.replace(/\D/g, '');
-        // Validate Họ tên
+    
         if (!formData.fullName.trim()) {
             errors.fullName = 'Họ tên là bắt buộc';
         }
 
-        // Validate Phone (Regex chuẩn VN)
+      
         if (!cleanPhone) {
             errors.phone = 'SĐT là bắt buộc';
         } else if (!/^(0|\+84)(\d{9})$/.test(cleanPhone)) {
             // Regex check: Bắt đầu bằng 0 hoặc +84, theo sau là 9 chữ số (tổng 10 số)
-            errors.phone = 'SĐT không hợp lệ (VD: 0901234567)';
+            errors.phone = 'SĐT không hợp lệ (VD: 0901-234-567)';
         }
 
-        // Validate Email
+      
         if (!formData.email.trim()) {
             errors.email = 'Email là bắt buộc';
         } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
             errors.email = 'Email không hợp lệ';
         }
 
-        // Validate Role
+
         if (!formData.roleId) {
             errors.roleId = 'Vui lòng chọn vai trò';
         }
@@ -125,7 +124,7 @@ export const EditStaffModal: FC<EditStaffModalProps> = ({
 
         setFormData(prev => ({ ...prev, phone: formattedValue }));
 
-        // 4. Xóa lỗi nếu có (Validate trên rawValue)
+     
         if (formErrors.phone) {
             setFormErrors(prev => ({ ...prev, phone: '' }));
         }
@@ -134,7 +133,7 @@ export const EditStaffModal: FC<EditStaffModalProps> = ({
     const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
-        // Clear lỗi khi user nhập lại
+      
         if (formErrors[name]) setFormErrors(prev => ({ ...prev, [name]: '' }));
     };
 
@@ -199,7 +198,7 @@ export const EditStaffModal: FC<EditStaffModalProps> = ({
     console.log('Rendering EditStaffModal with staffId:', formData.roleId);
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto flex flex-col">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[100vh] overflow-y-auto flex flex-col">
 
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b sticky top-0 bg-white z-10">

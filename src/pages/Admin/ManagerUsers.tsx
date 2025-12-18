@@ -1,66 +1,84 @@
 import type { FC } from 'react'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo, useRef } from 'react'
 
 import { useAppDispatch, useAppSelector } from '../../store/hooks'
 import { fetchUsers, setPage } from '../../store/usersSlice'
 import { deleteStaff } from '../../store/staffSlice';
 import { CSVImportButton } from "../../components/CSVImport";
 import { CreateStaffButton } from '../../components/staff/CreateStaffButton';
-type TabType = 'residents' | 'staff'
-import { FilterModal, FilterConfig, FilterCondition } from '../../components/FilterModal';
+import { FilterModal, FilterConfig, FilterCondition } from '../../components/fill/FilterModal';
 import { CreateResidentButton } from '../../components/residents/CreateResidentButton';
 import { deleteResident } from '../../store/residentsSlice';
 import { EditStaffModal } from '../../components/staff/EditStaffModal';
-
 import { EditResidentModal } from '../../components/residents/EditResidentModal';
-export const UsersPage: FC = () => {
-  //const { name, role } = useAppSelector((state) => state.auth.user || { name: 'User', role: 'Guest' });
+import usersService from '../../services/usersService';
+import { fetchRoles } from '../../store/roleSlice';
+import { transformFilters } from '../../utils/filterUtils';
+type TabType = 'residents' | 'staff'
 
+export const UsersPage: FC = () => {
   const [tab, setTab] = useState<TabType>('staff')
   const [query, setQuery] = useState<string>('')
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [editingId, setEditingId] = useState<number | null>(null);
 
-
-  // --- STATE CHO BỘ LỌC ---
+  const [serverSuggestions, setServerSuggestions] = useState<Record<string, string[]>>({});
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [activeFilters, setActiveFilters] = useState<FilterCondition[]>([]);
-
+  const searchTimeoutRef = useRef<any>(null);
   const dispatch = useAppDispatch()
   const { items, total, page, pageSize, status, error } = useAppSelector((s) => s.users)
-
-
-
-  // --- CẤU HÌNH CÁC TRƯỜNG LỌC ---
-  const residentFields: FilterConfig[] = [
+  const { roles } = useAppSelector((state) => state.roles || { roles: [] });
+  useEffect(() => {
+    if (tab === 'staff' && roles.length === 0) {
+       dispatch(fetchRoles());
+    }
+  }, [dispatch, tab, roles.length]);
+  const residentFields: FilterConfig[] = useMemo(() => [
     { key: 'fullName', label: 'Tên cư dân', type: 'string' },
     { key: 'phone', label: 'Số điện thoại', type: 'string' },
     { key: 'room', label: 'Phòng', type: 'string' },
     { key: 'status', label: 'Trạng thái', type: 'select', options: [{ label: 'Hoạt động', value: 1 }, { label: 'Không hoạt động', value: 0 }] },
     { key: 'joinDate', label: 'Ngày gia nhập', type: 'date' },
-  ];
+  ], []);
 
-  const staffFields: FilterConfig[] = [
-    { key: 'fullName', label: 'Tên nhân sự', type: 'string' },
-    { key: 'phone', label: 'Số điện thoại', type: 'string' },
-    { key: 'roleId', label: 'Chức vụ', type: 'select', options: [{ label: 'Admin', value: 1 }, { label: 'Manager', value: 2 }, { label: 'Staff', value: 3 }] },
-    { key: 'status', label: 'Trạng thái', type: 'select', options: [{ label: 'Hoạt động', value: 1 }, { label: 'Không hoạt động', value: 0 }] },
-  ];
+ const staffFields: FilterConfig[] = useMemo(() => {
+    const roleOptions = roles.map((role: any) => ({
+        label: role.roleName,
+        value: role.id
+    }));
+
+    return [
+        { key: 'fullName', label: 'Tên nhân sự', type: 'string' },
+        { key: 'phone', label: 'Số điện thoại', type: 'string' },
+        { 
+            key: 'roleId', 
+            label: 'Chức vụ', 
+            type: 'select', 
+            options: roleOptions 
+        },
+        { key: 'status', label: 'Trạng thái', type: 'select', options: [{ label: 'Hoạt động', value: 1 }, { label: 'Không hoạt động', value: 0 }] },
+    ];
+  }, [roles]); 
 
   const currentFields = tab === 'residents' ? residentFields : staffFields;
 
-  const handleCreateSuccess = () => {
 
+
+  const refreshList = () => {
     dispatch(fetchUsers({ type: tab, query, page: 1, pageSize }));
+    setEditingId(null);
+    setSelectedIds([]);
   };
-  useEffect(() => {
 
+  useEffect(() => {
     dispatch(fetchUsers({ type: tab, query, page, pageSize }))
-  }, [dispatch, tab, query, page, pageSize])
+  }, [dispatch, tab, page, pageSize])
 
   const onPage = (p: number) => {
     dispatch(setPage(p))
   }
+
   const handleDelete = async (id: number) => {
     const isStaff = tab === 'staff';
     const confirmMessage = isStaff
@@ -70,28 +88,32 @@ export const UsersPage: FC = () => {
     if (window.confirm(confirmMessage)) {
       try {
         if (isStaff) {
-        
           await dispatch(deleteStaff(id)).unwrap();
         } else {
-         
           await dispatch(deleteResident(id)).unwrap();
         }
-
         alert("Xóa thành công!");
-
-      
-        dispatch(fetchUsers({ type: tab, query, page, pageSize }));
+        refreshList();
       } catch (err: any) {
         alert("Xóa thất bại: " + (err || "Lỗi hệ thống"));
       }
     }
   }
 
-  const handleApplyFilter = (filters: FilterCondition[]) => {
-    setActiveFilters(filters);
-    console.log("Applying filters:", filters);
 
-  };
+
+const handleApplyFilter = (filters: FilterCondition[]) => {
+  setActiveFilters(filters);
+  const cleanPayload = transformFilters(filters); 
+  console.log("Payload gửi đi:", cleanPayload);
+  dispatch(fetchUsers({ 
+    type: tab, 
+    query, 
+    page: 1, 
+    pageSize,
+    filters: cleanPayload 
+  }));
+};
 
   const isAllSelected = items.length > 0 && selectedIds.length === items.length;
 
@@ -102,6 +124,7 @@ export const UsersPage: FC = () => {
       setSelectedIds(items.map((u) => u.id));
     }
   };
+
   const handleSelectOne = (id: number) => {
     setSelectedIds((prev) =>
       prev.includes(id)
@@ -109,30 +132,70 @@ export const UsersPage: FC = () => {
         : [...prev, id]
     );
   };
+
   useEffect(() => {
     setSelectedIds([]);
   }, [tab, page]);
 
   const handleDeleteSelected = async () => {
     if (selectedIds.length === 0) return
-
     if (!window.confirm(`Xóa ${selectedIds.length} mục đã chọn?`)) return
 
-    for (const id of selectedIds) {
-      if (tab === 'staff') {
-        await dispatch(deleteStaff(id)).unwrap()
-      } else {
-        await dispatch(deleteResident(id)).unwrap()
-      }
-    }
+    try {
+      await Promise.all(
+        selectedIds.map(id => {
+          return tab === 'staff'
+            ? dispatch(deleteStaff(id)).unwrap()
+            : dispatch(deleteResident(id)).unwrap()
+        })
+      );
 
-    setSelectedIds([])
-    dispatch(fetchUsers({ type: tab, query, page, pageSize }))
+      alert(`Đã xóa ${selectedIds.length} mục thành công!`);
+      refreshList();
+    } catch (error) {
+      alert("Có lỗi xảy ra khi xóa một số mục.");
+      refreshList();
+    }
   }
-  const handleSuccess = () => {
-    dispatch(fetchUsers({ type: tab, query, page, pageSize }));
-    setEditingId(null);
+  const handleFilterSearch = (key: string, value: string) => {
+
+    if (!value.trim()) return;
+
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+
+    searchTimeoutRef.current = setTimeout(async () => {
+      try {
+
+        const data = await usersService.searchSuggestions({
+          type: tab, // 'residents' hoặc 'staff'
+          field: key, // ví dụ: 'fullName'
+          keyword: value // ví dụ: 'Hương'
+        });
+
+        if (data && data.items) {
+          const newOptions = data.items.map((item: any) => {
+            if (key === 'room') return item.apartment?.roomNumber;
+            if (key === 'roleId') return item.role?.roleName;
+            return item[key];
+          }).filter(Boolean);
+
+          setServerSuggestions(prev => ({
+            ...prev,
+            [key]: Array.from(new Set(newOptions)) as string[]
+          }));
+        }
+
+      } catch (err) {
+        console.error("Lỗi tìm kiếm:", err);
+      }
+    }, 500);
   };
+  const handleKeyDownSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      dispatch(fetchUsers({ type: tab, query, page: 1, pageSize }));
+    }
+  };
+
   return (
     <div className='overflow-auto'>
       {editingId && tab === 'staff' && (
@@ -140,7 +203,7 @@ export const UsersPage: FC = () => {
           isOpen={true}
           staffId={editingId}
           onClose={() => setEditingId(null)}
-          onSuccess={handleSuccess}
+          onSuccess={refreshList}
         />
       )}
 
@@ -149,26 +212,28 @@ export const UsersPage: FC = () => {
           isOpen={true}
           residentId={editingId}
           onClose={() => setEditingId(null)}
-          onSuccess={handleSuccess}
+          onSuccess={refreshList}
         />
       )}
-      {/* --- Bộ lọc --- */}
-  
+
       <FilterModal
         isOpen={isFilterOpen}
         onClose={() => setIsFilterOpen(false)}
         onApply={handleApplyFilter}
         availableFields={currentFields}
+        tagData={serverSuggestions}
+        onSearchChange={handleFilterSearch}
+        initialFilters={activeFilters}
       />
-      {/* ----------------------- */}
-      <div className="flex-1 overflow-auto p-6">
 
+
+      <div className="flex-1 overflow-auto mx-5 sm:mx-14 mt-7">
 
         <div className="flex gap-4 border-b border-[#cecfdd] mb-3">
           <button
             onClick={() => setTab('residents')}
-            className={`pb-3  transition-colors px-3 py-0 border-t border-x border-[#cecfdd] rounded-t-lg ${tab === 'residents'
-              ? 'text-indigo-700 font-bold  border-b-2 border-b-indigo-700'
+            className={`pb-3 transition-colors px-3 py-0 border-t border-x border-[#cecfdd] rounded-t-lg ${tab === 'residents'
+              ? 'text-indigo-700 font-bold border-b-2 border-b-indigo-700'
               : 'text-gray-600 hover:text-gray-900 border-b border-b-[#cecfdd]'
               }`}
           >
@@ -176,9 +241,9 @@ export const UsersPage: FC = () => {
           </button>
           <button
             onClick={() => setTab('staff')}
-            className={`pb-3  transition-colors px-3 border-t border-x border-[#cecfdd] rounded-t-lg ${tab === 'staff'
+            className={`pb-3 transition-colors px-3 border-t border-x border-[#cecfdd] rounded-t-lg ${tab === 'staff'
               ? 'text-indigo-700 font-bold border-b-2 border-b-indigo-700'
-              : 'text-gray-600  hover:text-gray-900 border-b border-b-[#cecfdd]'
+              : 'text-gray-600 hover:text-gray-900 border-b border-b-[#cecfdd]'
               }`}
           >
             Danh sách nhân sự
@@ -188,12 +253,12 @@ export const UsersPage: FC = () => {
         <div className="mb-6">
           <div className="flex items-center justify-between">
             <div className="flex-1 pr-4">
-
               <div className="flex gap-3">
                 <input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder={tab === 'residents' ? 'Tìm kiếm theo Tên, Phòng, Số điện thoại' : 'Tìm kiếm theo Tên, Vị trí, Số điện thoại'}
+                  onKeyDown={handleKeyDownSearch}
+                  placeholder={tab === 'residents' ? 'Tìm kiếm theo Tên, Phòng, SĐT' : 'Tìm kiếm theo Tên, Vị trí, SĐT'}
                   className="w-full max-w-md px-3 py-2 border rounded-md"
                 />
                 <button
@@ -202,7 +267,7 @@ export const UsersPage: FC = () => {
                 >
                   Tìm Kiếm
                 </button>
-                {/* --- NÚT BỘ LỌC MỚI --- */}
+
                 <button
                   onClick={() => setIsFilterOpen(true)}
                   className={`flex items-center gap-2 px-4 py-2 border rounded bg-white hover:bg-gray-50 transition-colors ${activeFilters.length > 0 ? 'border-indigo-500 text-indigo-700 bg-indigo-50' : 'border-gray-300 text-gray-700'}`}
@@ -219,19 +284,19 @@ export const UsersPage: FC = () => {
                 </button>
               </div>
             </div>
+
             <div className="flex gap-3">
               {tab === 'residents' && (
                 <>
                   <CSVImportButton importType="residents" />
-                  {/* 2. Dùng Component Button Mới - Rất gọn */}
-                  <CreateResidentButton onSuccess={handleCreateSuccess} />
+                  <CreateResidentButton onSuccess={refreshList} />
                 </>
               )}
 
               {tab === 'staff' && (
                 <>
                   <CSVImportButton importType="staff" />
-                  <CreateStaffButton onSuccess={handleCreateSuccess} />
+                  <CreateStaffButton onSuccess={refreshList} />
                 </>
               )}
             </div>
@@ -252,34 +317,35 @@ export const UsersPage: FC = () => {
             </thead>
             <tbody>
               {status === 'loading' ? (
-                <tr>
-                  <td colSpan={6} className="p-6 text-center text-gray-500">Đang tải...</td>
-                </tr>
+                <tr><td colSpan={6} className="p-6 text-center text-gray-500">Đang tải...</td></tr>
               ) : error ? (
-                <tr>
-                  <td colSpan={6} className="p-6 text-center text-red-600">{error}</td>
-                </tr>
+                <tr><td colSpan={6} className="p-6 text-center text-red-600">{error}</td></tr>
               ) : items.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="p-6 text-center text-gray-500">Không tìm thấy kết quả</td>
-                </tr>
+                <tr><td colSpan={6} className="p-6 text-center text-gray-500">Không tìm thấy kết quả</td></tr>
               ) : (
                 items.map((u) => (
                   <tr key={u.id} className="border-t">
-                    <td className=" pl-[28px] w-[72px] h-[72px]"><input
-                      type="checkbox"
-                      checked={selectedIds.includes(u.id)}
-                      onChange={() => handleSelectOne(u.id)}
-                    />
+                    <td className=" pl-[28px] w-[72px] h-[72px]">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(u.id)}
+                        onChange={() => handleSelectOne(u.id)}
+                      />
                     </td>
                     <td className="p-4 flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-gray-200" />
+                      <div className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden">
+                        {u.avatar ? <img src={u.avatar} className="w-full h-full object-cover" /> : null}
+                      </div>
                       <div>
                         <div className="font-medium">{u.fullName}</div>
-
                       </div>
                     </td>
-                    <td className="p-4">{tab === 'residents' ? u.apartment?.floorNumber : u.role?.roleName}</td>
+                    <td className="p-4">
+                      {tab === 'residents'
+                        ? (u.apartment?.roomNumber || u.apartment?.floorNumber || '---')
+                        : u.role?.roleName
+                      }
+                    </td>
                     <td className="p-4">{u.phone}</td>
                     <td className="p-4">
                       <span className={`px-3 py-1 rounded-full text-sm ${Number(u.status) === 1 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
@@ -289,7 +355,7 @@ export const UsersPage: FC = () => {
                     <td className="p-4">
                       <div className="flex gap-2">
                         <button
-                          onClick={() => setEditingId(u.id)} // Set ID chung
+                          onClick={() => setEditingId(u.id)}
                           className="p-2 bg-white border rounded hover:bg-gray-50 transition-colors"
                           title="Chỉnh sửa"
                         >
@@ -310,6 +376,7 @@ export const UsersPage: FC = () => {
             </tbody>
           </table>
         </div>
+
         <button
           onClick={handleDeleteSelected}
           disabled={selectedIds.length === 0}
