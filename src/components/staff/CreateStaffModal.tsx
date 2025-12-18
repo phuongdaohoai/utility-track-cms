@@ -217,7 +217,7 @@ export const CreateStaffModal: FC<CreateStaffModalProps> = ({
     }
   };
 
-  // Đóng modal
+  
   const handleClose = () => {
     if (createStatus === 'loading') {
       if (!window.confirm('Đang tạo nhân viên. Bạn có chắc muốn hủy?')) {

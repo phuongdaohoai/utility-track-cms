@@ -1,5 +1,5 @@
 import type { FC } from 'react'
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useRef } from 'react'
 
 import { useAppDispatch, useAppSelector } from '../../store/hooks'
 import { fetchUsers, setPage } from '../../store/usersSlice'
@@ -11,8 +11,9 @@ import { CreateResidentButton } from '../../components/residents/CreateResidentB
 import { deleteResident } from '../../store/residentsSlice';
 import { EditStaffModal } from '../../components/staff/EditStaffModal';
 import { EditResidentModal } from '../../components/residents/EditResidentModal';
-
-
+import usersService from '../../services/usersService';
+import { fetchRoles } from '../../store/roleSlice';
+import { transformFilters } from '../../utils/filterUtils';
 type TabType = 'residents' | 'staff'
 
 export const UsersPage: FC = () => {
@@ -21,12 +22,18 @@ export const UsersPage: FC = () => {
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [editingId, setEditingId] = useState<number | null>(null);
 
+  const [serverSuggestions, setServerSuggestions] = useState<Record<string, string[]>>({});
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [activeFilters, setActiveFilters] = useState<FilterCondition[]>([]);
-
+  const searchTimeoutRef = useRef<any>(null);
   const dispatch = useAppDispatch()
   const { items, total, page, pageSize, status, error } = useAppSelector((s) => s.users)
-
+  const { roles } = useAppSelector((state) => state.roles || { roles: [] });
+  useEffect(() => {
+    if (tab === 'staff' && roles.length === 0) {
+       dispatch(fetchRoles());
+    }
+  }, [dispatch, tab, roles.length]);
   const residentFields: FilterConfig[] = useMemo(() => [
     { key: 'fullName', label: 'Tên cư dân', type: 'string' },
     { key: 'phone', label: 'Số điện thoại', type: 'string' },
@@ -35,41 +42,28 @@ export const UsersPage: FC = () => {
     { key: 'joinDate', label: 'Ngày gia nhập', type: 'date' },
   ], []);
 
-  const staffFields: FilterConfig[] = useMemo(() => [
-    { key: 'fullName', label: 'Tên nhân sự', type: 'string' },
-    { key: 'phone', label: 'Số điện thoại', type: 'string' },
-    { key: 'roleId', label: 'Chức vụ', type: 'select', options: [{ label: 'Admin', value: 1 }, { label: 'Manager', value: 2 }, { label: 'Staff', value: 3 }] },
-    { key: 'status', label: 'Trạng thái', type: 'select', options: [{ label: 'Hoạt động', value: 1 }, { label: 'Không hoạt động', value: 0 }] },
-  ], []);
+ const staffFields: FilterConfig[] = useMemo(() => {
+    const roleOptions = roles.map((role: any) => ({
+        label: role.roleName,
+        value: role.id
+    }));
+
+    return [
+        { key: 'fullName', label: 'Tên nhân sự', type: 'string' },
+        { key: 'phone', label: 'Số điện thoại', type: 'string' },
+        { 
+            key: 'roleId', 
+            label: 'Chức vụ', 
+            type: 'select', 
+            options: roleOptions 
+        },
+        { key: 'status', label: 'Trạng thái', type: 'select', options: [{ label: 'Hoạt động', value: 1 }, { label: 'Không hoạt động', value: 0 }] },
+    ];
+  }, [roles]); 
 
   const currentFields = tab === 'residents' ? residentFields : staffFields;
 
-  // --- Logic tạo gợi ý (Suggestions) từ dữ liệu bảng ---
-  const suggestionsData = useMemo(() => {
-    if (!items || items.length === 0) return {};
 
-    const uniqueNames = new Set<string>();
-    const uniquePhones = new Set<string>();
-    const uniqueEmails = new Set<string>();
-    const uniqueRooms = new Set<string>();
-
-    items.forEach((user) => {
-      if (user.fullName) uniqueNames.add(user.fullName);
-      if (user.phone) uniquePhones.add(user.phone);
-      if (user.email) uniqueEmails.add(user.email);
-      
-      // Xử lý gợi ý cho trường 'room' (residents) hoặc 'roleId' (staff - nếu muốn gợi ý text)
-      const roomVal = user.apartment?.roomNumber || user.apartment?.floorNumber;
-      if (roomVal) uniqueRooms.add(String(roomVal));
-    });
-
-    return {
-      fullName: Array.from(uniqueNames),
-      phone: Array.from(uniquePhones),
-      email: Array.from(uniqueEmails),
-      room: Array.from(uniqueRooms),
-    };
-  }, [items]);
 
   const refreshList = () => {
     dispatch(fetchUsers({ type: tab, query, page: 1, pageSize }));
@@ -106,11 +100,20 @@ export const UsersPage: FC = () => {
     }
   }
 
-  const handleApplyFilter = (filters: FilterCondition[]) => {
-    setActiveFilters(filters);
-    console.log("Applying filters:", filters);
-    dispatch(fetchUsers({ type: tab, query, page: 1, pageSize }));
-  };
+
+
+const handleApplyFilter = (filters: FilterCondition[]) => {
+  setActiveFilters(filters);
+  const cleanPayload = transformFilters(filters); 
+  console.log("Payload gửi đi:", cleanPayload);
+  dispatch(fetchUsers({ 
+    type: tab, 
+    query, 
+    page: 1, 
+    pageSize,
+    filters: cleanPayload 
+  }));
+};
 
   const isAllSelected = items.length > 0 && selectedIds.length === items.length;
 
@@ -125,8 +128,8 @@ export const UsersPage: FC = () => {
   const handleSelectOne = (id: number) => {
     setSelectedIds((prev) =>
       prev.includes(id)
-      ? prev.filter((i) => i !== id)
-      : [...prev, id]
+        ? prev.filter((i) => i !== id)
+        : [...prev, id]
     );
   };
 
@@ -141,12 +144,12 @@ export const UsersPage: FC = () => {
     try {
       await Promise.all(
         selectedIds.map(id => {
-          return tab === 'staff' 
-            ? dispatch(deleteStaff(id)).unwrap() 
+          return tab === 'staff'
+            ? dispatch(deleteStaff(id)).unwrap()
             : dispatch(deleteResident(id)).unwrap()
         })
       );
-      
+
       alert(`Đã xóa ${selectedIds.length} mục thành công!`);
       refreshList();
     } catch (error) {
@@ -154,7 +157,39 @@ export const UsersPage: FC = () => {
       refreshList();
     }
   }
+  const handleFilterSearch = (key: string, value: string) => {
 
+    if (!value.trim()) return;
+
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+
+    searchTimeoutRef.current = setTimeout(async () => {
+      try {
+
+        const data = await usersService.searchSuggestions({
+          type: tab, // 'residents' hoặc 'staff'
+          field: key, // ví dụ: 'fullName'
+          keyword: value // ví dụ: 'Hương'
+        });
+
+        if (data && data.items) {
+          const newOptions = data.items.map((item: any) => {
+            if (key === 'room') return item.apartment?.roomNumber;
+            if (key === 'roleId') return item.role?.roleName;
+            return item[key];
+          }).filter(Boolean);
+
+          setServerSuggestions(prev => ({
+            ...prev,
+            [key]: Array.from(new Set(newOptions)) as string[]
+          }));
+        }
+
+      } catch (err) {
+        console.error("Lỗi tìm kiếm:", err);
+      }
+    }, 500);
+  };
   const handleKeyDownSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       dispatch(fetchUsers({ type: tab, query, page: 1, pageSize }));
@@ -180,16 +215,17 @@ export const UsersPage: FC = () => {
           onSuccess={refreshList}
         />
       )}
-      
+
       <FilterModal
         isOpen={isFilterOpen}
         onClose={() => setIsFilterOpen(false)}
         onApply={handleApplyFilter}
         availableFields={currentFields}
-        tagData={suggestionsData} 
+        tagData={serverSuggestions}
+        onSearchChange={handleFilterSearch}
       />
-      
-   
+
+
       <div className="flex-1 overflow-auto mx-5 sm:mx-14 mt-7">
 
         <div className="flex gap-4 border-b border-[#cecfdd] mb-3">
@@ -230,7 +266,7 @@ export const UsersPage: FC = () => {
                 >
                   Tìm Kiếm
                 </button>
-                
+
                 <button
                   onClick={() => setIsFilterOpen(true)}
                   className={`flex items-center gap-2 px-4 py-2 border rounded bg-white hover:bg-gray-50 transition-colors ${activeFilters.length > 0 ? 'border-indigo-500 text-indigo-700 bg-indigo-50' : 'border-gray-300 text-gray-700'}`}
@@ -247,7 +283,7 @@ export const UsersPage: FC = () => {
                 </button>
               </div>
             </div>
-            
+
             <div className="flex gap-3">
               {tab === 'residents' && (
                 <>
@@ -297,17 +333,17 @@ export const UsersPage: FC = () => {
                     </td>
                     <td className="p-4 flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden">
-                         {u.avatar ? <img src={u.avatar} className="w-full h-full object-cover"/> : null}
+                        {u.avatar ? <img src={u.avatar} className="w-full h-full object-cover" /> : null}
                       </div>
                       <div>
                         <div className="font-medium">{u.fullName}</div>
                       </div>
                     </td>
                     <td className="p-4">
-                        {tab === 'residents' 
-                            ? (u.apartment?.roomNumber || u.apartment?.floorNumber || '---')
-                            : u.role?.roleName
-                        }
+                      {tab === 'residents'
+                        ? (u.apartment?.roomNumber || u.apartment?.floorNumber || '---')
+                        : u.role?.roleName
+                      }
                     </td>
                     <td className="p-4">{u.phone}</td>
                     <td className="p-4">
@@ -339,20 +375,65 @@ export const UsersPage: FC = () => {
             </tbody>
           </table>
         </div>
-        
+
         <button
           onClick={handleDeleteSelected}
           disabled={selectedIds.length === 0}
           className={`px-4 py-2 mt-5 rounded text-white transition
-            ${selectedIds.length === 0 ? 'bg-gray-400 cursor-not-allowed hidden' : 'bg-red-600 hover:bg-red-700'}`}
+    ${selectedIds.length === 0
+              ? 'bg-gray-400 cursor-not-allowed'
+              : 'bg-red-600 hover:bg-red-700'}`}
         >
           Xóa đã chọn ({selectedIds.length})
         </button>
 
         <div className="mt-4 flex items-center justify-center gap-1 text-sm">
-             <button onClick={() => onPage(Math.max(1, page - 1))} disabled={page === 1} className="px-3 py-1 text-gray-600 hover:bg-gray-100 rounded disabled:opacity-50">&lt;</button>
-             <span className="px-2 text-gray-600">Trang {page} / {Math.ceil(total / pageSize)}</span>
-             <button onClick={() => onPage(Math.min(Math.ceil(total / pageSize), page + 1))} disabled={page === Math.ceil(total / pageSize)} className="px-3 py-1 text-gray-600 hover:bg-gray-100 rounded disabled:opacity-50">&gt;</button>
+          <button
+            onClick={() => onPage(Math.max(1, page - 1))}
+            disabled={page === 1}
+            className="px-3 py-1 text-gray-600 hover:bg-gray-100 rounded disabled:opacity-50 disabled:cursor-not-allowed font-extrabold"
+          >
+            &lt;
+          </button>
+
+          {Array.from({ length: Math.min(5, Math.ceil(total / pageSize)) }).map((_, i) => {
+            const pageNum = i + 1;
+            return (
+              <button
+                key={i}
+                onClick={() => onPage(pageNum)}
+                className={`px-3 py-1 rounded ${page === pageNum
+                  ? 'bg-indigo-600 text-white font-medium'
+                  : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+              >
+                {pageNum}
+              </button>
+            );
+          })}
+
+          {Math.ceil(total / pageSize) > 5 && (
+            <>
+              <span className="px-2 text-gray-500">...</span>
+              <button
+                onClick={() => onPage(Math.ceil(total / pageSize))}
+                className={`px-3 py-1 rounded ${page === Math.ceil(total / pageSize)
+                  ? 'bg-indigo-600 text-white font-medium'
+                  : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+              >
+                {Math.ceil(total / pageSize)}
+              </button>
+            </>
+          )}
+
+          <button
+            onClick={() => onPage(Math.min(Math.ceil(total / pageSize), page + 1))}
+            disabled={page === Math.ceil(total / pageSize)}
+            className="px-3 py-1 text-gray-600 hover:bg-gray-100 rounded disabled:opacity-50 disabled:cursor-not-allowed font-extrabold"
+          >
+            &gt;
+          </button>
         </div>
       </div>
     </div>

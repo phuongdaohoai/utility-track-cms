@@ -26,6 +26,7 @@ interface FilterModalProps {
   onApply: (filters: FilterCondition[]) => void;
   availableFields: FilterConfig[];
   tagData?: Record<string, string[]>;
+  onSearchChange?: (key: string, value: string) => void; // <--- THÊM DÒNG NÀY
 }
 
 // --- Cấu hình Operators ---
@@ -59,7 +60,7 @@ const OPERATORS: Record<FilterType, { value: string; label: string }[]> = {
   ],
 };
 
-export const FilterModal: React.FC<FilterModalProps> = ({ isOpen, onClose, onApply, availableFields, tagData = {} }) => {
+export const FilterModal: React.FC<FilterModalProps> = ({ isOpen, onClose, onApply, availableFields, tagData = {}, onSearchChange }) => {
   const [filters, setFilters] = useState<FilterCondition[]>([]);
   const [isAdding, setIsAdding] = useState(false);
 
@@ -160,9 +161,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({ isOpen, onClose, onApp
     }
 
     if (config.type === 'string') {
-      console.log('FIELD KEY:', config.key);
-      console.log('SUGGESTIONS:', TAG_DATA[config.key]);
-      console.log('TAG DATA PROP:', tagData[config.key]);
+     
       const suggestions = tagData[config.key] || [];
       return (
         <TagInput
@@ -170,6 +169,9 @@ export const FilterModal: React.FC<FilterModalProps> = ({ isOpen, onClose, onApp
           suggestions={suggestions}
           onChange={(tags) => updateFilter(filter.id, 'values', tags)}
           placeholder="Nhập hoặc chọn..."
+          onInputChange={(val) => {
+             if (onSearchChange) onSearchChange(config.key, val);
+          }}
         />
       );
     }
