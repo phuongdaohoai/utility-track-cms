@@ -55,7 +55,7 @@ const ServiceTable: React.FC = () => {
   };
 
   return (
-    <div style={{ padding: 20, fontFamily: "Arial, sans-serif" }}>
+    <div style={{ fontFamily: "Arial, sans-serif" }}>
 
       {/* ================= FILTER AREA ================= */}
       <div style={filterWrapperStyle}>

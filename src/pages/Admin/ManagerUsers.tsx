@@ -227,12 +227,12 @@ const handleApplyFilter = (filters: FilterCondition[]) => {
       />
 
 
-      <div className="flex-1 overflow-auto mx-5 sm:mx-14 mt-7">
+      <div className="flex-1 overflow-auto ">
 
         <div className="flex gap-4 border-b border-[#cecfdd] mb-3">
           <button
             onClick={() => setTab('residents')}
-            className={`pb-3 transition-colors px-3 py-0 border-t border-x border-[#cecfdd] rounded-t-lg ${tab === 'residents'
+            className={`pb-3 transition-colors px-3 py-3 border-t border-x border-[#cecfdd] rounded-t-lg ${tab === 'residents'
               ? 'text-indigo-700 font-bold border-b-2 border-b-indigo-700'
               : 'text-gray-600 hover:text-gray-900 border-b border-b-[#cecfdd]'
               }`}
@@ -241,7 +241,7 @@ const handleApplyFilter = (filters: FilterCondition[]) => {
           </button>
           <button
             onClick={() => setTab('staff')}
-            className={`pb-3 transition-colors px-3 border-t border-x border-[#cecfdd] rounded-t-lg ${tab === 'staff'
+            className={`pb-3 transition-colors px-3 py-3 border-t border-x border-[#cecfdd] rounded-t-lg ${tab === 'staff'
               ? 'text-indigo-700 font-bold border-b-2 border-b-indigo-700'
               : 'text-gray-600 hover:text-gray-900 border-b border-b-[#cecfdd]'
               }`}
