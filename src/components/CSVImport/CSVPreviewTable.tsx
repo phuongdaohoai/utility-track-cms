@@ -34,9 +34,7 @@ export const CSVPreviewTable: FC = () => {
     ];
   };
 
-  const getRowErrors = (rowIndex: number) => {
-    return errors.filter(error => error.rowIndex === rowIndex);
-  };
+
 
   if (data.length === 0) {
     return (
