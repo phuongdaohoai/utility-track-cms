@@ -4,7 +4,7 @@ import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { updateStaff, resetUpdateStatus, fetchStaffById, deleteStaff } from '../../store/staffSlice';
 import { fetchRoles } from '../../store/roleSlice';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
+import { API_BASE_URL } from '../../utils/url';
 
 interface EditStaffModalProps {
     isOpen: boolean;

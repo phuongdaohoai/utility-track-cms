@@ -2,8 +2,7 @@ import { FC, useState, useEffect, useRef, ChangeEvent } from 'react';
 import { X, Upload, User, CheckCircle2, AlertCircle, Trash2 } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { fetchResidentById, updateResident, deleteResident, resetResidentStatus } from '../../store/residentsSlice';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
+import { API_BASE_URL } from '../../utils/url';
 
 interface EditResidentModalProps {
     isOpen: boolean;
@@ -75,7 +74,7 @@ export const EditResidentModal: FC<EditResidentModalProps> = ({
                 citizenCard: currentResident.citizenCard || '',
                 gender: currentResident.gender || 'Nam',
                 birthday: currentResident.birthday ? currentResident.birthday.split('T')[0] : '',
-                apartmentId: currentResident.apartment?.floorNumber || '', // Check if this mapping is correct for your backend
+                apartmentId: currentResident.apartment?.floorNumber || '', 
                 qrCode: currentResident.qrCode || '',
                 faceIdData: currentResident.faceIdData || '',
                 status: currentResident.status ?? 1,

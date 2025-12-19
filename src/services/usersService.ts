@@ -1,5 +1,6 @@
 import type { User } from '../types'
 import axiosClient from './axiosClient';
+import { API_BASE_URL } from '../utils/url';
 export interface FetchUsersParams {
   type: 'residents' | 'staff'
   query?: string
@@ -20,7 +21,7 @@ export interface SearchSuggestionParams {
   keyword: string
 }
 
-const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
+
 const getHeaders = () => {
   const token = localStorage.getItem('accessToken')
   return {
@@ -44,7 +45,7 @@ const { type, query = '', page = 1, pageSize = 10, filters } = params
   }
 
   try {
-    const response = await fetch(`${API_URL}${endpoint}?${queryParams.toString()}`, {
+    const response = await fetch(`${API_BASE_URL}${endpoint}?${queryParams.toString()}`, {
       method: 'GET',
       headers: getHeaders(),
     })
@@ -81,7 +82,7 @@ const searchSuggestions = async (params: SearchSuggestionParams): Promise<{ item
    queryParams.append("search", keyword); 
 
   try {
-    const response = await fetch(`${API_URL}${endpoint}?${queryParams.toString()}`, {
+    const response = await fetch(`${API_BASE_URL}${endpoint}?${queryParams.toString()}`, {
       method: 'GET',
       headers: getHeaders(),
     })
