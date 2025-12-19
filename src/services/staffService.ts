@@ -10,7 +10,7 @@ export interface Staff {
     roleName: string;
   } | null;
   status: number; // 1: Active, 0: Inactive
-  avatar?: File;
+  avatar?: string |File;
   roleId: number;
   version: number;
   

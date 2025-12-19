@@ -1,6 +1,6 @@
 // services/csvImportService.ts
 import { CSVRow, ValidationError, ImportRequest, ImportResponse } from '../types';
-import { CSV_COLUMNS } from '../components/CSVImport/csvConfig';
+
 export const csvImportService = {
   // Parse CSV file
   async parseCSV(file: File): Promise<{ data: CSVRow[]; errors: ValidationError[] }> {

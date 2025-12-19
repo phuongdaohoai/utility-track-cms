@@ -1,5 +1,4 @@
 import type { User } from '../types'
-import axiosClient from './axiosClient';
 import { API_BASE_URL } from '../utils/url';
 export interface FetchUsersParams {
   type: 'residents' | 'staff'
@@ -71,7 +70,7 @@ const { type, query = '', page = 1, pageSize = 10, filters } = params
   }
 }
 const searchSuggestions = async (params: SearchSuggestionParams): Promise<{ items: User[] }> => {
-  const { type, field, keyword } = params
+  const { type, keyword } = params
   const endpoint = type === 'staff' ? '/staff/getAll' : '/residents/getAll'
 
  const queryParams = new URLSearchParams({

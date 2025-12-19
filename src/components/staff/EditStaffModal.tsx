@@ -61,11 +61,14 @@ export const EditStaffModal: FC<EditStaffModalProps> = ({
                 password: '',
             });
 
-            if (currentStaff.avatar) {
-                const url = currentStaff.avatar.startsWith('http')
-                    ? currentStaff.avatar
-                    : `${API_BASE_URL}/${currentStaff.avatar}`;
-                setAvatarPreview(url);
+            if (typeof currentStaff.avatar === 'string') {
+                setAvatarPreview(
+                    currentStaff.avatar.startsWith('http')
+                        ? currentStaff.avatar
+                        : `${API_BASE_URL}${currentStaff.avatar}`
+                );
+            } else if (currentStaff.avatar instanceof File) {
+                setAvatarPreview(URL.createObjectURL(currentStaff.avatar));
             } else {
                 setAvatarPreview(null);
             }

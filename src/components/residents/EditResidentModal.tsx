@@ -74,7 +74,7 @@ export const EditResidentModal: FC<EditResidentModalProps> = ({
                 citizenCard: currentResident.citizenCard || '',
                 gender: currentResident.gender || 'Nam',
                 birthday: currentResident.birthday ? currentResident.birthday.split('T')[0] : '',
-                apartmentId: currentResident.apartment?.floorNumber || '', 
+                apartmentId: currentResident.apartment?.floorNumber || 0, 
                 qrCode: currentResident.qrCode || '',
                 faceIdData: currentResident.faceIdData || '',
                 status: currentResident.status ?? 1,
