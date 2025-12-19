@@ -1,5 +1,4 @@
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
+import { API_BASE_URL } from '../utils/url';
 
 export interface Staff {
   staffId: number;
@@ -26,6 +25,7 @@ export interface UpdateStaffPayload {
   roleId: number;
   version: number;
   avatar?: File;
+  password?: string;
   
 }
 
@@ -57,6 +57,9 @@ const update = async (data: UpdateStaffPayload) => {
   formData.append('fullName', data.fullName);
   formData.append('phone', data.phone);
   formData.append('email', data.email);
+  if (data.password) {
+    formData.append('password', data.password);
+  }
   formData.append('roleId', data.roleId.toString());
   formData.append('status', data.status.toString());
   formData.append('version', data.version.toString());

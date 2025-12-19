@@ -1,10 +1,10 @@
 import { FC, useState, useEffect, useRef, ChangeEvent } from 'react';
-import { X, Upload, User, Phone, Mail, Shield, CheckCircle2, AlertCircle, Trash2 } from 'lucide-react';
+import { X, Upload, User, Phone, Mail, Shield, CheckCircle2, AlertCircle, Trash2, Lock, Eye, EyeOff } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { updateStaff, resetUpdateStatus, fetchStaffById, deleteStaff } from '../../store/staffSlice';
 import { fetchRoles } from '../../store/roleSlice';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
+import { API_BASE_URL } from '../../utils/url';
 
 interface EditStaffModalProps {
     isOpen: boolean;
@@ -23,14 +23,15 @@ export const EditStaffModal: FC<EditStaffModalProps> = ({
 
     const { roles } = useAppSelector((state) => state.roles || { roles: [] });
     const { updateStatus, error, currentStaff, loading } = useAppSelector((state) => state.staff);
-
+    const [showPassword, setShowPassword] = useState(false);
     const [formData, setFormData] = useState({
         fullName: '',
         phone: '',
         email: '',
         roleId: '',
         status: 1,
-        version: 0, // Trường version ẩn để gửi kèm payload
+        version: 0,
+        password: '',
     });
 
     const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -38,7 +39,7 @@ export const EditStaffModal: FC<EditStaffModalProps> = ({
     const [formErrors, setFormErrors] = useState<Record<string, string>>({});
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-   
+
     useEffect(() => {
         if (isOpen && staffId) {
             dispatch(fetchRoles());
@@ -56,7 +57,8 @@ export const EditStaffModal: FC<EditStaffModalProps> = ({
                 email: currentStaff.email || '',
                 roleId: currentStaff.role?.id.toString() || '',
                 status: currentStaff.status ?? 1,
-                version: currentStaff.version ?? 0, // Lấy version từ DB
+                version: currentStaff.version ?? 0,
+                password: '',
             });
 
             if (currentStaff.avatar) {
@@ -70,7 +72,7 @@ export const EditStaffModal: FC<EditStaffModalProps> = ({
         }
     }, [currentStaff, isOpen]);
 
-    
+
     useEffect(() => {
         if (updateStatus === 'success') {
             const timer = setTimeout(() => {
@@ -81,16 +83,16 @@ export const EditStaffModal: FC<EditStaffModalProps> = ({
         }
     }, [updateStatus, onClose, onSuccess]);
 
-   
+
     const validateForm = (): boolean => {
         const errors: Record<string, string> = {};
         const cleanPhone = formData.phone.replace(/\D/g, '');
-    
+
         if (!formData.fullName.trim()) {
             errors.fullName = 'Họ tên là bắt buộc';
         }
 
-      
+
         if (!cleanPhone) {
             errors.phone = 'SĐT là bắt buộc';
         } else if (!/^(0|\+84)(\d{9})$/.test(cleanPhone)) {
@@ -98,7 +100,7 @@ export const EditStaffModal: FC<EditStaffModalProps> = ({
             errors.phone = 'SĐT không hợp lệ (VD: 0901-234-567)';
         }
 
-      
+
         if (!formData.email.trim()) {
             errors.email = 'Email là bắt buộc';
         } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
@@ -109,6 +111,10 @@ export const EditStaffModal: FC<EditStaffModalProps> = ({
         if (!formData.roleId) {
             errors.roleId = 'Vui lòng chọn vai trò';
         }
+        if (formData.password && formData.password.length < 6) {
+            errors.password = 'Mật khẩu mới phải có ít nhất 6 ký tự';
+        }
+
 
         setFormErrors(errors);
         return Object.keys(errors).length === 0;
@@ -124,7 +130,7 @@ export const EditStaffModal: FC<EditStaffModalProps> = ({
 
         setFormData(prev => ({ ...prev, phone: formattedValue }));
 
-     
+
         if (formErrors.phone) {
             setFormErrors(prev => ({ ...prev, phone: '' }));
         }
@@ -133,7 +139,7 @@ export const EditStaffModal: FC<EditStaffModalProps> = ({
     const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
-      
+
         if (formErrors[name]) setFormErrors(prev => ({ ...prev, [name]: '' }));
     };
 
@@ -174,7 +180,8 @@ export const EditStaffModal: FC<EditStaffModalProps> = ({
             roleId: Number(formData.roleId),
             status: Number(formData.status),
             version: Number(formData.version), // Gửi version lên server
-            avatar: avatarFile || undefined
+            avatar: avatarFile || undefined,
+            password: formData.password || undefined
         };
 
         await dispatch(updateStaff(payload));
@@ -318,7 +325,36 @@ export const EditStaffModal: FC<EditStaffModalProps> = ({
                                         {formErrors.email && <p className="text-xs text-red-500 mt-1">{formErrors.email}</p>}
                                     </div>
                                 </div>
-
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Mật khẩu mới <span className="text-gray-400 font-normal text-xs">(Bỏ trống nếu không đổi)</span>
+                                    </label>
+                                    <div className="relative">
+                                        <Lock className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+                                        <input
+                                            type={showPassword ? "text" : "password"}
+                                            name="password"
+                                            value={formData.password}
+                                            onChange={handleInputChange}
+                                            autoComplete="new-password"
+                                            className={`w-full pl-9 pr-10 py-2 border rounded-lg focus:ring-2 outline-none transition-all ${formErrors.password ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:ring-indigo-500'
+                                                }`} placeholder="••••••"
+                                        />
+                                        <button
+                                            type="button" // Quan trọng: type="button" để không submit form
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600 focus:outline-none"
+                                            title={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                                        >
+                                            {showPassword ? (
+                                                <EyeOff className="w-4 h-4" /> // Icon mắt gạch chéo (khi đang hiện)
+                                            ) : (
+                                                <Eye className="w-4 h-4" />    // Icon mắt thường (khi đang ẩn)
+                                            )}
+                                        </button>
+                                    </div>
+                                    {formErrors.password && <p className="text-xs text-red-500 mt-1">{formErrors.password}</p>}
+                                </div>
                                 {/* Role & Status */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>

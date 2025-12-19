@@ -6,7 +6,7 @@ import { fetchUsers, setPage } from '../../store/usersSlice'
 import { deleteStaff } from '../../store/staffSlice';
 import { CSVImportButton } from "../../components/CSVImport";
 import { CreateStaffButton } from '../../components/staff/CreateStaffButton';
-import { FilterModal, FilterConfig, FilterCondition } from '../../components/fill/FilterModal';
+import { FilterModal, FilterConfig, FilterCondition } from '../../components/filter/FilterModal';
 import { CreateResidentButton } from '../../components/residents/CreateResidentButton';
 import { deleteResident } from '../../store/residentsSlice';
 import { EditStaffModal } from '../../components/staff/EditStaffModal';
@@ -14,6 +14,8 @@ import { EditResidentModal } from '../../components/residents/EditResidentModal'
 import usersService from '../../services/usersService';
 import { fetchRoles } from '../../store/roleSlice';
 import { transformFilters } from '../../utils/filterUtils';
+import { Pencil, Trash2 } from "lucide-react";
+import { API_BASE_URL } from '../../utils/url';
 type TabType = 'residents' | 'staff'
 
 export const UsersPage: FC = () => {
@@ -21,6 +23,7 @@ export const UsersPage: FC = () => {
   const [query, setQuery] = useState<string>('')
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [editingId, setEditingId] = useState<number | null>(null);
+
 
   const [serverSuggestions, setServerSuggestions] = useState<Record<string, string[]>>({});
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -31,7 +34,7 @@ export const UsersPage: FC = () => {
   const { roles } = useAppSelector((state) => state.roles || { roles: [] });
   useEffect(() => {
     if (tab === 'staff' && roles.length === 0) {
-       dispatch(fetchRoles());
+      dispatch(fetchRoles());
     }
   }, [dispatch, tab, roles.length]);
   const residentFields: FilterConfig[] = useMemo(() => [
@@ -42,24 +45,25 @@ export const UsersPage: FC = () => {
     { key: 'joinDate', label: 'Ngày gia nhập', type: 'date' },
   ], []);
 
- const staffFields: FilterConfig[] = useMemo(() => {
+  const staffFields: FilterConfig[] = useMemo(() => {
     const roleOptions = roles.map((role: any) => ({
-        label: role.roleName,
-        value: role.id
+      label: role.roleName,
+      value: role.id
     }));
 
     return [
-        { key: 'fullName', label: 'Tên nhân sự', type: 'string' },
-        { key: 'phone', label: 'Số điện thoại', type: 'string' },
-        { 
-            key: 'roleId', 
-            label: 'Chức vụ', 
-            type: 'select', 
-            options: roleOptions 
-        },
-        { key: 'status', label: 'Trạng thái', type: 'select', options: [{ label: 'Hoạt động', value: 1 }, { label: 'Không hoạt động', value: 0 }] },
+      { key: 'fullName', label: 'Tên nhân sự', type: 'string' },
+      { key: 'phone', label: 'Số điện thoại', type: 'string' },
+      {
+        key: 'roleId',
+        label: 'Chức vụ',
+        type: 'select',
+        options: roleOptions
+      },
+      { key: 'status', label: 'Trạng thái', type: 'select', options: [{ label: 'Hoạt động', value: 1 }, { label: 'Không hoạt động', value: 0 }] },
+      { key: 'createdAt', label: 'Ngày tạo', type: 'date' },
     ];
-  }, [roles]); 
+  }, [roles]);
 
   const currentFields = tab === 'residents' ? residentFields : staffFields;
 
@@ -102,18 +106,18 @@ export const UsersPage: FC = () => {
 
 
 
-const handleApplyFilter = (filters: FilterCondition[]) => {
-  setActiveFilters(filters);
-  const cleanPayload = transformFilters(filters); 
-  console.log("Payload gửi đi:", cleanPayload);
-  dispatch(fetchUsers({ 
-    type: tab, 
-    query, 
-    page: 1, 
-    pageSize,
-    filters: cleanPayload 
-  }));
-};
+  const handleApplyFilter = (filters: FilterCondition[]) => {
+    setActiveFilters(filters);
+    const cleanPayload = transformFilters(filters);
+    console.log("Payload gửi đi:", cleanPayload);
+    dispatch(fetchUsers({
+      type: tab,
+      query,
+      page: 1,
+      pageSize,
+      filters: cleanPayload
+    }));
+  };
 
   const isAllSelected = items.length > 0 && selectedIds.length === items.length;
 
@@ -334,8 +338,13 @@ const handleApplyFilter = (filters: FilterCondition[]) => {
                     </td>
                     <td className="p-4 flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden">
-                        {u.avatar ? <img src={u.avatar} className="w-full h-full object-cover" /> : null}
-                      </div>
+                        {u.avatar && (
+                          <img
+                            src={`${API_BASE_URL}${u.avatar}`}
+                            className="w-full h-full object-cover"
+                            alt="avatar"
+                          />
+                        )} </div>
                       <div>
                         <div className="font-medium">{u.fullName}</div>
                       </div>
@@ -359,14 +368,15 @@ const handleApplyFilter = (filters: FilterCondition[]) => {
                           className="p-2 bg-white border rounded hover:bg-gray-50 transition-colors"
                           title="Chỉnh sửa"
                         >
-                          ✏️
+                          <Pencil className="w-4 h-4 text-indigo-500" />
+
                         </button>
                         <button
                           onClick={() => handleDelete(u.id)}
                           className="p-2 bg-white border rounded hover:bg-red-50 hover:text-red-600 transition-colors"
                           title={tab === 'residents' ? "Xóa cư dân" : "Xóa nhân viên"}
                         >
-                          🗑️
+                          <Trash2 className="w-4 h-4 text-red-500" />
                         </button>
                       </div>
                     </td>
