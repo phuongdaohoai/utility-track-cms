@@ -1,4 +1,4 @@
-import { FilterCondition } from '../components/fill/FilterModal';
+import { FilterCondition } from '../components/filter/FilterModal';
 
 export const transformFilters = (filters: FilterCondition[]) => {
   const mergedFilters = new Map<string, any>();
