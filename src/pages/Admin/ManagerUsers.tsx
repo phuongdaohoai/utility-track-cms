@@ -14,6 +14,7 @@ import { EditResidentModal } from '../../components/residents/EditResidentModal'
 import usersService from '../../services/usersService';
 import { fetchRoles } from '../../store/roleSlice';
 import { transformFilters } from '../../utils/filterUtils';
+import { Pencil, Trash2 } from "lucide-react";
 type TabType = 'residents' | 'staff'
 
 export const UsersPage: FC = () => {
@@ -58,6 +59,7 @@ export const UsersPage: FC = () => {
             options: roleOptions 
         },
         { key: 'status', label: 'Trạng thái', type: 'select', options: [{ label: 'Hoạt động', value: 1 }, { label: 'Không hoạt động', value: 0 }] },
+        { key: 'createdAt', label: 'Ngày tạo', type: 'date' },
     ];
   }, [roles]); 
 
@@ -359,14 +361,15 @@ const handleApplyFilter = (filters: FilterCondition[]) => {
                           className="p-2 bg-white border rounded hover:bg-gray-50 transition-colors"
                           title="Chỉnh sửa"
                         >
-                          ✏️
+                         <Pencil className="w-4 h-4 text-indigo-500" />
+
                         </button>
                         <button
                           onClick={() => handleDelete(u.id)}
                           className="p-2 bg-white border rounded hover:bg-red-50 hover:text-red-600 transition-colors"
                           title={tab === 'residents' ? "Xóa cư dân" : "Xóa nhân viên"}
                         >
-                          🗑️
+                          <Trash2 className="w-4 h-4 text-red-500" />
                         </button>
                       </div>
                     </td>

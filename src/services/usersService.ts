@@ -39,8 +39,6 @@ const { type, query = '', page = 1, pageSize = 10, filters } = params
     pageSize: pageSize.toString(),
   })
 
-  // 2. LOGIC QUAN TRỌNG: Gửi filters lên backend
-  // Nếu có filters và mảng không rỗng, chuyển thành JSON string
   if (filters && filters.length > 0) {
     queryParams.append('filters', JSON.stringify(filters));
   }

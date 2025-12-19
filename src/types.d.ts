@@ -15,6 +15,7 @@ export interface User {
   position?: string
   phone?: string
   status?: int
+  avatar?: string
 }
 
 // types/csvImport.ts

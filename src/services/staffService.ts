@@ -26,6 +26,7 @@ export interface UpdateStaffPayload {
   roleId: number;
   version: number;
   avatar?: File;
+  password?: string;
   
 }
 
@@ -57,6 +58,9 @@ const update = async (data: UpdateStaffPayload) => {
   formData.append('fullName', data.fullName);
   formData.append('phone', data.phone);
   formData.append('email', data.email);
+  if (data.password) {
+    formData.append('password', data.password);
+  }
   formData.append('roleId', data.roleId.toString());
   formData.append('status', data.status.toString());
   formData.append('version', data.version.toString());
