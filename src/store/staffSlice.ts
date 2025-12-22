@@ -1,6 +1,6 @@
 // store/staffSlice.ts
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import staffService, { Staff, UpdateStaffPayload, CreateStaffPayload } from '../services/staffService';
+import staffService, { Staff, UpdateStaffPayload, CreateStaffPayload, uploadAvatar } from '../services/staffService';
 
 interface StaffState {
   currentStaff: Staff | null;
@@ -21,16 +21,40 @@ const initialState: StaffState = {
 };
 export const createStaff = createAsyncThunk(
   'staff/create',
-  async (data: CreateStaffPayload, thunkAPI) => {
+  async ({ staffData, avatarFile }: { staffData: any; avatarFile: File | null }, thunkAPI) => {
     try {
-      const response = await staffService.create(data);
-      return response.data; // Trả về staff mới tạo
+      let avatarUrl = '';
+      // Upload ảnh nếu có file
+      if (avatarFile) {
+        const uploadRes = await staffService.uploadAvatar(avatarFile);
+        // Map đúng response từ backend (ví dụ: { data: { url: "..." } })
+        avatarUrl = uploadRes.data?.url || uploadRes.url || uploadRes.data || '';
+      }
+
+      // Gộp URL vào payload JSON
+      const payload = { ...staffData, avatar: avatarUrl };
+      
+      const response = await staffService.create(payload);
+      return response.data;
     } catch (error: any) {
       return thunkAPI.rejectWithValue(error.message);
     }
   }
 );
 
+// Update Staff Thunk (Cần khớp với cách gọi ở Modal)
+export const updateStaff = createAsyncThunk(
+  'staff/update',
+  async ({ staffData }: { staffData: any }, thunkAPI) => { // Nhận object { staffData }
+    try {
+      // Lúc này staffData.avatar đã là URL string (do Modal xử lý upload edit)
+      const response = await staffService.update(staffData);
+      return response.data;
+    } catch (error: any) {
+      return thunkAPI.rejectWithValue(error.message);
+    }
+  }
+);
 // Thunk lấy thông tin chi tiết
 export const fetchStaffById = createAsyncThunk(
   'staff/fetchById',
@@ -44,18 +68,7 @@ export const fetchStaffById = createAsyncThunk(
   }
 );
 
-// Thunk cập nhật thông tin
-export const updateStaff = createAsyncThunk(
-  'staff/update',
-  async (data: UpdateStaffPayload, thunkAPI) => {
-    try {
-      const response = await staffService.update(data);
-      return response.data; // Trả về data mới sau khi update
-    } catch (error: any) {
-      return thunkAPI.rejectWithValue(error.message);
-    }
-  }
-);
+
 
 export const deleteStaff = createAsyncThunk(
   'staff/delete',

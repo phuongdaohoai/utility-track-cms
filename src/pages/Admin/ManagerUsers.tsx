@@ -1,15 +1,15 @@
 import type { FC } from 'react'
 import { useEffect, useState, useMemo, useRef } from 'react'
-import { ResidentModal } from '../../components/residentnew/ResidentForm';
+import { ResidentModal } from '../../components/residents/ResidentForm';
 import { useAppDispatch, useAppSelector } from '../../store/hooks'
 import { fetchUsers, setPage } from '../../store/usersSlice'
 import { deleteStaff } from '../../store/staffSlice';
 import { CSVImportButton } from "../../components/CSVImport";
-import { CreateStaffButton } from '../../components/staff/CreateStaffButton';
+
 import { FilterModal, FilterConfig, FilterCondition } from '../../components/filter/FilterModal';
 import { deleteResident } from '../../store/residentsSlice';
-import { EditStaffModal } from '../../components/staff/EditStaffModal';
-import { EditResidentModal } from '../../components/residents/EditResidentModal';
+
+import { StaffModal } from '../../components/staff/StaffModal';
 import usersService from '../../services/usersService';
 import { fetchRoles } from '../../store/roleSlice';
 import { transformFilters } from '../../utils/filterUtils';
@@ -22,14 +22,20 @@ export const UsersPage: FC = () => {
   const [query, setQuery] = useState<string>('')
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [editingId, setEditingId] = useState<number | null>(null);
-const [modalState, setModalState] = useState<{ isOpen: boolean; residentId: number | null }>({
+  const [modalState, setModalState] = useState<{ isOpen: boolean; residentId: number | null }>({
     isOpen: false,
     residentId: null
-});
-const handleOpenCreate = () => setModalState({ isOpen: true, residentId: null });
-const handleOpenEdit = (id: number) => setModalState({ isOpen: true, residentId: id });
-const handleCloseModal = () => setModalState({ isOpen: false, residentId: null });
-
+  });
+  const handleOpenCreate = () => setModalState({ isOpen: true, residentId: null });
+  const handleOpenEdit = (id: number) => setModalState({ isOpen: true, residentId: id });
+  const handleCloseModal = () => setModalState({ isOpen: false, residentId: null });
+  const [staffModalState, setStaffModalState] = useState<{ isOpen: boolean; staffId: number | null }>({
+    isOpen: false,
+    staffId: null
+  });
+  const handleOpenStaffCreate = () => setStaffModalState({ isOpen: true, staffId: null });
+  const handleOpenStaffEdit = (id: number) => setStaffModalState({ isOpen: true, staffId: id });
+  const handleCloseStaffModal = () => setStaffModalState({ isOpen: false, staffId: null });
   const [serverSuggestions, setServerSuggestions] = useState<Record<string, string[]>>({});
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [activeFilters, setActiveFilters] = useState<FilterCondition[]>([]);
@@ -204,32 +210,34 @@ const handleCloseModal = () => setModalState({ isOpen: false, residentId: null }
       dispatch(fetchUsers({ type: tab, query, page: 1, pageSize }));
     }
   };
-
+const formatPhoneDisplay = (phone: string | undefined | null) => {
+  if (!phone) return '---';
+  
+  // Loại bỏ các ký tự không phải số
+  const cleaned = phone.replace(/\D/g, '');
+  
+  // Format theo dạng 0000-000-000 (nếu đủ 10 số)
+  if (cleaned.length === 10) {
+    return `${cleaned.slice(0, 4)}-${cleaned.slice(4, 7)}-${cleaned.slice(7)}`;
+  }
+  
+  // Hoặc trả về nguyên bản nếu không khớp format chuẩn
+  return phone;
+};
   return (
     <div className='overflow-auto'>
-      {editingId && tab === 'staff' && (
-        <EditStaffModal
-          isOpen={true}
-          staffId={editingId}
-          onClose={() => setEditingId(null)}
+      <StaffModal
+          isOpen={staffModalState.isOpen}
+          staffId={staffModalState.staffId}
+          onClose={handleCloseStaffModal}
           onSuccess={refreshList}
         />
-      )}
-
-      {editingId && tab === 'residents' && (
-        <EditResidentModal
-          isOpen={true}
-          residentId={editingId}
-          onClose={() => setEditingId(null)}
-          onSuccess={refreshList}
-        />
-      )}
-<ResidentModal 
-    isOpen={modalState.isOpen}
-    residentId={modalState.residentId}
-    onClose={handleCloseModal}
-    onSuccess={refreshList}
-/>
+      <ResidentModal
+        isOpen={modalState.isOpen}
+        residentId={modalState.residentId}
+        onClose={handleCloseModal}
+        onSuccess={refreshList}
+      />
       <FilterModal
         isOpen={isFilterOpen}
         onClose={() => setIsFilterOpen(false)}
@@ -303,10 +311,10 @@ const handleCloseModal = () => setModalState({ isOpen: false, residentId: null }
               {tab === 'residents' && (
                 <>
                   <CSVImportButton importType="residents" />
-                  
-                 <button   className="px-4 py-2 bg-indigo-700 text-white rounded hover:bg-indigo-800 transition-colors inline-flex items-center gap-2"
-                  onClick={handleOpenCreate}
-                  
+
+                  <button className="px-4 py-2 bg-indigo-700 text-white rounded hover:bg-indigo-800 transition-colors inline-flex items-center gap-2"
+                    onClick={handleOpenCreate}
+
                   ><Plus className="w-4 h-4" />Thêm cư dân</button>
                 </>
               )}
@@ -314,13 +322,27 @@ const handleCloseModal = () => setModalState({ isOpen: false, residentId: null }
               {tab === 'staff' && (
                 <>
                   <CSVImportButton importType="staff" />
-                  <CreateStaffButton onSuccess={refreshList} />
+                  <button 
+                    className="px-4 py-2 bg-indigo-700 text-white rounded hover:bg-indigo-800 transition-colors inline-flex items-center gap-2"
+                    onClick={handleOpenStaffCreate}
+                  >
+                    <Plus className="w-4 h-4" />Thêm nhân sự
+                  </button>
                 </>
               )}
             </div>
           </div>
         </div>
-
+        <button
+          onClick={handleDeleteSelected}
+          disabled={selectedIds.length === 0}
+          className={`px-4 py-2 my-1 rounded text-white transition
+    ${selectedIds.length === 0
+              ? 'bg-gray-400 cursor-not-allowed'
+              : 'bg-red-600 hover:bg-red-700'}`}
+        >
+          Xóa đã chọn ({selectedIds.length})
+        </button>
         <div className="bg-white border rounded shadow-sm">
           <table className="w-full table-auto">
             <thead className="bg-gray-50">
@@ -369,7 +391,7 @@ const handleCloseModal = () => setModalState({ isOpen: false, residentId: null }
                         : u.role?.roleName
                       }
                     </td>
-                    <td className="p-4">{u.phone}</td>
+                    <td className="p-4">{formatPhoneDisplay(u.phone)}</td>
                     <td className="p-4">
                       <span className={`px-3 py-1 rounded-full text-sm ${Number(u.status) === 1 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                         {Number(u.status) === 1 ? 'Hoạt động' : 'Không hoạt động'}
@@ -377,10 +399,11 @@ const handleCloseModal = () => setModalState({ isOpen: false, residentId: null }
                     </td>
                     <td className="p-4">
                       <div className="flex gap-2">
-                        <button
-                         onClick={() => {
+                     <button
+                          // Mở Modal Edit
+                          onClick={() => {
                             if (tab === 'residents') handleOpenEdit(u.id);
-                            else setEditingId(u.id);
+                            else handleOpenStaffEdit(u.id);
                           }}
                           className="p-2 bg-white border rounded hover:bg-gray-50 transition-colors"
                           title="Chỉnh sửa"
@@ -404,16 +427,7 @@ const handleCloseModal = () => setModalState({ isOpen: false, residentId: null }
           </table>
         </div>
 
-        <button
-          onClick={handleDeleteSelected}
-          disabled={selectedIds.length === 0}
-          className={`px-4 py-2 mt-5 rounded text-white transition
-    ${selectedIds.length === 0
-              ? 'bg-gray-400 cursor-not-allowed'
-              : 'bg-red-600 hover:bg-red-700'}`}
-        >
-          Xóa đã chọn ({selectedIds.length})
-        </button>
+
 
         <div className="mt-4 flex items-center justify-center gap-1 text-sm">
           <button
