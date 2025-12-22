@@ -6,11 +6,13 @@ interface ResidentsState {
   currentResident: Resident | null;
   loading: boolean;
   updateStatus: 'idle' | 'loading' | 'success' | 'failed';
+  createStatus: 'idle' | 'loading' | 'success' | 'failed';
   error: string | null;
 }
 const initialState: ResidentsState = {
   currentResident: null,
   loading: false,
+  createStatus: 'idle',
   updateStatus: 'idle',
   error: null,
 };
@@ -26,9 +28,30 @@ export const fetchResidentById = createAsyncThunk(
   }
 );
 
+export const createResident = createAsyncThunk(
+  'residents/create',
+  async ({ residentData, avatarFile }: { residentData: any; avatarFile: File | null }, thunkAPI) => {
+    try {
+      let avatarUrl = '';
+      if (avatarFile) {
+        const uploadRes = await residentsService.uploadAvatar(avatarFile); 
+        avatarUrl = uploadRes.data?.url || uploadRes.url || uploadRes.data || ''; 
+      }     
+      const payload = {
+        ...residentData,
+        avatar: avatarUrl,
+      };
+      const res = await residentsService.create(payload);
+      return res.data;
+    } catch (error: any) {
+      return thunkAPI.rejectWithValue(error.message);
+    }
+  }
+);
+
 export const updateResident = createAsyncThunk(
   'residents/update',
-  async ({ id, data }: { id: number, data: FormData }, thunkAPI) => {
+  async ({ id, data }: { id: number, data: any }, thunkAPI) => {
     try {
       const res = await residentsService.update(id, data);
       return res.data;
@@ -56,6 +79,7 @@ const residentsSlice = createSlice({
   reducers: {
     resetResidentStatus: (state) => {
       state.updateStatus = 'idle';
+      state.createStatus = 'idle';
       state.error = null;
     }
   },
@@ -87,7 +111,21 @@ const residentsSlice = createSlice({
         state.updateStatus = 'failed';
         state.error = action.payload as string;
       });
+      // --- CREATE CASES (MỚI) ---
+    builder
+      .addCase(createResident.pending, (state) => {
+        state.createStatus = 'loading';
+        state.error = null;
+      })
+      .addCase(createResident.fulfilled, (state) => {
+        state.createStatus = 'success';
+      })
+      .addCase(createResident.rejected, (state, action) => {
+        state.createStatus = 'failed';
+        state.error = action.payload as string;
+      });
   },
 });
+ 
 export const { resetResidentStatus } = residentsSlice.actions;
 export default residentsSlice.reducer;

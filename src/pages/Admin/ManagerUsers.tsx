@@ -1,20 +1,19 @@
 import type { FC } from 'react'
 import { useEffect, useState, useMemo, useRef } from 'react'
-
+import { ResidentModal } from '../../components/residentnew/ResidentForm';
 import { useAppDispatch, useAppSelector } from '../../store/hooks'
 import { fetchUsers, setPage } from '../../store/usersSlice'
 import { deleteStaff } from '../../store/staffSlice';
 import { CSVImportButton } from "../../components/CSVImport";
 import { CreateStaffButton } from '../../components/staff/CreateStaffButton';
 import { FilterModal, FilterConfig, FilterCondition } from '../../components/filter/FilterModal';
-import { CreateResidentButton } from '../../components/residents/CreateResidentButton';
 import { deleteResident } from '../../store/residentsSlice';
 import { EditStaffModal } from '../../components/staff/EditStaffModal';
 import { EditResidentModal } from '../../components/residents/EditResidentModal';
 import usersService from '../../services/usersService';
 import { fetchRoles } from '../../store/roleSlice';
 import { transformFilters } from '../../utils/filterUtils';
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, Plus } from "lucide-react";
 import { API_BASE_URL } from '../../utils/url';
 type TabType = 'residents' | 'staff'
 
@@ -23,7 +22,13 @@ export const UsersPage: FC = () => {
   const [query, setQuery] = useState<string>('')
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [editingId, setEditingId] = useState<number | null>(null);
-
+const [modalState, setModalState] = useState<{ isOpen: boolean; residentId: number | null }>({
+    isOpen: false,
+    residentId: null
+});
+const handleOpenCreate = () => setModalState({ isOpen: true, residentId: null });
+const handleOpenEdit = (id: number) => setModalState({ isOpen: true, residentId: id });
+const handleCloseModal = () => setModalState({ isOpen: false, residentId: null });
 
   const [serverSuggestions, setServerSuggestions] = useState<Record<string, string[]>>({});
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -219,7 +224,12 @@ export const UsersPage: FC = () => {
           onSuccess={refreshList}
         />
       )}
-
+<ResidentModal 
+    isOpen={modalState.isOpen}
+    residentId={modalState.residentId}
+    onClose={handleCloseModal}
+    onSuccess={refreshList}
+/>
       <FilterModal
         isOpen={isFilterOpen}
         onClose={() => setIsFilterOpen(false)}
@@ -293,7 +303,11 @@ export const UsersPage: FC = () => {
               {tab === 'residents' && (
                 <>
                   <CSVImportButton importType="residents" />
-                  <CreateResidentButton onSuccess={refreshList} />
+                  
+                 <button   className="px-4 py-2 bg-indigo-700 text-white rounded hover:bg-indigo-800 transition-colors inline-flex items-center gap-2"
+                  onClick={handleOpenCreate}
+                  
+                  ><Plus className="w-4 h-4" />Thêm cư dân</button>
                 </>
               )}
 
@@ -364,7 +378,10 @@ export const UsersPage: FC = () => {
                     <td className="p-4">
                       <div className="flex gap-2">
                         <button
-                          onClick={() => setEditingId(u.id)}
+                         onClick={() => {
+                            if (tab === 'residents') handleOpenEdit(u.id);
+                            else setEditingId(u.id);
+                          }}
                           className="p-2 bg-white border rounded hover:bg-gray-50 transition-colors"
                           title="Chỉnh sửa"
                         >
