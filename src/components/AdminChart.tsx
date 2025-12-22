@@ -1,65 +1,137 @@
 import {
-    BarChart,
-    Bar,
-    XAxis,
-    YAxis,
-    Tooltip,
-    Legend,
-    ResponsiveContainer,
-    CartesianGrid,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  CartesianGrid,
 } from "recharts";
+import { useState } from "react";
 
-const data = [
-    { name: "Jan", all: 100, swim: 80, gym: 60 },
-    { name: "Feb", all: 120, swim: 75, gym: 115 },
-    { name: "Mar", all: 110, swim: 10, gym: 80 },
-    { name: "Apr", all: 50, swim: 60, gym: 20 },
-    { name: "May", all: 105, swim: 55, gym: 60 },
-    { name: "Jun", all: 110, swim: 40, gym: 115 },
-    { name: "Jul", all: 95, swim: 75, gym: 10 },
-    { name: "Aug", all: 100, swim: 110, gym: 80 },
-    { name: "Sep", all: 80, swim: 80, gym: 75 },
-    { name: "Oct", all: 115, swim: 10, gym: 80 },
-    { name: "Nov", all: 120, swim: 80, gym: 115 },
-    { name: "Dec", all: 90, swim: 80, gym: 80 },
+interface Props {
+  data: any[];
+  groupBy: string;
+  onChangeGroupBy: (value: "day" | "month" | "year") => void;
+}
+
+const COLORS = [
+  "#3b82f6",
+  "#22c55e",
+  "#f59e0b",
+  "#ef4444",
+  "#8b5cf6",
+  "#14b8a6",
 ];
 
-export default function AdminChart() {
-    return (
-        <div className="rounded-xl border bg-white p-6">
-            {/* Header */}
-            <div className="mb-4 flex items-center justify-between">
-                <h2 className="font-semibold">Biểu đồ</h2>
-                <select className="w-[130px] rounded-md border px-4 py-2 text-sm">
-                    <option>Năm</option>
-                    <option>Tháng</option>
-                    <option>Ngày</option>
-                </select>
-            </div>
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload?.length) return null;
 
+  return (
+    <div className="rounded-lg border bg-white px-4 py-2 shadow">
+      <p className="mb-2 font-semibold text-blue-600">{label}</p>
 
-            {/* Chart */}
-            <ResponsiveContainer width="100%" height={320}>
-                <BarChart
-                    data={data}
-                    barSize={10}
-                    barGap={3}
-                    barCategoryGap={28}
-                >
-
-                    {/* ĐƯỜNG NÉT ĐỨT */}
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend verticalAlign="bottom" />
-
-                    <Bar dataKey="swim" name="Bơi" fill="#2563eb" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="gym" name="Gym" fill="#ef4444" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="all" name="Tất cả" fill="#e5e7eb" radius={[4, 4, 0, 0]} />
-                </BarChart>
-            </ResponsiveContainer>
+      {payload.map((item: any) => (
+        <div key={item.dataKey} className="flex items-center gap-2 text-sm">
+          <span
+            className="h-2 w-2 rounded-full"
+            style={{ backgroundColor: item.color }}
+          />
+          <span>{item.name}:</span>
+          <span className="font-medium">{item.value}</span>
         </div>
-    );
+      ))}
+    </div>
+  );
+};
+
+const CustomXAxisTick = ({ x, y, payload, index, activeIndex }: any) => {
+  const isActive = index === activeIndex;
+
+  return (
+    <text
+      x={x}
+      y={y + 14}
+      textAnchor="middle"
+      fill={isActive ? "#2563eb" : "#374151"}
+      fontSize={12}
+      fontWeight={isActive ? 600 : 400}
+    >
+      {payload.value}
+    </text>
+  );
+};
+
+export default function AdminChart({
+  data,
+  groupBy,
+  onChangeGroupBy,
+}: Props) {
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+
+  if (!data?.length) return null;
+
+  const services = Object.keys(data[0]).filter(
+    key => key !== "Period"
+  );
+
+  return (
+    <div className="rounded-xl border bg-white p-6">
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="font-semibold">Biểu đồ</h2>
+
+        <select
+          value={groupBy}
+          onChange={e => onChangeGroupBy(e.target.value as any)}
+          className="w-[130px] rounded-md border px-4 py-2 text-sm"
+        >
+          <option value="year">Năm</option>
+          <option value="month">Tháng</option>
+          <option value="day">Ngày</option>
+        </select>
+      </div>
+
+      <ResponsiveContainer width="100%" height={320}>
+        <BarChart
+          data={data}
+          barSize={10}
+          barGap={3}
+          barCategoryGap={28}
+          onMouseMove={(state: any) => {
+            if (state?.activeTooltipIndex !== undefined) {
+              setActiveIndex(state.activeTooltipIndex);
+            }
+          }}
+          onMouseLeave={() => setActiveIndex(null)}
+        >
+          <CartesianGrid strokeDasharray="3 3" vertical={false} />
+
+          <XAxis
+            dataKey="Period"
+            tick={(props) => (
+              <CustomXAxisTick
+                {...props}
+                activeIndex={activeIndex}
+              />
+            )}
+          />
+
+          <YAxis />
+          <Tooltip content={<CustomTooltip />} />
+          <Legend verticalAlign="bottom" />
+
+          {services.map((service, index) => (
+            <Bar
+              key={service}
+              dataKey={service}
+              name={service}
+              fill={COLORS[index % COLORS.length]}
+              radius={[4, 4, 0, 0]}
+            />
+          ))}
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
 }
