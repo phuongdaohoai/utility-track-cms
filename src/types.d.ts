@@ -2,6 +2,7 @@ export interface User {
   id: number
   fullName: string
   roleId?: string
+  email: string,
   role?: {
     roleName?: string;
    
@@ -14,6 +15,7 @@ export interface User {
   position?: string
   phone?: string
   status?: int
+  avatar?: string
 }
 
 // types/csvImport.ts

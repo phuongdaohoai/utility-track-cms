@@ -1,12 +1,12 @@
 import React, { useState, ChangeEvent } from 'react';
-
+import { API_BASE_URL } from '../../utils/url';
 interface CreateResidentModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
+
 
 export const CreateResidentModal: React.FC<CreateResidentModalProps> = ({ isOpen, onClose, onSuccess }) => {
   const [isLoading, setIsLoading] = useState(false);
@@ -70,10 +70,10 @@ export const CreateResidentModal: React.FC<CreateResidentModalProps> = ({ isOpen
     const newErrors: Record<string, string> = {};
 
     if (!formData.fullName.trim()) newErrors.fullName = 'Họ tên là bắt buộc';
-
+    const rawPhone = formData.phone.replace(/\D/g, '');
     if (!formData.phone.trim()) {
       newErrors.phone = 'SĐT là bắt buộc';
-    } else if (!/^\d{10,11}$/.test(formData.phone)) {
+    } else if (!/^\d{10,11}$/.test(rawPhone)) {
       newErrors.phone = 'SĐT không hợp lệ (10-11 số)';
     }
 

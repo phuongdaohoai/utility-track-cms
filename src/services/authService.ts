@@ -1,9 +1,7 @@
 // services/authService.ts
 import axios from 'axios';
 
-
-
-
+import { API_BASE_URL } from '../utils/url';
 
 export interface LoginCredentials {
   identifier?: string; // keep compatibility with previous code (email or phone)
@@ -18,17 +16,18 @@ export interface TokenPayload {
   email?: string;
   role?: string;
   fullname?: string;
+  avatar?: string;
   permissions?: string[];
   sub?: number;
   jti?: string;
   iat?: number;
-  // ... bạn có thể add field khác nếu token có
 }
 
 export interface User {
   id: number;
   email: string;
   name: string;
+  avatar?: string;
   role?: string;
   permissions?: string[];
 }
@@ -38,9 +37,9 @@ export interface AuthResponse {
   token: string; // raw accessToken
 }
 
-// Axios instance (baseURL có thể set từ env)
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000',
+  baseURL: API_BASE_URL,
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -65,6 +64,7 @@ const login = async (credentials: LoginCredentials): Promise<AuthResponse> => {
   let payload: TokenPayload;
   try {
     payload = parseJwt<TokenPayload>(accessToken);
+    
 
   } catch (e) {
     console.warn('Failed to decode JWT', e);
@@ -74,8 +74,9 @@ const login = async (credentials: LoginCredentials): Promise<AuthResponse> => {
   // build user object từ payload (quan trọng: mapping theo token của bạn)
   const user: User = {
     id: (payload.staffId ?? payload.sub) as number,
-    email: payload.email ?? body.email,
+    email: payload.email ?? body.email ?? "",
     name: payload.fullname ?? payload.email ?? 'Unknown',
+    avatar: payload.avatar,
     role: payload.role,
     permissions: payload.permissions ?? [],
   };

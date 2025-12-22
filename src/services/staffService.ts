@@ -1,5 +1,4 @@
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
+import { API_BASE_URL } from '../utils/url';
 
 export interface Staff {
   staffId: number;
@@ -11,7 +10,7 @@ export interface Staff {
     roleName: string;
   } | null;
   status: number; // 1: Active, 0: Inactive
-  avatar?: File;
+  avatar?: string |File;
   roleId: number;
   version: number;
   
@@ -26,7 +25,8 @@ export interface UpdateStaffPayload {
   roleId: number;
   version: number;
   avatar?: File;
-  // avatar sẽ xử lý riêng 
+  password?: string;
+  
 }
 
 
@@ -52,21 +52,24 @@ const update = async (data: UpdateStaffPayload) => {
   const token = localStorage.getItem('accessToken');
   const formData = new FormData();
   
-  // Append các trường text
+ 
   formData.append('staffId', data.staffId.toString());
   formData.append('fullName', data.fullName);
   formData.append('phone', data.phone);
   formData.append('email', data.email);
+  if (data.password) {
+    formData.append('password', data.password);
+  }
   formData.append('roleId', data.roleId.toString());
   formData.append('status', data.status.toString());
   formData.append('version', data.version.toString());
 
-  // 2. Chỉ append avatar nếu người dùng có chọn file mới
+  
   if (data.avatar instanceof File) {
     formData.append('avatar', data.avatar);
   }
 
-  // 3. Gọi API
+ 
   const response = await fetch(`${API_BASE_URL}/staff/update/${data.staffId}`, {
     method: 'PUT', 
     headers: {

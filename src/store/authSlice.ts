@@ -5,6 +5,7 @@ export interface User {
   id?: number
   email?: string
   name?: string
+  avatar?: string | null
   role?: string
   permissions?: string[]
 }
@@ -13,7 +14,8 @@ interface AuthState {
   user: User | null
   token: string | null
   status: 'idle' | 'loading' | 'succeeded' | 'failed'
-  error: string | null
+  error: string | null,
+  
   permissions?: string[],
 }
 // 2. Xử lý logic lấy dữ liệu từ localStorage an toàn

@@ -1,20 +1,33 @@
-import type { FC } from 'react'
+import { FC, useState } from 'react'
 import { Outlet } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 import TopNav from '../components/TopNav'
 
-export const AdminLayout: FC = () => {
+const  AdminLayout: FC = () => {
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+
   return (
-    <div className="flex h-screen bg-white">
-      <Sidebar />
+    <div className="flex h-screen bg-white overflow-hidden">
+      {/* Sidebar */}
+      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+
+      {/* Overlay mobile */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Main */}
       <main className="flex-1 flex flex-col overflow-auto">
-        <TopNav />
-        <div className="flex-1 px-6 py-6 md:px-8 lg:px-10">
+        <TopNav onMenuClick={() => setSidebarOpen(true)} />
+        <div className="flex-1 px-4 py-4 md:px-8">
           <Outlet />
         </div>
       </main>
     </div>
   )
 }
-
 export default AdminLayout
+
