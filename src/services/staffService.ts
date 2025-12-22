@@ -31,7 +31,7 @@ export interface UpdateStaffPayload {
 const uploadAvatar = async (file: File) => {
   const token = localStorage.getItem('accessToken');
   const formData = new FormData();
-  formData.append('avatar', file); // Field name phải khớp backend
+  formData.append('file', file); // Field name phải khớp backend
 
   const response = await fetch(`${API_BASE_URL}/upload/avatar`, {
     method: 'POST',
@@ -43,24 +43,26 @@ const uploadAvatar = async (file: File) => {
   return response.json();
 };
 
-
-const getById = async (id: number | string) => {
+const create = async (data: any) => {
   const token = localStorage.getItem('accessToken');
-  const response = await fetch(`${API_BASE_URL}/staff/getById/${id}`, {
-    method: 'GET',
+  
+  const response = await fetch(`${API_BASE_URL}/staff/create`, {
+    method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json', // Đảm bảo header JSON
       'Authorization': token ? `Bearer ${token}` : '',
     },
+    body: JSON.stringify(data), 
   });
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
-    throw new Error(error.message || 'Lỗi khi lấy thông tin nhân viên');
+    throw new Error(Array.isArray(error.message) ? error.message.join(', ') : error.message || 'Lỗi khi tạo nhân viên');
   }
 
   return response.json();
 };
+
 
 const update = async (data: any) => {
   const token = localStorage.getItem('accessToken');
@@ -77,6 +79,23 @@ const update = async (data: any) => {
     const error = await response.json().catch(() => ({}));
     throw new Error(error.message || 'Lỗi khi cập nhật nhân viên');
   }
+  return response.json();
+};
+const getById = async (id: number | string) => {
+  const token = localStorage.getItem('accessToken');
+  const response = await fetch(`${API_BASE_URL}/staff/getById/${id}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': token ? `Bearer ${token}` : '',
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || 'Lỗi khi lấy thông tin nhân viên');
+  }
+
   return response.json();
 };
 const deleteStaff = async (id: number | string) => {
@@ -110,25 +129,7 @@ export interface CreateStaffPayload {
   status?: number; // Default: 1 (Active)
 }
 
-const create = async (data: any) => {
-  const token = localStorage.getItem('accessToken');
-  
-  const response = await fetch(`${API_BASE_URL}/staff/create`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json', // Đảm bảo header JSON
-      'Authorization': token ? `Bearer ${token}` : '',
-    },
-    body: JSON.stringify(data), 
-  });
 
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(Array.isArray(error.message) ? error.message.join(', ') : error.message || 'Lỗi khi tạo nhân viên');
-  }
-
-  return response.json();
-};
 // Cập nhật staffService export
 const staffService = {
   getById,

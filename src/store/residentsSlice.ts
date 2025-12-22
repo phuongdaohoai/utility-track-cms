@@ -30,36 +30,59 @@ export const fetchResidentById = createAsyncThunk(
 
 export const createResident = createAsyncThunk(
   'residents/create',
-  async ({ residentData, avatarFile }: { residentData: any; avatarFile: File | null }, thunkAPI) => {
+  async (
+    { residentData, avatarFile }: { residentData: any; avatarFile: File | null },
+    thunkAPI
+  ) => {
     try {
       let avatarUrl = '';
+
       if (avatarFile) {
-        const uploadRes = await residentsService.uploadAvatar(avatarFile); 
-        avatarUrl = uploadRes.data?.url || uploadRes.url || uploadRes.data || ''; 
-      }     
+        const uploadRes = await residentsService.uploadAvatar(avatarFile);
+        avatarUrl = uploadRes.data || '';
+      }
+
       const payload = {
         ...residentData,
-        avatar: avatarUrl,
+        avatar: avatarUrl || undefined,
       };
+
       const res = await residentsService.create(payload);
       return res.data;
-    } catch (error: any) {
-      return thunkAPI.rejectWithValue(error.message);
+    } catch (err: any) {
+      return thunkAPI.rejectWithValue(err.message);
     }
   }
 );
 
+
 export const updateResident = createAsyncThunk(
   'residents/update',
-  async ({ id, data }: { id: number, data: any }, thunkAPI) => {
+  async (
+    { id, residentData, avatarFile }: { id: number; residentData: any; avatarFile: File | null },
+    thunkAPI
+  ) => {
     try {
-      const res = await residentsService.update(id, data);
+      let avatarUrl = residentData.avatar || '';
+
+      if (avatarFile) {
+        const uploadRes = await residentsService.uploadAvatar(avatarFile);
+        avatarUrl = uploadRes.data || '';
+      }
+
+      const payload = {
+        ...residentData,
+        avatar: avatarUrl || undefined,
+      };
+
+      const res = await residentsService.update(id, payload);
       return res.data;
-    } catch (error: any) {
-      return thunkAPI.rejectWithValue(error.message);
+    } catch (err: any) {
+      return thunkAPI.rejectWithValue(err.message);
     }
   }
 );
+
 
 export const deleteResident = createAsyncThunk(
   'residents/delete',

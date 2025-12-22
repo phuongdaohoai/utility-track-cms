@@ -10,7 +10,7 @@ import {
   resetUpdateStatus 
 } from '../../store/staffSlice';
 import { fetchRoles } from '../../store/roleSlice';
-import staffService from '../../services/staffService';
+
 import { API_BASE_URL } from '../../utils/url';
 
 interface StaffModalProps {
@@ -159,33 +159,18 @@ export const StaffModal: FC<StaffModalProps> = ({
     if (formErrors.phone) setFormErrors(prev => ({ ...prev, phone: '' }));
   };
 
-  const handleAvatarChange = async (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+ const handleAvatarChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-        alert("File quá lớn (Max 5MB)");
-        return;
-    }
+  if (file.size > 5 * 1024 * 1024) {
+    alert('File tối đa 5MB');
+    return;
+  }
 
-    if (isEditMode) {
-      try {
-        const json = await staffService.uploadAvatar(file);
-        const newUrl = json.data?.url || json.url || json.data;
-        if (newUrl) {
-            setAvatarPreview(`${API_BASE_URL}${newUrl}`);
-            setFormData(prev => ({ ...prev, avatar: newUrl }));
-        } else {
-            alert('Lỗi: Server không trả về đường dẫn ảnh');
-        }
-      } catch (err: any) {
-        alert('Upload ảnh thất bại: ' + (err.message || 'Lỗi server'));
-      }
-    } else {
-      setAvatarFile(file);
-      setAvatarPreview(URL.createObjectURL(file));
-    }
-  };
+  setAvatarFile(file);
+  setAvatarPreview(URL.createObjectURL(file));
+};
 
   const handleDelete = async () => {
     if (!staffId) return;
@@ -220,46 +205,37 @@ export const StaffModal: FC<StaffModalProps> = ({
     return Object.keys(errors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) return;
+  const handleSubmit = (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!validateForm()) return;
 
-    let finalAvatarUrl = formData.avatar;
-    // Create Mode: Upload ảnh trước
-    if (!isEditMode && avatarFile) {
-        try {
-            const json = await staffService.uploadAvatar(avatarFile);
-            finalAvatarUrl = json.data?.url || json.url || json.data;
-        } catch (err) {
-            alert("Không thể upload ảnh. Vui lòng thử lại.");
-            return;
-        }
-    }
-
-    const payload = {
-      fullName: formData.fullName,
-      phone: formData.phone.replace(/\D/g, ''),
-      email: formData.email,
-      roleId: Number(formData.roleId),
-      status: Number(formData.status),
-      password: formData.password || undefined,
-      avatar: finalAvatarUrl || undefined 
-    };
-
-    if (isEditMode && staffId) {
-      const updateData = {
-          ...payload,
-          staffId,
-          version: Number(formData.version),
-      };
-      dispatch(updateStaff({ staffData: updateData })); 
-    } else {
-      dispatch(createStaff({ 
-          staffData: payload, 
-          avatarFile: null // Đã upload ở trên, truyền null
-      }));
-    }
+  const payload = {
+    fullName: formData.fullName,
+    phone: formData.phone.replace(/\D/g, ''),
+    email: formData.email,
+    roleId: Number(formData.roleId),
+    status: Number(formData.status),
+    password: formData.password || undefined,
+    avatar: formData.avatar || undefined, // avatar cũ (edit)
   };
+
+  if (isEditMode && staffId) {
+    dispatch(updateStaff({
+      staffData: {
+        ...payload,
+        staffId,
+        version: Number(formData.version),
+      },
+      avatarFile, // 🔥 LUÔN TRUYỀN FILE
+    }));
+  } else {
+    dispatch(createStaff({
+      staffData: payload,
+      avatarFile, // 🔥 LUÔN TRUYỀN FILE
+    }));
+  }
+};
+
 
   if (!isOpen) return null;
 

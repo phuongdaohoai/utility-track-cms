@@ -1,7 +1,7 @@
 import { FC, useState, useEffect, useRef, ChangeEvent } from 'react';
 import { X, Upload, User, CheckCircle2, AlertCircle, Trash2 } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import residentsService from '../../services/residentsService';
+
 import {
   createResident,
   updateResident,
@@ -158,35 +158,19 @@ export const ResidentModal: FC<ResidentModalProps> = ({
     if (formErrors[name]) setFormErrors(prev => ({ ...prev, [name]: '' }));
   };
 
-  const handleAvatarChange = async (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+const handleAvatarChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-      alert("File quá lớn (Max 5MB)"); // Vẫn giữ alert cho lỗi validation client này
-      return;
-    }
+  if (file.size > 5 * 1024 * 1024) {
+    alert('File tối đa 5MB');
+    return;
+  }
 
-    if (isEditMode) {
-      try {
-        const json = await residentsService.uploadAvatar(file);
-        const newUrl = json.data?.url || json.url || json.data;
+  setAvatarFile(file);
+  setAvatarPreview(URL.createObjectURL(file));
+};
 
-        if (newUrl) {
-          setAvatarPreview(`${API_BASE_URL}${newUrl}`);
-          setFormData(prev => ({ ...prev, avatar: newUrl }));
-        } else {
-          alert('File đã upload nhưng không nhận được đường dẫn ảnh.');
-        }
-      } catch (err: any) {
-        console.error(err);
-        alert('Upload ảnh thất bại: ' + (err.message || "Lỗi server"));
-      }
-    } else {
-      setAvatarFile(file);
-      setAvatarPreview(URL.createObjectURL(file));
-    }
-  };
 
   const handleDelete = async () => {
     if (!residentId) return;
@@ -220,35 +204,41 @@ export const ResidentModal: FC<ResidentModalProps> = ({
     return Object.keys(errors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) return;
+  const handleSubmit = (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!validateForm()) return;
 
-    const payloadRaw = {
-      fullName: formData.fullName,
-      phone: formData.phone.replace(/\D/g, ''),
-      email: formData.email,
-      citizenCard: formData.citizenCard,
-      gender: formData.gender,
-      birthday: formData.birthday,
-      apartmentId: Number(formData.apartmentId),
-      status: Number(formData.status),
-      qrCode: formData.qrCode,
-      faceIdData: formData.faceIdData,
-      roleId: 3
-    };
-
-    if (isEditMode && residentId) {
-      const updateData = {
-        ...payloadRaw,
-        avatar: formData.avatar,
-        version: Number(formData.version),
-      };
-      dispatch(updateResident({ id: residentId, data: updateData }));
-    } else {
-      dispatch(createResident({ residentData: payloadRaw, avatarFile }));
-    }
+  const payload = {
+    fullName: formData.fullName,
+    phone: formData.phone.replace(/\D/g, ''),
+    email: formData.email,
+    citizenCard: formData.citizenCard,
+    gender: formData.gender,
+    birthday: formData.birthday,
+    apartmentId: Number(formData.apartmentId),
+    status: Number(formData.status),
+    qrCode: formData.qrCode,
+    faceIdData: formData.faceIdData,
+    avatar: formData.avatar || undefined, // avatar cũ
   };
+
+  if (isEditMode && residentId) {
+    dispatch(updateResident({
+      id: residentId,
+      residentData: {
+        ...payload,
+        version: Number(formData.version),
+      },
+      avatarFile, // 🔥 LUÔN TRUYỀN FILE
+    }));
+  } else {
+    dispatch(createResident({
+      residentData: payload,
+      avatarFile, // 🔥 LUÔN TRUYỀN FILE
+    }));
+  }
+};
+
 
   if (!isOpen) return null;
 

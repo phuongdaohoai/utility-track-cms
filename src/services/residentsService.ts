@@ -29,13 +29,15 @@ const uploadAvatar = async (file: File) => {
     method: 'POST',
     headers: {
       'Authorization': token ? `Bearer ${token}` : '',
-      // KHÔNG set Content-Type để browser tự động xử lý boundary
+     
     },
     body: formData,
   });
 
   if (!response.ok) {
     throw new Error('Lỗi khi upload ảnh');
+  }else{
+    alert(response);
   }
 
   return response.json(); 
@@ -44,23 +46,34 @@ const uploadAvatar = async (file: File) => {
 
 const create = async (data: any) => {
   const token = localStorage.getItem('accessToken');
-  
-  const response = await fetch(`${API_BASE_URL}/residents/create`, {
+  const res = await fetch(`${API_BASE_URL}/residents/create`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': token ? `Bearer ${token}` : '',
+      Authorization: token ? `Bearer ${token}` : '',
     },
     body: JSON.stringify(data),
   });
 
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.message || 'Lỗi khi tạo cư dân');
-  }
-
-  return response.json();
+  if (!res.ok) throw new Error('Tạo cư dân thất bại');
+  return res.json();
 };
+
+const update = async (id: number, data: any) => {
+  const token = localStorage.getItem('accessToken');
+  const res = await fetch(`${API_BASE_URL}/residents/update/${id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: token ? `Bearer ${token}` : '',
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!res.ok) throw new Error('Cập nhật cư dân thất bại');
+  return res.json();
+};
+
 const getById = async (id: number | string) => {
   const token = localStorage.getItem('accessToken');
   const response = await fetch(`${API_BASE_URL}/residents/getById/${id}`, {
@@ -80,25 +93,6 @@ const getById = async (id: number | string) => {
 };
 
 
-const update = async (id: number | string, data: FormData) => {
-  const token = localStorage.getItem('accessToken');
- 
-  const response = await fetch(`${API_BASE_URL}/residents/update/${id}`, {
-    method: 'PUT',
-    headers: {
-      'Authorization': token ? `Bearer ${token}` : '',
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(data),
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.message || 'Lỗi khi cập nhật cư dân');
-  }
-
-  return response.json();
-};
 const deleteResident = async (id: number | string) => {
   const token = localStorage.getItem('accessToken');
   const response = await fetch(`${API_BASE_URL}/residents/delete/${id}`, {
