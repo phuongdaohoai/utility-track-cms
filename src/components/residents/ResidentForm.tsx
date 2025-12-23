@@ -221,7 +221,7 @@ const handleAvatarChange = (e: ChangeEvent<HTMLInputElement>) => {
     faceIdData: formData.faceIdData,
     avatar: formData.avatar || undefined, // avatar cũ
   };
-
+  
   if (isEditMode && residentId) {
     dispatch(updateResident({
       id: residentId,
