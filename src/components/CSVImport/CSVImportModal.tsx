@@ -1,6 +1,6 @@
 // components/CSVImport/CSVImportModal.tsx
 import { FC, useRef, ChangeEvent } from 'react';
-import { X, Upload, AlertCircle, CheckCircle } from 'lucide-react';
+import { X, Upload, AlertCircle, CheckCircle, FileX } from 'lucide-react';
 import { useCSVImport } from '../../store/hooks';
 import { CSVPreviewTable } from './CSVPreviewTable';
 
@@ -20,9 +20,19 @@ export const CSVImportModal: FC = () => {
     errors,
     resetImport
   } = useCSVImport();
+
+  // Check if there is a header error (rowIndex = -1)
+  const isHeaderError = errors.some(e => e.rowIndex === -1);
+  const headerErrorMessage = errors.find(e => e.rowIndex === -1)?.message;
+
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
+  };
+
+  const handleFile = async (file: File) => {
+      // Pass object { file, type } to parseCSVFile thunk
+      await parseCSVFile({ file, type: importType });
   };
 
   const handleDrop = async (e: React.DragEvent) => {
@@ -31,14 +41,14 @@ export const CSVImportModal: FC = () => {
 
     const file = e.dataTransfer.files?.[0];
     if (file) {
-      await parseCSVFile(file);
+      await handleFile(file);
     }
   };
 
   const handleFileSelect = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      await parseCSVFile(file);
+      await handleFile(file);
     }
   };
 
@@ -57,11 +67,13 @@ export const CSVImportModal: FC = () => {
   };
 
   const handleClose = () => {
-    if (data.length > 0 && !window.confirm('Dữ liệu chưa được lưu. Bạn có chắc chắn muốn đóng?')) {
+    // Only warn if there is valid data pending import (not just errors)
+    if (data.length > 0 && !isHeaderError && !window.confirm('Dữ liệu chưa được lưu. Bạn có chắc chắn muốn đóng?')) {
       return;
     }
     closeModal();
     resetImport();
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   if (!isModalOpen) return null;
@@ -69,19 +81,22 @@ export const CSVImportModal: FC = () => {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-7xl max-h-[100vh] overflow-hidden">
+        
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
           <div>
             <h2 className="text-xl font-semibold text-gray-800">
               Xem trước danh sách {importType === 'staff' ? 'nhân sự' : 'cư dân'}
             </h2>
+            {/* Show Success message */}
             {uploadStatus === 'success' && (
               <div className="flex items-center gap-2 mt-1 text-green-600">
                 <CheckCircle className="w-4 h-4" />
                 <span className="text-sm">{uploadMessage}</span>
               </div>
             )}
-            {uploadStatus === 'error' && (
+            {/* Show General Error message (not header error) */}
+            {uploadStatus === 'error' && !isHeaderError && (
               <div className="flex items-center gap-2 mt-1 text-red-600">
                 <AlertCircle className="w-4 h-4" />
                 <span className="text-sm">{uploadMessage}</span>
@@ -98,8 +113,29 @@ export const CSVImportModal: FC = () => {
 
         {/* Content */}
         <div className="p-6 overflow-auto max-h-[calc(90vh-180px)]">
-          {/* Upload Area - chỉ hiện khi chưa có data */}
-          {data.length === 0 && (
+          
+          {/* HEADER ERROR DISPLAY */}
+          {isHeaderError && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex flex-col items-center justify-center text-center gap-3">
+               <FileX className="w-12 h-12 text-red-500" />
+               <div>
+                 <h3 className="text-lg font-bold text-red-700">Cấu trúc file không hợp lệ!</h3>
+                 <p className="text-red-600 mt-1">{headerErrorMessage}</p>
+               </div>
+               <button 
+                 onClick={() => {
+                    resetImport();
+                    if(fileInputRef.current) fileInputRef.current.click();
+                 }}
+                 className="mt-2 text-indigo-600 font-medium hover:underline flex items-center gap-1"
+               >
+                 <Upload className="w-4 h-4" /> Chọn file khác
+               </button>
+            </div>
+          )}
+
+          {/* Upload Area - Show when no data AND no header error */}
+          {data.length === 0 && !isHeaderError && (
             <div className="text-center py-8">
               <div
                 className="border-2 border-dashed border-gray-300 rounded-lg p-8 hover:border-indigo-400 transition-colors cursor-pointer"
@@ -107,7 +143,6 @@ export const CSVImportModal: FC = () => {
                 onDragOver={handleDragOver}
                 onDrop={handleDrop}
               >
-
                 <input
                   type="file"
                   ref={fileInputRef}
@@ -136,15 +171,16 @@ export const CSVImportModal: FC = () => {
             </div>
           )}
 
-          {/* Preview Table */}
-          {!isLoading && data.length > 0 && <CSVPreviewTable />}
+          {/* Preview Table - Only show if data exists and NO header error */}
+          {!isLoading && data.length > 0 && !isHeaderError && <CSVPreviewTable />}
         </div>
 
         {/* Footer */}
         <div className="border-t p-6">
           <div className="flex items-center justify-between">
             <div className="text-sm text-gray-500">
-              {data.length > 0 && (
+              {/* Only show counts if valid structure */}
+              {!isHeaderError && data.length > 0 && (
                 <span>
                   Đã tải lên {data.length} bản ghi •
                   {errors.length > 0 ? (
@@ -166,11 +202,13 @@ export const CSVImportModal: FC = () => {
               </button>
               <button
                 onClick={handleConfirm}
-                disabled={isLoading || uploadStatus === 'uploading' || data.length === 0 || errors.length > 0}
-                className={`px-5 py-2.5 rounded-lg transition-colors min-w-[100px] ${isLoading || uploadStatus === 'uploading' || data.length === 0 || errors.length > 0
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-indigo-600 text-white hover:bg-indigo-700'
-                  }`}
+                // Disable if: Loading, Uploading, No Data, Header Error, or Row Errors
+                disabled={isLoading || uploadStatus === 'uploading' || data.length === 0 || errors.length > 0 || isHeaderError}
+                className={`px-5 py-2.5 rounded-lg transition-colors min-w-[100px] ${
+                  isLoading || uploadStatus === 'uploading' || data.length === 0 || errors.length > 0 || isHeaderError
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                }`}
               >
                 {uploadStatus === 'uploading' ? 'Đang import...' : 'Xác nhận'}
               </button>
