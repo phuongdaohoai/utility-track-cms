@@ -1,6 +1,6 @@
 // store/staffSlice.ts
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import staffService, { Staff, UpdateStaffPayload, CreateStaffPayload } from '../services/staffService';
+import staffService, { Staff} from '../services/staffService';
 
 interface StaffState {
   currentStaff: Staff | null;
@@ -21,12 +21,53 @@ const initialState: StaffState = {
 };
 export const createStaff = createAsyncThunk(
   'staff/create',
-  async (data: CreateStaffPayload, thunkAPI) => {
+  async (
+    { staffData, avatarFile }: { staffData: any; avatarFile: File | null },
+    thunkAPI
+  ) => {
     try {
-      const response = await staffService.create(data);
-      return response.data; // Trả về staff mới tạo
-    } catch (error: any) {
-      return thunkAPI.rejectWithValue(error.message);
+      let avatarUrl = '';
+
+      if (avatarFile) {
+        const uploadRes = await staffService.uploadAvatar(avatarFile);
+        avatarUrl = uploadRes.data || '';
+      }
+
+      const payload = {
+        ...staffData,
+        avatar: avatarUrl || undefined,
+      };
+
+      const res = await staffService.create(payload);
+      return res.data;
+    } catch (err: any) {
+      return thunkAPI.rejectWithValue(err.message);
+    }
+  }
+);
+export const updateStaff = createAsyncThunk(
+  'staff/update',
+  async (
+    { staffData, avatarFile }: { staffData: any; avatarFile: File | null },
+    thunkAPI
+  ) => {
+    try {
+      let avatarUrl = staffData.avatar || '';
+
+      if (avatarFile) {
+        const uploadRes = await staffService.uploadAvatar(avatarFile);
+        avatarUrl = uploadRes.data || '';
+      }
+
+      const payload = {
+        ...staffData,
+        avatar: avatarUrl || undefined,
+      };
+
+      const res = await staffService.update(payload);
+      return res.data;
+    } catch (err: any) {
+      return thunkAPI.rejectWithValue(err.message);
     }
   }
 );
@@ -44,18 +85,7 @@ export const fetchStaffById = createAsyncThunk(
   }
 );
 
-// Thunk cập nhật thông tin
-export const updateStaff = createAsyncThunk(
-  'staff/update',
-  async (data: UpdateStaffPayload, thunkAPI) => {
-    try {
-      const response = await staffService.update(data);
-      return response.data; // Trả về data mới sau khi update
-    } catch (error: any) {
-      return thunkAPI.rejectWithValue(error.message);
-    }
-  }
-);
+
 
 export const deleteStaff = createAsyncThunk(
   'staff/delete',
