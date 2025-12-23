@@ -5,7 +5,7 @@ export const CSVPreviewTable: FC = () => {
   const {
     data,
     errors,
-    importType, // resident hoặc staff
+    importType, 
   } = useCSVImport();
 
   const getDisplayColumns = () => {

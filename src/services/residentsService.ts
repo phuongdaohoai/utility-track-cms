@@ -36,8 +36,6 @@ const uploadAvatar = async (file: File) => {
 
   if (!response.ok) {
     throw new Error('Lỗi khi upload ảnh');
-  }else{
-    alert(response);
   }
 
   return response.json(); 
@@ -55,7 +53,13 @@ const create = async (data: any) => {
     body: JSON.stringify(data),
   });
 
-  if (!res.ok) throw new Error('Tạo cư dân thất bại');
+ if (!res.ok) { 
+    const errorData = await res.json().catch(() => ({})); 
+    const errorMessage = Array.isArray(errorData.message) 
+        ? errorData.message.join(', ') 
+        : (errorData.message || 'Tạo cư dân thất bại');  
+    throw new Error(errorMessage);
+  }
   return res.json();
 };
 
@@ -70,7 +74,13 @@ const update = async (id: number, data: any) => {
     body: JSON.stringify(data),
   });
 
-  if (!res.ok) throw new Error('Cập nhật cư dân thất bại');
+ if (!res.ok) { 
+    const errorData = await res.json().catch(() => ({})); 
+    const errorMessage = Array.isArray(errorData.message) 
+        ? errorData.message.join(', ') 
+        : (errorData.message || 'cập nhật cư dân thất bại');  
+    throw new Error(errorMessage);
+  }
   return res.json();
 };
 
