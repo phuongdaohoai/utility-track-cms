@@ -281,7 +281,8 @@ const formatPhoneDisplay = (phone: string | undefined | null) => {
                   onChange={(e) => setQuery(e.target.value)}
                   onKeyDown={handleKeyDownSearch}
                   placeholder={tab === 'residents' ? 'Tìm kiếm theo Tên, Phòng, SĐT' : 'Tìm kiếm theo Tên, Vị trí, SĐT'}
-                  className="w-full max-w-md px-3 py-2 border rounded-md"
+                  className="w-full max-w-md px-3 py-2 border border-[#cecfdd]
+ rounded-md"
                 />
                 <button
                   onClick={() => dispatch(fetchUsers({ type: tab, query, page: 1, pageSize }))}

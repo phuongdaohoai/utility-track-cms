@@ -19,6 +19,16 @@ export interface User {
 }
 
 // types/csvImport.ts
+export interface ImportResultData {
+  successCount: number;
+  errorCount: number;
+  successes: any[];
+  errors: {
+    index: number;
+    errorCode: string;
+    details: any;
+  }[];
+}
 export interface CSVRow {
   [key: string]: string;
 }
@@ -53,6 +63,7 @@ export interface ImportResponse {
     rowIndex: number;
     errors: string[];
   }>;
+  data: ImportResultData;
 }
 
 export type FilterType =
