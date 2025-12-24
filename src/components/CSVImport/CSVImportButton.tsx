@@ -4,11 +4,12 @@ import { Upload } from 'lucide-react';
 import { useCSVImport } from '../../store/hooks';
 import { CSVImportModal } from './CSVImportModal';
 
+
 interface CSVImportButtonProps {
   importType: 'residents' | 'staff';
+  onSuccess?: () => void; 
 }
-
-export const CSVImportButton: FC<CSVImportButtonProps> = ({ importType }) => {
+export const CSVImportButton: FC<CSVImportButtonProps> = ({ importType, onSuccess }) => {
   const { openModal } = useCSVImport();
 
   return (
@@ -21,7 +22,7 @@ export const CSVImportButton: FC<CSVImportButtonProps> = ({ importType }) => {
         Import CSV
       </button>
       
-      <CSVImportModal />
+      <CSVImportModal onSuccess={onSuccess} />
     </>
   );
 };

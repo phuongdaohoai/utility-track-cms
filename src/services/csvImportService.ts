@@ -1,7 +1,7 @@
 import { CSVRow, ValidationError, ImportRequest, ImportResponse } from '../types';
 import { CSV_CONFIG } from '../components/CSVImport/csvConfig';
 import { API_BASE_URL } from '../utils/url';
-
+import { api } from '../utils/api';
 export const csvImportService = {
   async parseCSV(file: File, type: 'residents' | 'staff'): Promise<{ data: CSVRow[]; errors: ValidationError[] }> {
     return new Promise((resolve, reject) => {
@@ -90,18 +90,12 @@ export const csvImportService = {
   },
 
   async importData(request: ImportRequest): Promise<ImportResponse> {
-    const token = localStorage.getItem('accessToken');
-    const key = request.type === 'staff' ? 'staff' : 'residents';
-    const payload = { [key]: request.data };
+    const endpoint = request.type === 'staff' ? 'staff' : 'residents';
+    const payloadKey = request.type === 'staff' ? 'staffs' : 'residents'; 
 
-    const response = await fetch(`${API_BASE_URL}/${key}/import`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': token ? `Bearer ${token}` : ''
-      },
-      body: JSON.stringify(payload),
-    });
+    const payload = { [payloadKey]: request.data };
+ 
+    const response = await api.post(`/${endpoint}/import`, payload);
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -109,7 +103,6 @@ export const csvImportService = {
     }
     return response.json();
   },
-
   simplifyString(str: string): string {
     return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '').toLowerCase();
   },

@@ -1,5 +1,6 @@
 // services/residentsService.ts
-import { API_BASE_URL } from '../utils/url';
+import { api } from '../utils/api';
+
 export interface Resident {
   id: number;
   fullName: string;
@@ -18,81 +19,51 @@ export interface Resident {
   status: number;
   version: number;
   avatar: string | null;
- 
 }
-const uploadAvatar = async (file: File) => {
-  const token = localStorage.getItem('accessToken');
-  const formData = new FormData();
-  formData.append('file', file); // Field name phải khớp với Backend (UploadController)
 
-  const response = await fetch(`${API_BASE_URL}/upload/avatar`, {
-    method: 'POST',
-    headers: {
-      'Authorization': token ? `Bearer ${token}` : '',
-     
-    },
-    body: formData,
-  });
+const uploadAvatar = async (file: File) => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  
+  const response = await api.upload('/upload/avatar', formData);
 
   if (!response.ok) {
     throw new Error('Lỗi khi upload ảnh');
   }
 
-  return response.json(); 
+  return response.json();
 };
 
-
 const create = async (data: any) => {
-  const token = localStorage.getItem('accessToken');
-  const res = await fetch(`${API_BASE_URL}/residents/create`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: token ? `Bearer ${token}` : '',
-    },
-    body: JSON.stringify(data),
-  });
+  // api.post tự xử lý JSON.stringify, Headers, Token
+  const res = await api.post('/residents/create', data);
 
- if (!res.ok) { 
-    const errorData = await res.json().catch(() => ({})); 
-    const errorMessage = Array.isArray(errorData.message) 
-        ? errorData.message.join(', ') 
-        : (errorData.message || 'Tạo cư dân thất bại');  
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    const errorMessage = Array.isArray(errorData.message)
+        ? errorData.message.join(', ')
+        : (errorData.message || 'Tạo cư dân thất bại');
     throw new Error(errorMessage);
   }
   return res.json();
 };
 
 const update = async (id: number, data: any) => {
-  const token = localStorage.getItem('accessToken');
-  const res = await fetch(`${API_BASE_URL}/residents/update/${id}`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: token ? `Bearer ${token}` : '',
-    },
-    body: JSON.stringify(data),
-  });
+  const res = await api.put(`/residents/update/${id}`, data);
 
- if (!res.ok) { 
-    const errorData = await res.json().catch(() => ({})); 
-    const errorMessage = Array.isArray(errorData.message) 
-        ? errorData.message.join(', ') 
-        : (errorData.message || 'cập nhật cư dân thất bại');  
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    const errorMessage = Array.isArray(errorData.message)
+        ? errorData.message.join(', ')
+        : (errorData.message || 'Cập nhật cư dân thất bại');
     throw new Error(errorMessage);
   }
   return res.json();
 };
 
 const getById = async (id: number | string) => {
-  const token = localStorage.getItem('accessToken');
-  const response = await fetch(`${API_BASE_URL}/residents/getById/${id}`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': token ? `Bearer ${token}` : '',
-    },
-  });
+  const response = await api.get(`/residents/getById/${id}`);
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
@@ -102,16 +73,8 @@ const getById = async (id: number | string) => {
   return response.json();
 };
 
-
 const deleteResident = async (id: number | string) => {
-  const token = localStorage.getItem('accessToken');
-  const response = await fetch(`${API_BASE_URL}/residents/delete/${id}`, {
-    method: 'DELETE',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': token ? `Bearer ${token}` : '',
-    },
-  });
+  const response = await api.del(`/residents/delete/${id}`);
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
@@ -125,6 +88,6 @@ export default {
   getById,
   update,
   delete: deleteResident,
-  create,       
+  create,
   uploadAvatar,
 };

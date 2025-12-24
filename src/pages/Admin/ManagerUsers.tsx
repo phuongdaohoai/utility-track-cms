@@ -120,7 +120,6 @@ export const UsersPage: FC = () => {
   const handleApplyFilter = (filters: FilterCondition[]) => {
     setActiveFilters(filters);
     const cleanPayload = transformFilters(filters);
-    console.log("Payload gửi đi:", cleanPayload);
     dispatch(fetchUsers({
       type: tab,
       query,
@@ -311,7 +310,7 @@ const formatPhoneDisplay = (phone: string | undefined | null) => {
             <div className="flex gap-3">
               {tab === 'residents' && (
                 <>
-                  <CSVImportButton importType="residents" />
+                  <CSVImportButton onSuccess={refreshList} importType="residents" />
 
                   <button className="px-4 py-2 bg-indigo-700 text-white rounded hover:bg-indigo-800 transition-colors inline-flex items-center gap-2"
                     onClick={handleOpenCreate}
@@ -322,7 +321,7 @@ const formatPhoneDisplay = (phone: string | undefined | null) => {
 
               {tab === 'staff' && (
                 <>
-                  <CSVImportButton importType="staff" />
+                  <CSVImportButton onSuccess={refreshList} importType="staff" />
                   <button 
                     className="px-4 py-2 bg-indigo-700 text-white rounded hover:bg-indigo-800 transition-colors inline-flex items-center gap-2"
                     onClick={handleOpenStaffCreate}
