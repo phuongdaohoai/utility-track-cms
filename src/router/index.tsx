@@ -44,6 +44,10 @@ export const router = createBrowserRouter([
         element: <ServicesPage />,
       },
       {
+        path: 'services/new',
+        element: <ServicesRepairPage />,
+      },
+      {
         path: 'services/:id',
         element: <ServicesRepairPage />,
       },

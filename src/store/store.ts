@@ -5,6 +5,7 @@ import staffReducer from './staffSlice'
 import csvImportReducer from './csvImportSlice'
 import roleReducer from './roleSlice'
 import residentsReducer from './residentsSlice'
+import servicesReducer from './servicesSlice'
 export const store = configureStore({
   reducer: {
     auth: authReducer,
@@ -13,6 +14,7 @@ export const store = configureStore({
     csvImport: csvImportReducer,
     roles: roleReducer,
     residents: residentsReducer,
+    services: servicesReducer,
 
   },
 })
