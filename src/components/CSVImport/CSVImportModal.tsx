@@ -3,8 +3,10 @@ import { FC, useRef, ChangeEvent } from 'react';
 import { X, Upload, AlertCircle, CheckCircle, FileX } from 'lucide-react';
 import { useCSVImport } from '../../store/hooks';
 import { CSVPreviewTable } from './CSVPreviewTable';
-
-export const CSVImportModal: FC = () => {
+interface CSVImportModalProps {
+  onSuccess?: () => void; // Hàm callback tùy chọn
+}
+export const CSVImportModal: FC<CSVImportModalProps> = ({ onSuccess }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
@@ -31,8 +33,8 @@ export const CSVImportModal: FC = () => {
   };
 
   const handleFile = async (file: File) => {
-      // Pass object { file, type } to parseCSVFile thunk
-      await parseCSVFile({ file, type: importType });
+    // Pass object { file, type } to parseCSVFile thunk
+    await parseCSVFile({ file, type: importType });
   };
 
   const handleDrop = async (e: React.DragEvent) => {
@@ -62,15 +64,24 @@ export const CSVImportModal: FC = () => {
       alert('Không có dữ liệu để import');
       return;
     }
-
-    await importCSVData(importType, data);
+    const result = await importCSVData(importType, data);
+    if (result.meta.requestStatus === 'fulfilled') {
+      if (onSuccess) {
+        onSuccess(); 
+      }
+    }
   };
 
   const handleClose = () => {
-    // Only warn if there is valid data pending import (not just errors)
+
     if (data.length > 0 && !isHeaderError && !window.confirm('Dữ liệu chưa được lưu. Bạn có chắc chắn muốn đóng?')) {
       return;
     }
+    closeModal();
+    resetImport();
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+  const handleClosesucess = () => {
     closeModal();
     resetImport();
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -81,7 +92,7 @@ export const CSVImportModal: FC = () => {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-7xl max-h-[100vh] overflow-hidden">
-        
+
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
           <div>
@@ -104,7 +115,7 @@ export const CSVImportModal: FC = () => {
             )}
           </div>
           <button
-            onClick={handleClose}
+            onClick={handleClosesucess}
             className="p-1 hover:bg-gray-100 rounded-full transition-colors"
           >
             <X className="w-5 h-5 text-gray-500" />
@@ -113,24 +124,24 @@ export const CSVImportModal: FC = () => {
 
         {/* Content */}
         <div className="p-6 overflow-auto max-h-[calc(90vh-180px)]">
-          
+
           {/* HEADER ERROR DISPLAY */}
           {isHeaderError && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex flex-col items-center justify-center text-center gap-3">
-               <FileX className="w-12 h-12 text-red-500" />
-               <div>
-                 <h3 className="text-lg font-bold text-red-700">Cấu trúc file không hợp lệ!</h3>
-                 <p className="text-red-600 mt-1">{headerErrorMessage}</p>
-               </div>
-               <button 
-                 onClick={() => {
-                    resetImport();
-                    if(fileInputRef.current) fileInputRef.current.click();
-                 }}
-                 className="mt-2 text-indigo-600 font-medium hover:underline flex items-center gap-1"
-               >
-                 <Upload className="w-4 h-4" /> Chọn file khác
-               </button>
+              <FileX className="w-12 h-12 text-red-500" />
+              <div>
+                <h3 className="text-lg font-bold text-red-700">Cấu trúc file không hợp lệ!</h3>
+                <p className="text-red-600 mt-1">{headerErrorMessage}</p>
+              </div>
+              <button
+                onClick={() => {
+                  resetImport();
+                  if (fileInputRef.current) fileInputRef.current.click();
+                }}
+                className="mt-2 text-indigo-600 font-medium hover:underline flex items-center gap-1"
+              >
+                <Upload className="w-4 h-4" /> Chọn file khác
+              </button>
             </div>
           )}
 
@@ -193,25 +204,35 @@ export const CSVImportModal: FC = () => {
             </div>
 
             <div className="flex gap-3">
-              <button
-                onClick={handleClose}
-                className="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors min-w-[100px]"
-                disabled={isLoading || uploadStatus === 'uploading'}
-              >
-                Hủy
-              </button>
-              <button
-                onClick={handleConfirm}
-                // Disable if: Loading, Uploading, No Data, Header Error, or Row Errors
-                disabled={isLoading || uploadStatus === 'uploading' || data.length === 0 || errors.length > 0 || isHeaderError}
-                className={`px-5 py-2.5 rounded-lg transition-colors min-w-[100px] ${
-                  isLoading || uploadStatus === 'uploading' || data.length === 0 || errors.length > 0 || isHeaderError
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    : 'bg-indigo-600 text-white hover:bg-indigo-700'
-                }`}
-              >
-                {uploadStatus === 'uploading' ? 'Đang import...' : 'Xác nhận'}
-              </button>
+              {uploadStatus === 'success' ? (
+                <button
+                  onClick={handleClosesucess}
+                  className="px-5 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors min-w-[100px]"
+                >
+                  Đóng
+                </button>
+              ) : (
+
+                <>
+                  <button
+                    onClick={handleClose}
+                    className="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors min-w-[100px]"
+                    disabled={isLoading || uploadStatus === 'uploading'}
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    onClick={handleConfirm}
+                    disabled={isLoading || uploadStatus === 'uploading' || data.length === 0 || errors.length > 0 || isHeaderError}
+                    className={`px-5 py-2.5 rounded-lg transition-colors min-w-[100px] ${isLoading || uploadStatus === 'uploading' || data.length === 0 || errors.length > 0 || isHeaderError
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                      }`}
+                  >
+                    {uploadStatus === 'uploading' ? 'Đang import...' : 'Xác nhận'}
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>

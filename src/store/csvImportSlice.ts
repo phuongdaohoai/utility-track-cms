@@ -147,11 +147,36 @@ const csvImportSlice = createSlice({
 function formatErrorMessage(err: any): string {
     const detail = err.details ? Object.values(err.details).join(', ') : '';
     switch (err.errorCode) {
-        case 'RESIDENT_IMPORT_DUPLICATE_PHONE': return `SĐT đã tồn tại (${detail})`;
-        case 'RESIDENT_IMPORT_DUPLICATE_EMAIL': return `Email đã tồn tại (${detail})`;
-        case 'RESIDENT_IMPORT_DUPLICATE_CCCD': return `CCCD đã tồn tại (${detail})`;
-        case 'FORMAT_ERROR': return `Lỗi định dạng: ${detail}`;
-        default: return detail || err.errorCode;
+        // --- RESIDENT ---
+        case 'RESIDENT_IMPORT_DUPLICATE_PHONE': 
+            return `SĐT cư dân đã tồn tại (${detail})`;
+        case 'RESIDENT_IMPORT_DUPLICATE_EMAIL': 
+            return `Email cư dân đã tồn tại (${detail})`;
+        case 'RESIDENT_IMPORT_DUPLICATE_CCCD': 
+            return `CCCD đã tồn tại (${detail})`;
+
+    
+        case 'STAFF_IMPORT_DUPLICATE_PHONE':
+        case 'DUPLICATE_PHONE': // Phòng trường hợp backend trả code ngắn
+            return `SĐT nhân sự đã tồn tại (${detail})`;
+            
+        case 'STAFF_IMPORT_DUPLICATE_EMAIL':
+        case 'DUPLICATE_EMAIL':
+            return `Email nhân sự đã tồn tại (${detail})`;
+
+       
+        case 'FORMAT_ERROR': 
+            return `Lỗi định dạng: ${detail}`;
+            
+        case 'RESIDENT_IMPORT_SAVE_ERROR':
+        case 'STAFF_IMPORT_SAVE_ERROR': 
+        case 'SAVE_ERROR':
+          
+            if (detail.includes('Email đã tồn tại')) return detail;
+            return `Lỗi hệ thống khi lưu: ${detail}`;
+            
+        default: 
+            return `${err.errorCode || 'Lỗi'}: ${detail}`;
     }
 }
 export const {

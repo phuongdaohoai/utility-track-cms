@@ -9,13 +9,13 @@ export interface CsvColumnConfig {
 
 export const CSV_CONFIG: Record<'staff' | 'residents', CsvColumnConfig[]> = {
   staff: [
-    { key: 'staffName', label: 'Tên nhân sự', required: true, aliases: ['tennhansu', 'staffname', 'fullname', 'hovaten', 'name'] },
+    { key: 'fullName', label: 'Tên nhân sự', required: true, aliases: ['tennhansu', 'staffname', 'fullname', 'hovaten', 'name'] },
     { key: 'email', label: 'Email', required: true, aliases: ['email', 'thu'] },
     { key: 'phone', label: 'Số điện thoại', required: true, aliases: ['sodienthoai', 'phone', 'sdt', 'tel'] },
-    { key: 'role', label: 'Quyền', required: true, aliases: ['quyen', 'role', 'vaitro'] }, // Lưu ý: CSV thường nhập ID hoặc Tên quyền, BE cần xử lý
-    { key: 'password', label: 'Mật khẩu', required: false, aliases: ['matkhau', 'password', 'pass'] }, // Thường import sẽ tự sinh pass hoặc lấy sđt
-    { key: 'position', label: 'Vị trí', required: false, aliases: ['vitri', 'position', 'chucvu'] },
-    { key: 'department', label: 'Phòng ban', required: false, aliases: ['phongban', 'department', 'phong'] },
+    { key: 'roleId', label: 'Quyền', required: true, aliases: ['quyen', 'role', 'vaitro', "roleId"] }, 
+    { key: 'password', label: 'Mật khẩu', required: false, aliases: ['matkhau', 'password', 'pass'] }, 
+    // { key: 'position', label: 'Vị trí', required: false, aliases: ['vitri', 'position', 'chucvu'] },
+    // { key: 'department', label: 'Phòng ban', required: false, aliases: ['phongban', 'department', 'phong'] },
   ],
   residents: [
     { key: 'fullName', label: 'Tên cư dân', required: true, aliases: ['tencudan', 'residentname', 'fullname', 'hovaten', 'name'] },
