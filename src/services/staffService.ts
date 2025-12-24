@@ -1,4 +1,5 @@
-import { API_BASE_URL } from '../utils/url';
+// services/staffService.ts
+import { api } from '../utils/api';
 
 export interface Staff {
   staffId: number;
@@ -10,10 +11,9 @@ export interface Staff {
     roleName: string;
   } | null;
   status: number; // 1: Active, 0: Inactive
-  avatar?: string |File;
+  avatar?: string | File;
   roleId: number;
   version: number;
-  
 }
 
 export interface UpdateStaffPayload {
@@ -26,54 +26,43 @@ export interface UpdateStaffPayload {
   version: number;
   avatar?: string;
   password?: string;
-  
 }
-const uploadAvatar = async (file: File) => {
-  const token = localStorage.getItem('accessToken');
-  const formData = new FormData();
-  formData.append('file', file); // Field name phải khớp backend
 
-  const response = await fetch(`${API_BASE_URL}/upload/avatar`, {
-    method: 'POST',
-    headers: { 'Authorization': token ? `Bearer ${token}` : '' },
-    body: formData,
-  });
+export interface CreateStaffPayload {
+  fullName: string;
+  phone: string;
+  email: string;
+  roleId: number;
+  avatar?: File;
+  status?: number;
+}
+
+const uploadAvatar = async (file: File) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await api.upload('/upload/avatar', formData);
 
   if (!response.ok) throw new Error('Lỗi khi upload ảnh');
   return response.json();
 };
 
 const create = async (data: any) => {
-  const token = localStorage.getItem('accessToken');
-  
-  const response = await fetch(`${API_BASE_URL}/staff/create`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json', // Đảm bảo header JSON
-      'Authorization': token ? `Bearer ${token}` : '',
-    },
-    body: JSON.stringify(data), 
-  });
+ 
+  const response = await api.post('/staff/create', data);
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
-    throw new Error(Array.isArray(error.message) ? error.message.join(', ') : error.message || 'Lỗi khi tạo nhân viên');
+    const message = Array.isArray(error.message) 
+      ? error.message.join(', ') 
+      : error.message || 'Lỗi khi tạo nhân viên';
+    throw new Error(message);
   }
 
   return response.json();
 };
 
-
 const update = async (data: any) => {
-  const token = localStorage.getItem('accessToken');
-  const response = await fetch(`${API_BASE_URL}/staff/update/${data.staffId}`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json', // 👈 Quan trọng: JSON
-      'Authorization': token ? `Bearer ${token}` : '',
-    },
-    body: JSON.stringify(data),
-  });
+  const response = await api.put(`/staff/update/${data.staffId}`, data);
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
@@ -81,15 +70,9 @@ const update = async (data: any) => {
   }
   return response.json();
 };
+
 const getById = async (id: number | string) => {
-  const token = localStorage.getItem('accessToken');
-  const response = await fetch(`${API_BASE_URL}/staff/getById/${id}`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': token ? `Bearer ${token}` : '',
-    },
-  });
+  const response = await api.get(`/staff/getById/${id}`);
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
@@ -98,16 +81,9 @@ const getById = async (id: number | string) => {
 
   return response.json();
 };
-const deleteStaff = async (id: number | string) => {
-  const token = localStorage.getItem('accessToken');
 
-  const response = await fetch(`${API_BASE_URL}/staff/delete/${id}`, {
-    method: 'DELETE',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': token ? `Bearer ${token}` : '',
-    },
-  });
+const deleteStaff = async (id: number | string) => {
+  const response = await api.del(`/staff/delete/${id}`);
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
@@ -117,20 +93,6 @@ const deleteStaff = async (id: number | string) => {
   return response.json();
 };
 
-
-
-// services/staffService.ts - Thêm vào cuối file
-export interface CreateStaffPayload {
-  fullName: string;
-  phone: string;
-  email: string;
-  roleId: number;
-  avatar?: File; // Optional file
-  status?: number; // Default: 1 (Active)
-}
-
-
-// Cập nhật staffService export
 const staffService = {
   getById,
   create,

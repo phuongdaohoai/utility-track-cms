@@ -69,7 +69,7 @@ export const updateResident = createAsyncThunk(
         const uploadRes = await residentsService.uploadAvatar(avatarFile);
         avatarUrl = uploadRes.data || '';
       }
-     alert(avatarUrl)
+   
       const payload = {
         ...residentData,
         avatar: avatarUrl || undefined,
