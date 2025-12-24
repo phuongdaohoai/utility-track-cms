@@ -1,427 +1,311 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import * as XLSX from "xlsx";
-import saveAs from "file-saver";
+import { saveAs } from "file-saver";
 
+const API_BASE = "http://localhost:3000";
+const ITEMS_PER_PAGE = 10;
+
+/* ================== TYPES ================== */
+interface UsageItem {
+  id: number;
+  usageTime: string;
+  system?: string;
+  quantity?: number;
+  resident?: {
+    fullName: string;
+    avatar?: string;
+  };
+  service?: {
+    serviceName: string;
+    price: number;
+  };
+}
+
+/* ================== MAIN ================== */
 const UsageHistory: React.FC = () => {
-  const [inputText, setInputText] = useState(""); // input tạm
-  const [searchText, setSearchText] = useState(""); // filter
+  const [inputText, setInputText] = useState("");
+  const [searchText, setSearchText] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedUser, setSelectedUser] = useState<any | null>(null);
+  const [totalPages, setTotalPages] = useState(0);
+
+  const [data, setData] = useState<UsageItem[]>([]);
+  const [selectedUser, setSelectedUser] = useState<UsageItem | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const itemsPerPage = 10;
+  /* ================== FETCH LIST ================== */
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const res = await fetch(
+          `${API_BASE}/history_checkin?searchName=${searchText}&page=${currentPage}&limit=${ITEMS_PER_PAGE}`
+        );
+        const json = await res.json();
 
-  // Test data
-  const testData = Array.from({ length: 120 }).map((_, i) => ({
-    id: i + 1,
-    color: i % 2 === 0 ? "#2D9CDB" : "#F2C94C",
-    avatar: `https://i.pravatar.cc/44?img=${(i % 70) + 1}`,
-    name: `A.${String(i + 1).padStart(2, "0")}.0${i % 10}`,
-    service: i % 2 === 0 ? "Gym" : "Bơi",
-    system: ["QR", "FaceId", "RFID"][i % 3],
-    time: "3h40 - 30/5/2025",
-    qty: (i % 3) + 1,
-    price: i % 2 === 0 ? "0" : `${((i % 4) + 1) * 10000}.000`,
-  }));
+        setData(json.data.data);
+        setTotalPages(json.data.totalPages);
+      } catch (err) {
+        console.error("Fetch usage history error:", err);
+      }
+    };
 
-  // Filter dữ liệu theo searchText
-  const filtered = testData.filter((row) =>
-    row.name.toLowerCase().includes(searchText.toLowerCase())
-  );
+    fetchData();
+  }, [searchText, currentPage]);
 
-  const totalPages = Math.ceil(filtered.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const displayedData = filtered.slice(startIndex, startIndex + itemsPerPage);
+  /* ================== FETCH DETAIL ================== */
+  const openDetail = async (id: number) => {
+    try {
+      const res = await fetch(`${API_BASE}/history_checkin/${id}`);
+      const json = await res.json();
 
-  // Chuyển trang
+      if (json.success) {
+        setSelectedUser(json.data);
+        setIsModalOpen(true);
+      }
+    } catch (err) {
+      console.error("Fetch detail error:", err);
+    }
+  };
+
+  /* ================== EXPORT EXCEL ================== */
+  const exportToExcel = () => {
+    const excelData = data.map(item => ({
+      "Loại": item.resident ? "Cư dân" : "Khách ngoài",
+      "Cư Dân / Khách": item.resident?.fullName,
+      "Dịch Vụ": item.service?.serviceName,
+      "Hệ Thống": item.system ?? "QR",
+      "Thời Gian": item.usageTime,
+      "Số Lượng": item.quantity ?? 1,
+      "Phí": item.service?.price,
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(excelData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "UsageHistory");
+
+    const buffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+    saveAs(new Blob([buffer]), "UsageHistory.xlsx");
+  };
+
+  /* ================== PAGINATION ================== */
   const goToPage = (page: number) => {
     if (page >= 1 && page <= totalPages) setCurrentPage(page);
   };
 
-  // Tạo số trang hiển thị
-  const getPageNumbers = () => {
-    const pageNumbers: (number | string)[] = [];
-    if (totalPages <= 5) {
-      for (let i = 1; i <= totalPages; i++) pageNumbers.push(i);
-    } else {
-      if (currentPage <= 3) pageNumbers.push(1, 2, 3, 4, "...");
-      else if (currentPage >= totalPages - 2) {
-        pageNumbers.push("...");
-        for (let i = totalPages - 3; i <= totalPages; i++) pageNumbers.push(i);
-      } else {
-        pageNumbers.push("...");
-        pageNumbers.push(currentPage - 1, currentPage, currentPage + 1);
-        pageNumbers.push("...");
-      }
-      if (pageNumbers[pageNumbers.length - 1] !== totalPages)
-        pageNumbers.push(totalPages);
-    }
-    return pageNumbers;
-  };
-
-  const pageNumbers = getPageNumbers();
-
-  // Xuất Excel
-  const exportToExcel = () => {
-    const dataToExport = filtered.map((item) => ({
-      "Cư Dân/Khách": item.name,
-      "Dịch Vụ": item.service,
-      "Hệ Thống": item.system,
-      "Thời Gian Vào": item.time,
-      "Thời Gian Ra": item.time,
-      "Số Lượng": item.qty,
-      "Phí": item.price,
-    }));
-
-    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "UsageHistory");
-
-    const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
-    const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
-    saveAs(blob, "UsageHistory.xlsx");
-  };
-
   return (
-    <>
-     
-    <div style={styles.page} className="">
-      {/* SEARCH + EXCEL */}
-      <div style={styles.topBar}>
-        <div style={styles.searchWrap}>
+    <div style={pageStyle}>
+      {/* ===== TOP BAR ===== */}
+      <div style={topBarStyle}>
+        <div style={searchWrapStyle}>
           <input
-            placeholder="Tìm kiếm theo Cư Dân, Khách"
+            placeholder="Tìm theo cư dân / khách"
             value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            style={styles.searchInput}
+            onChange={e => setInputText(e.target.value)}
+            style={inputStyle}
           />
           <button
-            style={styles.btnSearch}
+            style={primaryBtn}
             onClick={() => {
               setSearchText(inputText);
               setCurrentPage(1);
             }}
           >
-            Tìm Kiếm
+            Tìm kiếm
           </button>
         </div>
-        <button style={styles.btnExcel} onClick={exportToExcel}>Xuất Excel</button>
+
+        <button style={primaryBtn} onClick={exportToExcel}>
+          Xuất Excel
+        </button>
       </div>
 
-      {/* LEGEND */}
-      <div style={styles.legendBox}>
-        <div style={styles.legendItem}>
-          <div style={{ ...styles.legendColor, background: "#2D9CDB" }}></div>
-          Cư dân
+      {/* ===== LEGEND (CHÚ THÍCH) ===== */}
+      <div style={legendStyle}>
+        <div style={legendItem}>
+          <span style={{ ...legendDot, background: "#2D9CDB" }} />
+          <span>Cư dân</span>
         </div>
-        <div style={styles.legendItem}>
-          <div style={{ ...styles.legendColor, background: "#F2C94C" }}></div>
-          Khách ngoài
+        <div style={legendItem}>
+          <span style={{ ...legendDot, background: "#F2C94C" }} />
+          <span>Khách ngoài</span>
         </div>
       </div>
 
-      {/* TABLE */}
-      <div style={styles.tableContainer}>
-        <table style={styles.table}>
+      {/* ===== TABLE ===== */}
+      <div style={tableWrapperStyle}>
+        <table style={tableStyle}>
           <thead>
             <tr>
               {[
-                "Cư Dân/ Khách",
+                "Cư Dân / Khách",
                 "Dịch Vụ",
                 "Hệ Thống",
-                "Thời Gian Vào",
-                "Thời Gian Ra",
+                "Thời Gian",
                 "Số Lượng",
                 "Phí",
-              ].map((h) => (
-                <th key={h} style={styles.th}>{h}</th>
+              ].map(h => (
+                <th key={h} style={thStyle}>{h}</th>
               ))}
             </tr>
           </thead>
 
           <tbody>
-            {displayedData.map((item) => (
-              <tr
-                key={item.id}
-                style={{ ...styles.tr, cursor: "pointer" }}
-                onClick={() => {
-                  setSelectedUser(item);
-                  setIsModalOpen(true);
-                }}
-              >
-                <td style={styles.td}>
-                  <div style={styles.userCell}>
-                    <div style={{ ...styles.colorBox, background: item.color }} />
-                    <img src={item.avatar} style={styles.avatar} />
-                    {item.name}
-                  </div>
-                </td>
-                <td style={styles.td}>{item.service}</td>
-                <td style={styles.td}>{item.system}</td>
-                <td style={styles.td}>{item.time}</td>
-                <td style={styles.td}>{item.time}</td>
-                <td style={styles.td}>{item.qty}</td>
-                <td style={styles.td}>{item.price}</td>
-              </tr>
-            ))}
+            {data.map(item => {
+              const isResident = !!item.resident;
+
+              return (
+                <tr
+                  key={item.id}
+                  style={rowStyle}
+                  onClick={() => openDetail(item.id)}
+                >
+                  <td style={tdStyle}>
+                    <div style={userCellStyle}>
+                      <div
+                        style={{
+                          ...colorBoxStyle,
+                          background: isResident ? "#2D9CDB" : "#F2C94C",
+                        }}
+                      />
+                      <img
+                        src={item.resident?.avatar || "https://i.pravatar.cc/44"}
+                        style={avatarStyle}
+                      />
+                      {item.resident?.fullName || "Khách ngoài"}
+                    </div>
+                  </td>
+                  <td style={tdStyle}>{item.service?.serviceName}</td>
+                  <td style={tdStyle}>{item.system ?? "QR"}</td>
+                  <td style={tdStyle}>{item.usageTime}</td>
+                  <td style={tdStyle}>{item.quantity ?? 1}</td>
+                  <td style={tdStyle}>{item.service?.price}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
 
-      {/* PAGINATION */}
-      <div style={styles.pagination}>
-        <button
-          style={styles.pageBtn}
-          onClick={() => goToPage(currentPage - 1)}
-          disabled={currentPage === 1}
-        >
-          {"<"}
-        </button>
+      {/* ===== PAGINATION (SYNC WITH TEMPLATE) ===== */}
+      <div style={{ marginTop: 16, display: "flex", justifyContent: "center" }}>
+        <div className="flex items-center gap-1 text-sm">
+          {/* PREV */}
+          <button
+            onClick={() => goToPage(Math.max(1, currentPage - 1))}
+            disabled={currentPage === 1}
+            className="px-3 py-1 text-gray-600 hover:bg-gray-100 rounded disabled:opacity-50 disabled:cursor-not-allowed font-extrabold"
+          >
+            &lt;
+          </button>
 
-        {pageNumbers.map((p, idx) =>
-          typeof p === "number" ? (
-            <button
-              key={idx}
-              onClick={() => goToPage(p)}
-              style={{
-                ...styles.pageNumber,
-                ...(currentPage === p ? styles.pageActive : {}),
-              }}
-            >
-              {p}
-            </button>
-          ) : (
-            <span key={idx} style={styles.dots}>{p}</span>
-          )
-        )}
+          {/* PAGE NUMBERS (MAX 5) */}
+          {Array.from({ length: Math.min(5, totalPages) }).map((_, i) => {
+            const pageNum = i + 1;
+            return (
+              <button
+                key={pageNum}
+                onClick={() => goToPage(pageNum)}
+                className={`px-3 py-1 rounded ${currentPage === pageNum
+                    ? "bg-indigo-600 text-white font-medium"
+                    : "text-gray-700 hover:bg-gray-100"
+                  }`}
+              >
+                {pageNum}
+              </button>
+            );
+          })}
 
-        <button
-          style={styles.pageBtn}
-          onClick={() => goToPage(currentPage + 1)}
-          disabled={currentPage === totalPages}
-        >
-          {">"}
-        </button>
+          {/* ... + LAST PAGE */}
+          {totalPages > 5 && (
+            <>
+              <span className="px-2 text-gray-500">...</span>
+              <button
+                onClick={() => goToPage(totalPages)}
+                className={`px-3 py-1 rounded ${currentPage === totalPages
+                    ? "bg-indigo-600 text-white font-medium"
+                    : "text-gray-700 hover:bg-gray-100"
+                  }`}
+              >
+                {totalPages}
+              </button>
+            </>
+          )}
+
+          {/* NEXT */}
+          <button
+            onClick={() => goToPage(Math.min(totalPages, currentPage + 1))}
+            disabled={currentPage === totalPages}
+            className="px-3 py-1 text-gray-600 hover:bg-gray-100 rounded disabled:opacity-50 disabled:cursor-not-allowed font-extrabold"
+          >
+            &gt;
+          </button>
+        </div>
       </div>
 
-      {/* MODAL */}
-      {isModalOpen && (
-        <DetailModal
-          user={selectedUser}
-          onClose={() => setIsModalOpen(false)}
-        />
+
+      {isModalOpen && selectedUser && (
+        <DetailModal user={selectedUser} onClose={() => setIsModalOpen(false)} />
       )}
     </div>
-    </>
   );
-};
-
-/* ============================
-        MODAL COMPONENT
-============================ */
-const DetailModal = ({ user, onClose }: any) => {
-  if (!user) return null;
-
-  return (
-    <div style={modalStyles.overlay}>
-      <div style={modalStyles.modal}>
-        <div style={modalStyles.header}>
-          <span style={modalStyles.headerTitle}>Chi tiết</span>
-          <button style={modalStyles.closeBtn} onClick={onClose}>✕</button>
-        </div>
-
-        <div style={modalStyles.body}>
-          <div style={modalStyles.infoRow}>
-            <span style={modalStyles.label}>Căn Hộ</span>
-            <span style={modalStyles.value}>{user.name}</span>
-          </div>
-
-          <div style={modalStyles.infoRow}>
-            <span style={modalStyles.label}>Chủ Hộ</span>
-            <span style={modalStyles.value}>Nguyễn A</span>
-          </div>
-
-          <div style={modalStyles.infoRow}>
-            <span style={modalStyles.label}>Dịch Vụ</span>
-            <span style={modalStyles.value}>{user.service}</span>
-          </div>
-
-          <div style={modalStyles.infoRow}>
-            <span style={modalStyles.label}>Phương Thức Checkin</span>
-            <span style={modalStyles.value}>{user.system}</span>
-          </div>
-
-          <div style={modalStyles.infoRow}>
-            <span style={modalStyles.label}>Thời Gian</span>
-            <span style={modalStyles.value}>{user.time}</span>
-          </div>
-
-          <div style={modalStyles.infoRow}>
-            <span style={modalStyles.label}>Số lượng</span>
-            <span style={modalStyles.value}>{user.qty}</span>
-          </div>
-
-          <div style={modalStyles.tableWrap}>
-            <table style={modalStyles.innerTable}>
-              <thead>
-                <tr>
-                  <th style={modalStyles.th}>STT</th>
-                  <th style={modalStyles.th}>Họ và Tên</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td style={modalStyles.td}>1</td>
-                  <td style={modalStyles.td}>Nguyễn A</td>
-                </tr>
-                <tr>
-                  <td style={modalStyles.td}>2</td>
-                  <td style={modalStyles.td}>Phạm Thị B</td>
-                </tr>
-                <tr>
-                  <td style={modalStyles.td}>3</td>
-                  <td style={modalStyles.td}>Nguyễn C</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-/* ============================
-          STYLES
-============================ */
-const styles: { [key: string]: React.CSSProperties } = {
-  page: {
-    padding: "24px 40px",
-    fontFamily: "Inter, sans-serif",
-    backgroundColor: "#f5f7fa",
-    minHeight: "100vh",
-  },
-  container: {
-    maxWidth: "1400px",
-    margin: "0 auto",
-  },
-  topBar: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
-  searchWrap: { display: "flex", gap: 10, flex: 1, maxWidth: 520 },
-  searchInput: { flex: 1, height: 42, borderRadius: 8, border: "1px solid #DDE2E4", paddingLeft: 12, fontSize: 14, outline: "none" },
-  btnSearch: { background: "#143CA6", color: "#fff", border: "none", padding: "0 32px", borderRadius: 8, fontWeight: 600, cursor: "pointer" },
-  btnExcel: { background: "#143CA6", color: "#fff", border: "none", padding: "0 32px", height: 42, borderRadius: 8, fontWeight: 600, cursor: "pointer" },
-
-  legendBox: { display: "flex", alignItems: "center", gap: 30, background: "#F5F5F5", padding: "10px 16px", borderRadius: 10, marginBottom: 14, width: "fit-content" },
-  legendItem: { display: "flex", alignItems: "center", gap: 6, fontSize: 14 },
-  legendColor: { width: 14, height: 14, borderRadius: 4 },
-
-  tableContainer: { border: "1px solid #E0E0E0", borderRadius: 12, overflow: "hidden"},
-  table: { width: "100%", borderCollapse: "collapse" },
-  th: { background: "#F5F7FA", padding: "14px 20px", textAlign: "left", color: "#4F4F4F", fontSize: 14, fontWeight: 600, borderBottom: "1px solid #E0E0E0", position: "sticky", top: 0, zIndex: 2 },
-  tr: { borderBottom: "1px solid #EDEDED" },
-  td: { padding: "14px 20px", fontSize: 14, color: "#333" },
-
-  userCell: { display: "flex", alignItems: "center", gap: 12 },
-  colorBox: { width: 14, height: 14, borderRadius: 4 },
-  avatar: { width: 40, height: 40, borderRadius: "50%", objectFit: "cover" },
-
-  pagination: { display: "flex", justifyContent: "center", alignItems: "center", gap: 6, marginTop: 18 },
-  pageBtn: { padding: "6px 10px", borderRadius: 6, border: "1px solid #ccc", background: "#fff", cursor: "pointer" },
-  pageNumber: { padding: "6px 12px", borderRadius: 6, border: "1px solid #ccc", background: "#fff", cursor: "pointer" },
-  pageActive: { background: "#143CA6", color: "#fff", fontWeight: 600, border: "1px solid #143CA6" },
-  dots: { padding: "0 6px" },
-};
-
-/* ============================
-          MODAL STYLES
-============================ */
-const modalStyles: { [key: string]: React.CSSProperties } = {
-  overlay: {
-    position: "fixed",
-    top: 0, left: 0, right: 0, bottom: 0,
-    background: "rgba(0,0,0,0.45)",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 3000,
-  },
-
-  modal: {
-    width: 760,
-    background: "#fff",
-    borderRadius: 10,
-    boxShadow: "0 4px 18px rgba(0,0,0,0.12)",
-    overflow: "hidden",
-  },
-
-  header: {
-    height: 56,
-    borderBottom: "1px solid #E0E0E0",
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: "0 24px",
-  },
-
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: 600,
-  },
-
-  closeBtn: {
-    background: "none",
-    border: "none",
-    fontSize: 22,
-    cursor: "pointer",
-  },
-
-  body: {
-    padding: "26px 40px",
-  },
-
-  infoRow: {
-    display: "flex",
-    justifyContent: "space-between",
-    marginBottom: 14,
-    fontSize: 15,
-  },
-
-  label: {
-    color: "#4F4F4F",
-    fontWeight: 500,
-  },
-
-  value: {
-    fontWeight: 600,
-  },
-
-  tableWrap: {
-    marginTop: 22,
-    border: "1px solid #E0E0E0",
-    borderRadius: 6,
-    overflow: "hidden",
-  },
-
-  innerTable: {
-    width: "100%",
-    borderCollapse: "collapse",
-  },
-
-  th: {
-    background: "#F5F7FA",
-    padding: "12px 16px",
-    fontWeight: 600,
-    fontSize: 14,
-    borderBottom: "1px solid #E0E0E0",
-    textAlign: "left",
-  },
-
-  td: {
-    padding: "12px 16px",
-    fontSize: 14,
-    borderBottom: "1px solid #F0F0F0",
-    textAlign: "left",
-  },
 };
 
 export default UsageHistory;
+
+/* ================== MODAL ================== */
+const DetailModal = ({ user, onClose }: any) => (
+  <div style={overlayStyle}>
+    <div style={modalStyle}>
+      <div style={modalHeader}>
+        <b>Chi tiết</b>
+        <button onClick={onClose}>✕</button>
+      </div>
+      <div style={{ padding: 20 }}>
+        <p><b>Loại:</b> {user.resident ? "Cư dân" : "Khách ngoài"}</p>
+        <p><b>Cư dân:</b> {user.resident?.fullName}</p>
+        <p><b>Dịch vụ:</b> {user.service?.serviceName}</p>
+        <p><b>Hệ thống:</b> {user.system ?? "QR"}</p>
+        <p><b>Thời gian:</b> {user.usageTime}</p>
+        <p><b>Giá:</b> {user.service?.price}</p>
+      </div>
+    </div>
+  </div>
+);
+
+/* ================== STYLES (GIỮ NGUYÊN FE) ================== */
+const pageStyle: React.CSSProperties = { fontFamily: "Arial, sans-serif" };
+const topBarStyle: React.CSSProperties = { display: "flex", justifyContent: "space-between", marginBottom: 16 };
+const searchWrapStyle: React.CSSProperties = { display: "flex", gap: 12 };
+const inputStyle: React.CSSProperties = { padding: "8px 12px", borderRadius: 6, border: "1px solid #e5e7eb", width: 240 };
+const primaryBtn: React.CSSProperties = { padding: "8px 20px", borderRadius: 6, border: "none", background: "#143CA6", color: "#fff", fontWeight: 600 };
+const tableWrapperStyle: React.CSSProperties = { border: "1px solid #e5e7eb", borderRadius: 8, maxHeight: 420, overflowY: "auto" };
+const tableStyle: React.CSSProperties = { width: "100%", borderCollapse: "collapse" };
+const thStyle: React.CSSProperties = { padding: "12px 16px", fontWeight: 700, background: "#f9fafb", textAlign: "left" };
+const rowStyle: React.CSSProperties = { borderBottom: "1px solid #e5e7eb", cursor: "pointer" };
+const tdStyle: React.CSSProperties = { padding: "12px 16px" };
+const userCellStyle: React.CSSProperties = { display: "flex", alignItems: "center", gap: 10 };
+const colorBoxStyle: React.CSSProperties = { width: 12, height: 12, borderRadius: 4 };
+const avatarStyle: React.CSSProperties = { width: 36, height: 36, borderRadius: "50%" };
+const paginationStyle: React.CSSProperties = { display: "flex", justifyContent: "center", gap: 12, marginTop: 16 };
+const pageBtnStyle: React.CSSProperties = { padding: "6px 12px", borderRadius: 6, border: "1px solid #e5e7eb", background: "#fff" };
+const overlayStyle: React.CSSProperties = { position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", justifyContent: "center", alignItems: "center" };
+const modalStyle: React.CSSProperties = { width: 500, background: "#fff", borderRadius: 8 };
+const modalHeader: React.CSSProperties = { padding: "12px 16px", borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between" };
+
+/* ===== LEGEND STYLES ===== */
+const legendStyle: React.CSSProperties = {
+  display: "flex",
+  gap: 24,
+  marginBottom: 12,
+};
+
+const legendItem: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: 8,
+};
+
+const legendDot: React.CSSProperties = {
+  width: 14,
+  height: 14,
+  borderRadius: 4,
+};
