@@ -21,7 +21,7 @@ export const UsersPage: FC = () => {
   const [tab, setTab] = useState<TabType>('staff')
   const [query, setQuery] = useState<string>('')
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
-  const [editingId, setEditingId] = useState<number | null>(null);
+
   const [modalState, setModalState] = useState<{ isOpen: boolean; residentId: number | null }>({
     isOpen: false,
     residentId: null
@@ -82,7 +82,6 @@ export const UsersPage: FC = () => {
 
   const refreshList = () => {
     dispatch(fetchUsers({ type: tab, query, page: 1, pageSize }));
-    setEditingId(null);
     setSelectedIds([]);
   };
 
@@ -209,28 +208,28 @@ export const UsersPage: FC = () => {
       dispatch(fetchUsers({ type: tab, query, page: 1, pageSize }));
     }
   };
-const formatPhoneDisplay = (phone: string | undefined | null) => {
-  if (!phone) return '---';
-  
-  // Loại bỏ các ký tự không phải số
-  const cleaned = phone.replace(/\D/g, '');
-  
-  // Format theo dạng 0000-000-000 (nếu đủ 10 số)
-  if (cleaned.length === 10) {
-    return `${cleaned.slice(0, 4)}-${cleaned.slice(4, 7)}-${cleaned.slice(7)}`;
-  }
-  
-  // Hoặc trả về nguyên bản nếu không khớp format chuẩn
-  return phone;
-};
+  const formatPhoneDisplay = (phone: string | undefined | null) => {
+    if (!phone) return '---';
+
+    // Loại bỏ các ký tự không phải số
+    const cleaned = phone.replace(/\D/g, '');
+
+    // Format theo dạng 0000-000-000 (nếu đủ 10 số)
+    if (cleaned.length === 10) {
+      return `${cleaned.slice(0, 4)}-${cleaned.slice(4, 7)}-${cleaned.slice(7)}`;
+    }
+
+    // Hoặc trả về nguyên bản nếu không khớp format chuẩn
+    return phone;
+  };
   return (
     <div className='overflow-auto'>
       <StaffModal
-          isOpen={staffModalState.isOpen}
-          staffId={staffModalState.staffId}
-          onClose={handleCloseStaffModal}
-          onSuccess={refreshList}
-        />
+        isOpen={staffModalState.isOpen}
+        staffId={staffModalState.staffId}
+        onClose={handleCloseStaffModal}
+        onSuccess={refreshList}
+      />
       <ResidentModal
         isOpen={modalState.isOpen}
         residentId={modalState.residentId}
@@ -245,6 +244,15 @@ const formatPhoneDisplay = (phone: string | undefined | null) => {
         tagData={serverSuggestions}
         onSearchChange={handleFilterSearch}
         initialFilters={activeFilters}
+        onQuickSearch={(q: string) => {
+          setQuery(q);
+          dispatch(fetchUsers({
+            type: tab,
+            query: q,
+            page: 1,
+            pageSize,
+          }));
+        }}
       />
 
 
@@ -322,7 +330,7 @@ const formatPhoneDisplay = (phone: string | undefined | null) => {
               {tab === 'staff' && (
                 <>
                   <CSVImportButton onSuccess={refreshList} importType="staff" />
-                  <button 
+                  <button
                     className="px-4 py-2 bg-indigo-700 text-white rounded hover:bg-indigo-800 transition-colors inline-flex items-center gap-2"
                     onClick={handleOpenStaffCreate}
                   >
@@ -399,7 +407,7 @@ const formatPhoneDisplay = (phone: string | undefined | null) => {
                     </td>
                     <td className="p-4">
                       <div className="flex gap-2">
-                     <button
+                        <button
                           // Mở Modal Edit
                           onClick={() => {
                             if (tab === 'residents') handleOpenEdit(u.id);
