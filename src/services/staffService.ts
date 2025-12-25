@@ -1,5 +1,5 @@
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
+// services/staffService.ts
+import { api } from '../utils/api';
 
 export interface Staff {
   staffId: number;
@@ -11,10 +11,9 @@ export interface Staff {
     roleName: string;
   } | null;
   status: number; // 1: Active, 0: Inactive
-  avatar?: File;
+  avatar?: string | File;
   roleId: number;
   version: number;
-  
 }
 
 export interface UpdateStaffPayload {
@@ -25,20 +24,55 @@ export interface UpdateStaffPayload {
   status: number;
   roleId: number;
   version: number;
-  avatar?: File;
-  // avatar sẽ xử lý riêng 
+  avatar?: string;
+  password?: string;
 }
 
+export interface CreateStaffPayload {
+  fullName: string;
+  phone: string;
+  email: string;
+  roleId: number;
+  avatar?: File;
+  status?: number;
+}
+
+const uploadAvatar = async (file: File) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await api.upload('/upload/avatar', formData);
+
+  if (!response.ok) throw new Error('Lỗi khi upload ảnh');
+  return response.json();
+};
+
+const create = async (data: any) => {
+ 
+  const response = await api.post('/staff/create', data);
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    const message = Array.isArray(error.message) 
+      ? error.message.join(', ') 
+      : error.message || 'Lỗi khi tạo nhân viên';
+    throw new Error(message);
+  }
+
+  return response.json();
+};
+
+const update = async (data: any) => {
+  const response = await api.put(`/staff/update/${data.staffId}`, data);
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || 'Lỗi khi cập nhật nhân viên');
+  }
+  return response.json();
+};
 
 const getById = async (id: number | string) => {
-  const token = localStorage.getItem('accessToken');
-  const response = await fetch(`${API_BASE_URL}/staff/getById/${id}`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': token ? `Bearer ${token}` : '',
-    },
-  });
+  const response = await api.get(`/staff/getById/${id}`);
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
@@ -48,51 +82,8 @@ const getById = async (id: number | string) => {
   return response.json();
 };
 
-const update = async (data: UpdateStaffPayload) => {
-  const token = localStorage.getItem('accessToken');
-  const formData = new FormData();
-  
-  // Append các trường text
-  formData.append('staffId', data.staffId.toString());
-  formData.append('fullName', data.fullName);
-  formData.append('phone', data.phone);
-  formData.append('email', data.email);
-  formData.append('roleId', data.roleId.toString());
-  formData.append('status', data.status.toString());
-  formData.append('version', data.version.toString());
-
-  // 2. Chỉ append avatar nếu người dùng có chọn file mới
-  if (data.avatar instanceof File) {
-    formData.append('avatar', data.avatar);
-  }
-
-  // 3. Gọi API
-  const response = await fetch(`${API_BASE_URL}/staff/update/${data.staffId}`, {
-    method: 'PUT', 
-    headers: {
-      'Authorization': token ? `Bearer ${token}` : '',
-   
-    },
-    body: formData, 
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.message || 'Lỗi khi cập nhật nhân viên');
-  }
-
-  return response.json();
-};
 const deleteStaff = async (id: number | string) => {
-  const token = localStorage.getItem('accessToken');
-
-  const response = await fetch(`${API_BASE_URL}/staff/delete/${id}`, {
-    method: 'DELETE',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': token ? `Bearer ${token}` : '',
-    },
-  });
+  const response = await api.del(`/staff/delete/${id}`);
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
@@ -102,55 +93,12 @@ const deleteStaff = async (id: number | string) => {
   return response.json();
 };
 
-
-
-// services/staffService.ts - Thêm vào cuối file
-export interface CreateStaffPayload {
-  fullName: string;
-  phone: string;
-  email: string;
-  roleId: number;
-  avatar?: File; // Optional file
-  status?: number; // Default: 1 (Active)
-}
-
-const create = async (data: CreateStaffPayload) => {
-  const token = localStorage.getItem('accessToken');
-
-  // Xử lý FormData nếu có file avatar
-  let formData = new FormData();
-  formData.append('fullName', data.fullName);
-  formData.append('phone', data.phone);
-  formData.append('email', data.email);
-  formData.append('roleId', data.roleId.toString());
-  formData.append('status', data.status?.toString() || '1');
-
-  if (data.avatar) {
-    formData.append('avatar', data.avatar);
-  }
-
-  const response = await fetch(`${API_BASE_URL}/staff/create`, {
-    method: 'POST',
-    headers: {
-      'Authorization': token ? `Bearer ${token}` : '',
-    },
-    body: formData,
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.message || 'Lỗi khi tạo nhân viên');
-  }
-
-  return response.json();
-};
-
-// Cập nhật staffService export
 const staffService = {
   getById,
   create,
   update,
   delete: deleteStaff,
+  uploadAvatar
 };
 
 export default staffService;

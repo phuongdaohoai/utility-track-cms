@@ -1,43 +1,121 @@
-import React from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import type { Service } from "./Services";
+import React, { useEffect, useState } from "react";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
+import {
+  getServiceById,
+  updateService,
+  deleteService,
+} from "../../api/services.api";
 
+/* ================= TYPES ================= */
+export interface Service {
+  serviceId: number;
+  serviceName: string;
+  capacity: number;
+  description: string;
+  price: number;
+  status: 0 | 1;
+}
+
+/* ================= MAIN ================= */
 const ServicesRepairPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const services: Service[] = JSON.parse(
-    sessionStorage.getItem("services") || "[]"
-  );
+  const [form, setForm] = useState<Service | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const service = services.find(s => s.id === Number(id));
-  if (!service) return <div>Không tìm thấy dịch vụ</div>;
+  /* ================= LOAD DETAIL ================= */
+  useEffect(() => {
+    if (!id) return;
 
-  const [form, setForm] = React.useState<Service>(service);
+    // Tạo mới
+    if (id === "new") {
+      setForm({
+        serviceId: 0,
+        serviceName: "",
+        capacity: 0,
+        description: "",
+        price: 0,
+        status: 1,
+      });
+      setLoading(false);
+      return;
+    }
 
-  const handleSave = () => {
-    const updated = services.map(s =>
-      s.id === form.id ? form : s
-    );
-    sessionStorage.setItem("services", JSON.stringify(updated));
-    navigate("/admin/services");
+    // Ưu tiên lấy từ state (navigate từ list)
+    const serviceFromState = (location.state as any)?.service;
+    if (serviceFromState) {
+      setForm(serviceFromState);
+      setLoading(false);
+      return;
+    }
+
+    // Gọi API thật
+    getServiceById(Number(id))
+      .then(res => {
+        setForm(res.data.data);
+      })
+      .catch(err => {
+        console.error("Lỗi tải chi tiết service:", err);
+        alert("Không tải được dữ liệu dịch vụ");
+      })
+      .finally(() => setLoading(false));
+  }, [id, location.state]);
+
+  if (loading || !form) return <div>Đang tải dữ liệu...</div>;
+
+  /* ================= ACTIONS ================= */
+
+  const handleSave = async () => {
+    try {
+      if (id === "new") {
+        alert("Backend chưa có API tạo mới dịch vụ");
+        return;
+      }
+
+      await updateService(form.serviceId, {
+        serviceName: form.serviceName,
+        capacity: form.capacity,
+        description: form.description,
+        price: form.price,
+        status: form.status,
+      });
+
+      alert("Cập nhật dịch vụ thành công");
+      navigate("/admin/services");
+    } catch (err) {
+      console.error("Update failed:", err);
+      alert("Cập nhật dịch vụ thất bại");
+    }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!window.confirm("Bạn có chắc muốn xóa dịch vụ này không?")) return;
 
-    const updated = services.filter(s => s.id !== form.id);
-    sessionStorage.setItem("services", JSON.stringify(updated));
-    navigate("/admin/services");
+    try {
+      await deleteService(form.serviceId);
+      alert("Xóa dịch vụ thành công");
+      navigate("/admin/services");
+    } catch (err) {
+      console.error("Delete failed:", err);
+      alert("Xóa dịch vụ thất bại");
+    }
   };
 
-  return (
-    <>    
+  /* ================= UI ================= */
 
+  return (
     <div style={pageStyle} className="mx-5 sm:mx-14 mt-7">
       <div style={cardStyle}>
         <FormRow label="Tên Dịch Vụ">
-          <input value={form.name} disabled style={inputStyle} />
+          <input
+            value={form.serviceName}
+            onChange={e =>
+              setForm({ ...form, serviceName: e.target.value })
+            }
+            style={inputStyle}
+          />
         </FormRow>
 
         <FormRow label="Mô Tả">
@@ -64,9 +142,9 @@ const ServicesRepairPage: React.FC = () => {
         <FormRow label="Chi Phí">
           <input
             type="number"
-            value={form.pricePerHour}
+            value={form.price}
             onChange={e =>
-              setForm({ ...form, pricePerHour: +e.target.value })
+              setForm({ ...form, price: +e.target.value })
             }
             style={inputStyle}
           />
@@ -78,27 +156,28 @@ const ServicesRepairPage: React.FC = () => {
             onChange={e =>
               setForm({
                 ...form,
-                status: e.target.value as Service["status"],
+                status: +e.target.value as 0 | 1,
               })
             }
             style={inputStyle}
           >
-            <option value="active">Hoạt Động</option>
-            <option value="inactive">Không Hoạt Động</option>
+            <option value={1}>Hoạt Động</option>
+            <option value={0}>Không Hoạt Động</option>
           </select>
         </FormRow>
 
         <div style={footerStyle}>
-          <button style={deleteBtn} onClick={handleDelete}>
-            Xóa
-          </button>
+          {id !== "new" && (
+            <button style={deleteBtn} onClick={handleDelete}>
+              Xóa
+            </button>
+          )}
           <button style={saveBtn} onClick={handleSave}>
             Lưu Thông Tin
           </button>
         </div>
       </div>
     </div>
-    </>
   );
 };
 
@@ -119,7 +198,6 @@ const FormRow: React.FC<{ label: string; children: React.ReactNode }> = ({
 /* ================= STYLES ================= */
 
 const pageStyle: React.CSSProperties = {
- 
   background: "#f8fafc",
   minHeight: "100vh",
 };
@@ -148,7 +226,8 @@ const footerStyle: React.CSSProperties = {
 };
 
 const deleteBtn: React.CSSProperties = {
-  background: "#e5e7eb",
+  background: "#fee2e2",
+  color: "#dc2626",
   border: "none",
   padding: "8px 16px",
   borderRadius: 6,

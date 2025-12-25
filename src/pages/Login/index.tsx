@@ -18,10 +18,7 @@ export const LoginPage: FC = () => {
       const a = await dispatch(
         login({ identifier: emailOrPhone, password, locale }) as any
       ).unwrap()
-      // TODO: navigate to dashboard or show success — router is configured elsewhere
-      
-      // For now just log success
-      console.log('Login successful : ' + JSON.stringify(a))
+  
 
       navigate('/admin');
     } catch (err) {

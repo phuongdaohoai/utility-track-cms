@@ -1,4 +1,5 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
+// services/roleService.ts
+import { api } from '../utils/api';
 
 export interface Role {
   id: number;
@@ -7,17 +8,11 @@ export interface Role {
 }
 
 const getAll = async () => {
-  const token = localStorage.getItem('accessToken');
-  const response = await fetch(`${API_BASE_URL}/roles/getAll`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': token ? `Bearer ${token}` : '',
-    },
-  });
+  const response = await api.get('/roles/getAll');
 
   if (!response.ok) {
-    throw new Error('Lỗi khi lấy danh sách vai trò');
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || 'Lỗi khi lấy danh sách vai trò');
   }
 
   return response.json();

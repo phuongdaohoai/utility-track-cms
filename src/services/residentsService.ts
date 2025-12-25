@@ -1,5 +1,5 @@
 // services/residentsService.ts
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
+import { api } from '../utils/api';
 
 export interface Resident {
   id: number;
@@ -19,17 +19,51 @@ export interface Resident {
   status: number;
   version: number;
   avatar: string | null;
- 
 }
+
+const uploadAvatar = async (file: File) => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  
+  const response = await api.upload('/upload/avatar', formData);
+
+  if (!response.ok) {
+    throw new Error('Lỗi khi upload ảnh');
+  }
+
+  return response.json();
+};
+
+const create = async (data: any) => {
+  // api.post tự xử lý JSON.stringify, Headers, Token
+  const res = await api.post('/residents/create', data);
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    const errorMessage = Array.isArray(errorData.message)
+        ? errorData.message.join(', ')
+        : (errorData.message || 'Tạo cư dân thất bại');
+    throw new Error(errorMessage);
+  }
+  return res.json();
+};
+
+const update = async (id: number, data: any) => {
+  const res = await api.put(`/residents/update/${id}`, data);
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    const errorMessage = Array.isArray(errorData.message)
+        ? errorData.message.join(', ')
+        : (errorData.message || 'Cập nhật cư dân thất bại');
+    throw new Error(errorMessage);
+  }
+  return res.json();
+};
+
 const getById = async (id: number | string) => {
-  const token = localStorage.getItem('accessToken');
-  const response = await fetch(`${API_BASE_URL}/residents/getById/${id}`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': token ? `Bearer ${token}` : '',
-    },
-  });
+  const response = await api.get(`/residents/getById/${id}`);
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
@@ -39,35 +73,8 @@ const getById = async (id: number | string) => {
   return response.json();
 };
 
-
-const update = async (id: number | string, data: FormData) => {
-  const token = localStorage.getItem('accessToken');
- 
-  const response = await fetch(`${API_BASE_URL}/residents/update/${id}`, {
-    method: 'PUT',
-    headers: {
-      'Authorization': token ? `Bearer ${token}` : '',
-      // FormData tự set Content-Type
-    },
-    body: data,
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.message || 'Lỗi khi cập nhật cư dân');
-  }
-
-  return response.json();
-};
 const deleteResident = async (id: number | string) => {
-  const token = localStorage.getItem('accessToken');
-  const response = await fetch(`${API_BASE_URL}/residents/delete/${id}`, {
-    method: 'DELETE',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': token ? `Bearer ${token}` : '',
-    },
-  });
+  const response = await api.del(`/residents/delete/${id}`);
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
@@ -81,4 +88,6 @@ export default {
   getById,
   update,
   delete: deleteResident,
+  create,
+  uploadAvatar,
 };

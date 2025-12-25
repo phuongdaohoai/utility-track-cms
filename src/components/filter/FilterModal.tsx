@@ -15,7 +15,7 @@ export interface FilterConfig {
 export interface FilterCondition {
   id: string;
   fieldKey: string;
-  operator: string; 
+  operator: string;
   values?: any[];
   value?: any;
   value2?: any;
@@ -25,6 +25,9 @@ interface FilterModalProps {
   onClose: () => void;
   onApply: (filters: FilterCondition[]) => void;
   availableFields: FilterConfig[];
+  tagData?: Record<string, string[]>;
+  onSearchChange?: (key: string, value: string) => void;
+  initialFilters?: FilterCondition[];
 }
 
 // --- Cấu hình Operators ---
@@ -58,27 +61,25 @@ const OPERATORS: Record<FilterType, { value: string; label: string }[]> = {
   ],
 };
 
-export const FilterModal: React.FC<FilterModalProps> = ({ isOpen, onClose, onApply, availableFields }) => {
+export const FilterModal: React.FC<FilterModalProps> = ({ isOpen, onClose, initialFilters = [], onApply, availableFields, tagData = {}, onSearchChange }) => {
   const [filters, setFilters] = useState<FilterCondition[]>([]);
   const [isAdding, setIsAdding] = useState(false);
-
-  // Reset khi đóng mở
   useEffect(() => {
     if (isOpen) {
-      // Có thể load filters cũ từ props nếu cần nhớ trạng thái
+      setFilters(initialFilters);
     }
-  }, [isOpen]);
+  }, [isOpen, initialFilters]);
 
   const handleAddFilter = (fieldKey: string) => {
     const fieldConfig = availableFields.find((f) => f.key === fieldKey);
     if (!fieldConfig) return;
 
-const newFilter: FilterCondition = {
-  id: crypto.randomUUID(),
-  fieldKey,
-  operator: OPERATORS[fieldConfig.type][0].value,
-  values: [], 
-};
+    const newFilter: FilterCondition = {
+      id: crypto.randomUUID(),
+      fieldKey,
+      operator: OPERATORS[fieldConfig.type][0].value,
+      values: [],
+    };
 
 
     setFilters([...filters, newFilter]);
@@ -95,7 +96,7 @@ const newFilter: FilterCondition = {
         if (f.id === id) {
           // Reset value nếu đổi operator sang/từ 'range' để tránh lỗi
           if (key === 'operator' && (val === 'range' || f.operator === 'range')) {
-             return { ...f, [key]: val, value: '', value2: '' };
+            return { ...f, [key]: val, value: '', value2: '' };
           }
           return { ...f, [key]: val };
         }
@@ -104,8 +105,15 @@ const newFilter: FilterCondition = {
     );
   };
 
-  const handleClearAll = () => setFilters([]);
-
+  const handleClearAll = () =>{
+    setFilters([]); 
+    onApply([]);   
+    onClose();     
+  };
+const handleClearForm = () => {
+      setFilters([]); 
+      onApply([]);
+  }
   const handleApply = () => {
     onApply(filters);
     onClose();
@@ -118,7 +126,8 @@ const newFilter: FilterCondition = {
     // 1. Xử lý Date
     if (config.type === 'date') {
       return (
-        <div className="flex items-center gap-2 w-full">
+        <div className="flex flex-col items-center gap-1  w-full">
+          
           <input
             type="date"
             className="border border-gray-300 rounded px-2 py-1.5 text-sm w-full focus:outline-none focus:border-indigo-500"
@@ -127,7 +136,7 @@ const newFilter: FilterCondition = {
           />
           {isRange && (
             <>
-              <span className="text-gray-500">~</span>
+              
               <input
                 type="date"
                 className="border border-gray-300 rounded px-2 py-1.5 text-sm w-full focus:outline-none focus:border-indigo-500"
@@ -158,21 +167,35 @@ const newFilter: FilterCondition = {
       );
     }
 
-    // 3. Xử lý Number & String (Mặc định)
+    if (config.type === 'string') {
+
+      const suggestions = tagData[config.key] || [];
+      return (
+        <TagInput
+          value={filter.values || []}
+          suggestions={suggestions}
+          onChange={(tags) => updateFilter(filter.id, 'values', tags)}
+          placeholder="Nhập hoặc chọn..."
+          onInputChange={(val) => {
+            if (onSearchChange) onSearchChange(config.key, val);
+          }}
+        />
+      );
+    }
     return (
-      <div className="flex items-center gap-2 w-full">
+      <div className="flex flex-col items-center gap-2 w-full">
         <input
-          type={config.type === 'number' ? 'number' : 'text'}
+          type="number"
           placeholder="Nhập giá trị..."
           className="border border-gray-300 rounded px-2 py-1.5 text-sm w-full focus:outline-none focus:border-indigo-500"
-          value={filter.value}
+          value={filter.value || ''}
           onChange={(e) => updateFilter(filter.id, 'value', e.target.value)}
         />
         {isRange && (
           <>
             <span className="text-gray-500">~</span>
             <input
-              type={config.type === 'number' ? 'number' : 'text'}
+              type="number"
               className="border border-gray-300 rounded px-2 py-1.5 text-sm w-full focus:outline-none focus:border-indigo-500"
               value={filter.value2 || ''}
               onChange={(e) => updateFilter(filter.id, 'value2', e.target.value)}
@@ -181,6 +204,7 @@ const newFilter: FilterCondition = {
         )}
       </div>
     );
+
   };
 
   if (!isOpen) return null;
@@ -189,13 +213,13 @@ const newFilter: FilterCondition = {
     <>
       {/* Overlay */}
       <div className="fixed inset-0 bg-black bg-opacity-30 z-40 transition-opacity" onClick={onClose} />
-      
+
       {/* Side Panel */}
       <div className="fixed inset-y-0 right-0 z-50 w-[500px] bg-white shadow-2xl transform transition-transform duration-300 ease-in-out flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <h2 className="text-xl font-bold text-gray-800">Bộ lọc nâng cao</h2>
-          <button onClick={handleClearAll} className="text-sm text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
+          <button onClick={handleClearForm} className="text-sm text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
             </svg>
@@ -244,7 +268,7 @@ const newFilter: FilterCondition = {
                   {/* Delete Button */}
                   <button onClick={() => handleRemoveFilter(filter.id)} className="text-gray-400 hover:text-red-500 mt-1.5">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                       <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 000-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                      <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 000-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
                     </svg>
                   </button>
                 </div>
@@ -274,8 +298,8 @@ const newFilter: FilterCondition = {
                 <option value="" disabled>Chọn trường lọc...</option>
                 {availableFields// Ẩn các trường đã chọn (optional)
                   .map((f) => (
-                  <option key={f.key} value={f.key}>{f.label}</option>
-                ))}
+                    <option key={f.key} value={f.key}>{f.label}</option>
+                  ))}
               </select>
             )}
           </div>
@@ -283,17 +307,17 @@ const newFilter: FilterCondition = {
 
         {/* Footer */}
         <div className="p-6 border-t border-gray-200 bg-white flex justify-between items-center">
-            <button onClick={onClose} className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 text-sm font-medium">
-                Đóng
+          <button onClick={onClose} className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 text-sm font-medium">
+            Đóng
+          </button>
+          <div className="flex gap-3">
+            <button onClick={handleClearAll} className="text-indigo-600 hover:underline text-sm font-medium px-4">
+              Reset all
             </button>
-            <div className="flex gap-3">
-                <button onClick={handleClearAll} className="text-indigo-600 hover:underline text-sm font-medium px-4">
-                    Reset all
-                </button>
-                <button onClick={handleApply} className="px-6 py-2 bg-indigo-700 text-white rounded-md hover:bg-indigo-800 text-sm font-medium shadow-sm">
-                    Áp dụng
-                </button>
-            </div>
+            <button onClick={handleApply} className="px-6 py-2 bg-indigo-700 text-white rounded-md hover:bg-indigo-800 text-sm font-medium shadow-sm">
+              Áp dụng
+            </button>
+          </div>
         </div>
       </div>
     </>

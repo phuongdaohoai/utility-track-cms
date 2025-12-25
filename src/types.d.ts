@@ -2,6 +2,7 @@ export interface User {
   id: number
   fullName: string
   roleId?: string
+  email: string,
   role?: {
     roleName?: string;
    
@@ -14,9 +15,20 @@ export interface User {
   position?: string
   phone?: string
   status?: int
+  avatar?: string
 }
 
 // types/csvImport.ts
+export interface ImportResultData {
+  successCount: number;
+  errorCount: number;
+  successes: any[];
+  errors: {
+    index: number;
+    errorCode: string;
+    details: any;
+  }[];
+}
 export interface CSVRow {
   [key: string]: string;
 }
@@ -51,6 +63,7 @@ export interface ImportResponse {
     rowIndex: number;
     errors: string[];
   }>;
+  data: ImportResultData;
 }
 
 export type FilterType =

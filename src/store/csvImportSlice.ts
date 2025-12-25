@@ -13,12 +13,15 @@ const initialState: CSVImportState = {
   uploadMessage: ''
 };
 
-// Async thunk để parse CSV
+// store/slices/csvImportSlice.ts
+
 export const parseCSVFile = createAsyncThunk(
   'csvImport/parseCSV',
-  async (file: File, { rejectWithValue }) => {
+  // Nhận payload là object { file, type }
+  async ({ file, type }: { file: File; type: 'residents' | 'staff' }, { rejectWithValue }) => {
     try {
-      return await csvImportService.parseCSV(file);
+      // Truyền type vào hàm parseCSV
+      return await csvImportService.parseCSV(file, type);
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Lỗi parse CSV');
     }
@@ -118,17 +121,21 @@ const csvImportSlice = createSlice({
       })
       .addCase(importCSVData.fulfilled, (state, action) => {
         state.uploadStatus = 'success';
-        state.uploadMessage = action.payload.message;
-        
-        // Nếu có dòng lỗi trong response, thêm vào errors
-        if (action.payload.failedRows) {
-          const newErrors: ValidationError[] = action.payload.failedRows.flatMap(failedRow => 
-            failedRow.errors.map(error => ({
-              rowIndex: failedRow.rowIndex,
-              message: error
-            }))
-          );
-          state.errors = [...state.errors, ...newErrors];
+       const responseData = action.payload.data; // Truy cập vào object "data" trong JSON trả về
+        const { successCount, errorCount, errors } = responseData;
+  state.uploadMessage = `Import hoàn tất: ${successCount} thành công, ${errorCount} thất bại`;
+
+        // 3. Map lỗi từ Backend trả về vào state.errors để hiển thị đỏ lên bảng (nếu có)
+        if (errors && errors.length > 0) {
+          const backendErrors: ValidationError[] = errors.map((err: any) => ({
+             // Backend trả về index theo dòng Excel (bắt đầu từ 2), 
+             // Frontend mảng bắt đầu từ 0 nên cần trừ 2 để khớp vị trí
+             rowIndex: err.index - 2, 
+             
+             // Format tin nhắn lỗi hiển thị
+             message: formatErrorMessage(err) 
+          }));
+          state.errors = backendErrors;
         }
       })
       .addCase(importCSVData.rejected, (state, action) => {
@@ -137,7 +144,41 @@ const csvImportSlice = createSlice({
       });
   }
 });
+function formatErrorMessage(err: any): string {
+    const detail = err.details ? Object.values(err.details).join(', ') : '';
+    switch (err.errorCode) {
+        // --- RESIDENT ---
+        case 'RESIDENT_IMPORT_DUPLICATE_PHONE': 
+            return `SĐT cư dân đã tồn tại (${detail})`;
+        case 'RESIDENT_IMPORT_DUPLICATE_EMAIL': 
+            return `Email cư dân đã tồn tại (${detail})`;
+        case 'RESIDENT_IMPORT_DUPLICATE_CCCD': 
+            return `CCCD đã tồn tại (${detail})`;
 
+    
+        case 'STAFF_IMPORT_DUPLICATE_PHONE':
+        case 'DUPLICATE_PHONE': // Phòng trường hợp backend trả code ngắn
+            return `SĐT nhân sự đã tồn tại (${detail})`;
+            
+        case 'STAFF_IMPORT_DUPLICATE_EMAIL':
+        case 'DUPLICATE_EMAIL':
+            return `Email nhân sự đã tồn tại (${detail})`;
+
+       
+        case 'FORMAT_ERROR': 
+            return `Lỗi định dạng: ${detail}`;
+            
+        case 'RESIDENT_IMPORT_SAVE_ERROR':
+        case 'STAFF_IMPORT_SAVE_ERROR': 
+        case 'SAVE_ERROR':
+          
+            if (detail.includes('Email đã tồn tại')) return detail;
+            return `Lỗi hệ thống khi lưu: ${detail}`;
+            
+        default: 
+            return `${err.errorCode || 'Lỗi'}: ${detail}`;
+    }
+}
 export const {
   openModal,
   closeModal,

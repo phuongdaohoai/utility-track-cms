@@ -14,7 +14,7 @@ const initialState: RoleState = {
 export const fetchRoles = createAsyncThunk('roles/getAll', async (_, thunkAPI) => {
   try {
     const response = await roleService.getAll();
-    return response.data; // API trả về { data: [...] }
+    return response.data; 
   } catch (error: any) {
     return thunkAPI.rejectWithValue(error.message);
   }
