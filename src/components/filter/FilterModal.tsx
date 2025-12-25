@@ -28,11 +28,13 @@ interface FilterModalProps {
   tagData?: Record<string, string[]>;
   onSearchChange?: (key: string, value: string) => void;
   initialFilters?: FilterCondition[];
+  onQuickSearch?: (query: string) => void;
 }
 
 // --- Cấu hình Operators ---
 
 const OPERATORS: Record<FilterType, { value: string; label: string }[]> = {
+
   string: [
     { value: 'is', label: 'Is' },
     { value: 'contains', label: 'Contains' },
@@ -61,9 +63,10 @@ const OPERATORS: Record<FilterType, { value: string; label: string }[]> = {
   ],
 };
 
-export const FilterModal: React.FC<FilterModalProps> = ({ isOpen, onClose, initialFilters = [], onApply, availableFields, tagData = {}, onSearchChange }) => {
+export const FilterModal: React.FC<FilterModalProps> = ({ isOpen, onClose, initialFilters = [], onApply, availableFields, tagData = {}, onSearchChange, onQuickSearch }) => {
   const [filters, setFilters] = useState<FilterCondition[]>([]);
   const [isAdding, setIsAdding] = useState(false);
+   const [quickQuery, setQuickQuery] = useState('');
   useEffect(() => {
     if (isOpen) {
       setFilters(initialFilters);
@@ -80,7 +83,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({ isOpen, onClose, initi
       operator: OPERATORS[fieldConfig.type][0].value,
       values: [],
     };
-
+   
 
     setFilters([...filters, newFilter]);
     setIsAdding(false);
@@ -105,14 +108,14 @@ export const FilterModal: React.FC<FilterModalProps> = ({ isOpen, onClose, initi
     );
   };
 
-  const handleClearAll = () =>{
-    setFilters([]); 
-    onApply([]);   
-    onClose();     
+  const handleClearAll = () => {
+    setFilters([]);
+    onApply([]);
+    onClose();
   };
-const handleClearForm = () => {
-      setFilters([]); 
-      onApply([]);
+  const handleClearForm = () => {
+    setFilters([]);
+    onApply([]);
   }
   const handleApply = () => {
     onApply(filters);
@@ -127,7 +130,7 @@ const handleClearForm = () => {
     if (config.type === 'date') {
       return (
         <div className="flex flex-col items-center gap-1  w-full">
-          
+
           <input
             type="date"
             className="border border-gray-300 rounded px-2 py-1.5 text-sm w-full focus:outline-none focus:border-indigo-500"
@@ -136,7 +139,7 @@ const handleClearForm = () => {
           />
           {isRange && (
             <>
-              
+
               <input
                 type="date"
                 className="border border-gray-300 rounded px-2 py-1.5 text-sm w-full focus:outline-none focus:border-indigo-500"
@@ -231,9 +234,20 @@ const handleClearForm = () => {
         <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
           {/* Search bar giả lập (optional) */}
           <div className="mb-4 relative">
-            <input className="w-full border border-gray-300 rounded-md py-2 pl-3 pr-10 text-sm" placeholder="Tìm kiếm nhanh..." />
+            <input
+              className="w-full border border-gray-300 rounded-md py-2 pl-3 pr-10 text-sm"
+              placeholder="Tìm kiếm nhanh..."
+              value={quickQuery}
+              onChange={(e) => setQuickQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && onQuickSearch) {
+                  onQuickSearch(quickQuery);
+                }
+              }}
+            />
             <span className="absolute right-3 top-2.5 text-gray-400">🔍</span>
           </div>
+
 
           <div className="space-y-3">
             {filters.map((filter) => {
