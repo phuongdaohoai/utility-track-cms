@@ -8,12 +8,13 @@ import {
 
 /* ================= TYPES ================= */
 export interface Service {
-  serviceId: number;
+  id: number;
   serviceName: string;
   capacity: number;
   description: string;
   price: number;
   status: 0 | 1;
+  version?: number;
 }
 
 /* ================= MAIN ================= */
@@ -32,7 +33,7 @@ const ServicesRepairPage: React.FC = () => {
     // Tạo mới
     if (id === "new") {
       setForm({
-        serviceId: 0,
+        id: 0,
         serviceName: "",
         capacity: 0,
         description: "",
@@ -74,12 +75,13 @@ const ServicesRepairPage: React.FC = () => {
         return;
       }
 
-      await updateService(form.serviceId, {
+      await updateService(form.id, {
         serviceName: form.serviceName,
         capacity: form.capacity,
         description: form.description,
         price: form.price,
         status: form.status,
+        version: form.version, // ⭐ BẮT BUỘC
       });
 
       alert("Cập nhật dịch vụ thành công");
@@ -94,7 +96,7 @@ const ServicesRepairPage: React.FC = () => {
     if (!window.confirm("Bạn có chắc muốn xóa dịch vụ này không?")) return;
 
     try {
-      await deleteService(form.serviceId);
+      await deleteService(form.id);
       alert("Xóa dịch vụ thành công");
       navigate("/admin/services");
     } catch (err) {
