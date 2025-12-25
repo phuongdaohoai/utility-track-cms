@@ -279,7 +279,7 @@ const formatPhoneDisplay = (phone: string | undefined | null) => {
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   onKeyDown={handleKeyDownSearch}
-                  placeholder={tab === 'residents' ? 'Tìm kiếm theo Tên, Phòng, SĐT' : 'Tìm kiếm theo Tên, Vị trí, SĐT'}
+                  placeholder={tab === 'residents' ? 'Tìm kiếm theo Tên, SĐT' : 'Tìm kiếm theo Tên, SĐT'}
                   className="w-full max-w-md px-3 py-2 border border-[#cecfdd]
  rounded-md"
                 />

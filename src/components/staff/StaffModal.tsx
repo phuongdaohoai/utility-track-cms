@@ -376,7 +376,7 @@ export const StaffModal: FC<StaffModalProps> = ({
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Trạng thái</label>
                                 <select name="status" value={formData.status} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white">
                                     <option value={1}>Hoạt động</option>
-                                    <option value={0}>Đã khóa</option>
+                                    <option value={0}>khóa</option>
                                 </select>
                             </div>
                         </div>
