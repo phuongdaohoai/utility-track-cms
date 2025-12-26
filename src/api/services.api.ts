@@ -1,6 +1,7 @@
 import axios from "axios";
+import { API_BASE_URL } from "../utils/url";
 
-const API_URL = "http://localhost:3000/services-used";
+const API_URL = `${API_BASE_URL}/services-used`;
 
 const api = axios.create({
   headers: {
