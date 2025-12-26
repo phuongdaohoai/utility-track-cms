@@ -13,7 +13,7 @@ import { StaffModal } from '../../components/staff/StaffModal';
 import usersService from '../../services/usersService';
 import { fetchRoles } from '../../store/roleSlice';
 import { transformFilters } from '../../utils/filterUtils';
-import { Pencil, Trash2, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { API_BASE_URL } from '../../utils/url';
 type TabType = 'residents' | 'staff'
 
@@ -416,7 +416,8 @@ export const UsersPage: FC = () => {
                           className="p-2 bg-white border rounded hover:bg-gray-50 transition-colors"
                           title="Chỉnh sửa"
                         >
-                          <Pencil className="w-4 h-4 text-indigo-500" />
+                          {/* <Pencil className="w-4 h-4 text-indigo-500" /> */}
+                          ✏️
 
                         </button>
                         <button
@@ -424,7 +425,8 @@ export const UsersPage: FC = () => {
                           className="p-2 bg-white border rounded hover:bg-red-50 hover:text-red-600 transition-colors"
                           title={tab === 'residents' ? "Xóa cư dân" : "Xóa nhân viên"}
                         >
-                          <Trash2 className="w-4 h-4 text-red-500" />
+                          {/* <Trash2 className="w-4 h-4 text-red-500" /> */}
+                           🗑️
                         </button>
                       </div>
                     </td>

@@ -1,7 +1,7 @@
 import { FC, useState, useEffect, useRef, ChangeEvent } from 'react';
 import { X, Upload, User, CheckCircle2, AlertCircle, Trash2 } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
-
+import residentsService from '../../services/residentsService';
 import {
   createResident,
   updateResident,
@@ -45,13 +45,13 @@ export const ResidentModal: FC<ResidentModalProps> = ({
 
   const isEditMode = !!residentId;
   const currentStatus = isEditMode ? updateStatus : createStatus;
-
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const isSubmitting = currentStatus === 'loading';
   const isSuccess = currentStatus === 'success';
   const isFailed = currentStatus === 'failed';
 
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   // 2. State cho Căn hộ
@@ -86,7 +86,7 @@ export const ResidentModal: FC<ResidentModalProps> = ({
     if (isOpen) {
       dispatch(resetResidentStatus());
       setFormErrors({});
-      setAvatarFile(null);
+
       setAvatarPreview(null);
       setShowApartmentDropdown(false);
 
@@ -172,15 +172,42 @@ export const ResidentModal: FC<ResidentModalProps> = ({
     if (formErrors[name]) setFormErrors(prev => ({ ...prev, [name]: '' }));
   };
 
-  const handleAvatarChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
     if (file.size > 5 * 1024 * 1024) {
       alert('File tối đa 5MB');
       return;
     }
-    setAvatarFile(file);
-    setAvatarPreview(URL.createObjectURL(file));
+
+    setIsUploadingAvatar(true); // Bật trạng thái loading
+
+    try {
+      // 1. Gọi service upload ngay lập tức
+      const res = await residentsService.uploadAvatar(file);
+
+      // Giả sử res.data chứa path của ảnh (vd: "uploads/avatar/img.jpg")
+      const uploadedPath = res.data;
+      console.log(uploadedPath)
+      // 2. Cập nhật URL vào formData
+      setFormData(prev => ({ ...prev, avatar: uploadedPath }));
+
+      // 3. Hiển thị Preview
+      const cleanBaseUrl = API_BASE_URL.replace(/\/$/, "");
+      const cleanAvatarPath = uploadedPath.startsWith('/') ? uploadedPath : `/${uploadedPath}`;
+      setAvatarPreview(`${cleanBaseUrl}${cleanAvatarPath}`);
+
+    } catch (error) {
+      console.error(error);
+      alert('Lỗi khi tải ảnh lên. Vui lòng thử lại.');
+    } finally {
+      setIsUploadingAvatar(false); // Tắt trạng thái loading
+      // Reset input để có thể chọn lại cùng 1 file nếu muốn
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
   };
 
   const handleDelete = async () => {
@@ -208,7 +235,7 @@ export const ResidentModal: FC<ResidentModalProps> = ({
 
     if (!formData.email.trim()) errors.email = 'Email là bắt buộc';
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) errors.email = 'Email không hợp lệ';
-    
+
     if (!formData.citizenCard.trim()) {
       errors.citizenCard = 'CCCD là bắt buộc';
     } else if (!/^\d+$/.test(formData.citizenCard)) {
@@ -248,7 +275,7 @@ export const ResidentModal: FC<ResidentModalProps> = ({
       status: Number(formData.status),
       qrCode: formData.qrCode,
       faceIdData: formData.faceIdData,
-      avatar: formData.avatar, 
+      avatar: formData.avatar,
     };
 
     console.log(payload)
@@ -259,13 +286,10 @@ export const ResidentModal: FC<ResidentModalProps> = ({
           ...payload,
           version: Number(formData.version),
         },
-        avatarFile: avatarFile , 
+
       }));
     } else {
-      dispatch(createResident({
-        residentData: payload,
-        avatarFile: avatarFile,
-      }));
+      dispatch(createResident(payload));
     }
   };
 
@@ -419,7 +443,7 @@ export const ResidentModal: FC<ResidentModalProps> = ({
                 {/* --- CUSTOM DROPDOWN CĂN HỘ (KHÔNG SEARCH) --- */}
                 <div className="relative">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Căn hộ</label>
-                  
+
                   {/* Ô hiển thị giá trị */}
                   <div
                     onClick={() => setShowApartmentDropdown(!showApartmentDropdown)}
@@ -427,7 +451,7 @@ export const ResidentModal: FC<ResidentModalProps> = ({
                   >
                     <span className={formData.apartmentId ? 'text-gray-900' : 'text-gray-400'}>
                       {formData.apartmentId
-                        ? apartments.find(a => a.id === Number(formData.apartmentId))?.roomNumber 
+                        ? apartments.find(a => a.id === Number(formData.apartmentId))?.roomNumber
                           ? `${apartments.find(a => a.id === Number(formData.apartmentId))?.building} - ${apartments.find(a => a.id === Number(formData.apartmentId))?.roomNumber}`
                           : "Đã chọn (ID: " + formData.apartmentId + ")"
                         : "-- Chọn căn hộ --"}
@@ -442,26 +466,25 @@ export const ResidentModal: FC<ResidentModalProps> = ({
                       <ul className="max-h-60 overflow-y-auto">
                         {apartments.length > 0 ? (
                           apartments.map((apt) => (
-                              <li
-                                key={apt.id}
-                                onClick={() => {
-                                  setFormData(prev => ({ ...prev, apartmentId: apt.id }));
-                                  setShowApartmentDropdown(false);
-                                }}
-                                className={`px-4 py-2 text-sm cursor-pointer hover:bg-indigo-50 transition-colors ${
-                                  formData.apartmentId === apt.id ? 'bg-indigo-100 text-indigo-700 font-medium' : 'text-gray-700'
+                            <li
+                              key={apt.id}
+                              onClick={() => {
+                                setFormData(prev => ({ ...prev, apartmentId: apt.id }));
+                                setShowApartmentDropdown(false);
+                              }}
+                              className={`px-4 py-2 text-sm cursor-pointer hover:bg-indigo-50 transition-colors ${formData.apartmentId === apt.id ? 'bg-indigo-100 text-indigo-700 font-medium' : 'text-gray-700'
                                 }`}
-                              >
-                                {apt.building} - {apt.roomNumber} {apt.floorNumber ? `(Tầng ${apt.floorNumber})` : ''}
-                              </li>
-                            ))
+                            >
+                              {apt.building} - {apt.roomNumber} {apt.floorNumber ? `(Tầng ${apt.floorNumber})` : ''}
+                            </li>
+                          ))
                         ) : (
                           <li className="px-4 py-2 text-sm text-gray-500 text-center">Đang tải danh sách...</li>
                         )}
                       </ul>
                     </div>
                   )}
-                  
+
                   {/* Click ra ngoài để đóng */}
                   {showApartmentDropdown && (
                     <div className="fixed inset-0 z-40" onClick={() => setShowApartmentDropdown(false)}></div>

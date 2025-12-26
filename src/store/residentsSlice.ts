@@ -30,24 +30,9 @@ export const fetchResidentById = createAsyncThunk(
 
 export const createResident = createAsyncThunk(
   'residents/create',
-  async (
-    { residentData, avatarFile }: { residentData: any; avatarFile: File | null },
-    thunkAPI
-  ) => {
+  async (residentData: any, thunkAPI) => {
     try {
-      let avatarUrl = '';
-
-      if (avatarFile) {
-        const uploadRes = await residentsService.uploadAvatar(avatarFile);
-        avatarUrl = uploadRes.data || '';
-      }
-
-      const payload = {
-        ...residentData,
-        avatar: avatarUrl || undefined,
-      };
-
-      const res = await residentsService.create(payload);
+      const res = await residentsService.create(residentData);
       return res.data;
     } catch (err: any) {
       return thunkAPI.rejectWithValue(err.message);
@@ -59,23 +44,11 @@ export const createResident = createAsyncThunk(
 export const updateResident = createAsyncThunk(
   'residents/update',
   async (
-    { id, residentData, avatarFile }: { id: number; residentData: any; avatarFile: File | null },
+    { id, residentData }: { id: number; residentData: any },
     thunkAPI
   ) => {
     try {
-      let avatarUrl = residentData.avatar || '';
-
-      if (avatarFile) {
-        const uploadRes = await residentsService.uploadAvatar(avatarFile);
-        avatarUrl = uploadRes.data || '';
-      }
-   
-      const payload = {
-        ...residentData,
-        avatar: avatarUrl || undefined,
-      };
-
-      const res = await residentsService.update(id, payload);
+      const res = await residentsService.update(id, residentData);
       return res.data;
     } catch (err: any) {
       return thunkAPI.rejectWithValue(err.message);
