@@ -1,20 +1,41 @@
 import React, { useEffect, useState } from "react";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
+import { api } from "../../utils/api";
 
-const API_BASE = "http://localhost:3000";
 const ITEMS_PER_PAGE = 10;
+
+/* ================== FORMAT DATETIME (NEW) ================== */
+const formatDateTime = (value?: string) => {
+  if (!value) return "--";
+
+  const d = new Date(value);
+
+  const hours = d.getHours();
+  const minutes = d.getMinutes().toString().padStart(2, "0");
+  const day = d.getDate();
+  const month = d.getMonth() + 1;
+  const year = d.getFullYear();
+
+  return `${hours}h${minutes} - ${day}/${month}/${year}`;
+};
 
 /* ================== TYPES ================== */
 interface UsageItem {
   id: number;
-  usageTime: string;
   system?: string;
   quantity?: number;
+
+  checkInOut?: {
+    checkInTime?: string;
+    checkOutTime?: string;
+  };
+
   resident?: {
     fullName: string;
     avatar?: string;
   };
+
   service?: {
     serviceName: string;
     price: number;
@@ -36,13 +57,16 @@ const UsageHistory: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await fetch(
-          `${API_BASE}/history_checkin?searchName=${searchText}&page=${currentPage}&limit=${ITEMS_PER_PAGE}`
+        const res = await api.get(
+          `/history_checkin?searchName=${searchText}&page=${currentPage}&limit=${ITEMS_PER_PAGE}`
         );
-        const json = await res.json();
+        if (!res.ok) {
+          throw new Error("Lỗi khi tải dữ liệu");
+        }
 
+        const json = await res.json();
         setData(json.data.data);
-        setTotalPages(json.data.totalPages);
+        setTotalPages(json.data.meta.totalPages);
       } catch (err) {
         console.error("Fetch usage history error:", err);
       }
@@ -54,7 +78,7 @@ const UsageHistory: React.FC = () => {
   /* ================== FETCH DETAIL ================== */
   const openDetail = async (id: number) => {
     try {
-      const res = await fetch(`${API_BASE}/history_checkin/${id}`);
+      const res = await api.get(`/history_checkin/${id}`);
       const json = await res.json();
 
       if (json.success) {
@@ -68,12 +92,13 @@ const UsageHistory: React.FC = () => {
 
   /* ================== EXPORT EXCEL ================== */
   const exportToExcel = () => {
-    const excelData = data.map(item => ({
+    const excelData = data.map((item) => ({
       "Loại": item.resident ? "Cư dân" : "Khách ngoài",
       "Cư Dân / Khách": item.resident?.fullName,
       "Dịch Vụ": item.service?.serviceName,
       "Hệ Thống": item.system ?? "QR",
-      "Thời Gian": item.usageTime,
+      "Thời Gian Vào": formatDateTime(item.checkInOut?.checkInTime),
+      "Thời Gian Ra": formatDateTime(item.checkInOut?.checkOutTime),
       "Số Lượng": item.quantity ?? 1,
       "Phí": item.service?.price,
     }));
@@ -99,7 +124,7 @@ const UsageHistory: React.FC = () => {
           <input
             placeholder="Tìm theo cư dân / khách"
             value={inputText}
-            onChange={e => setInputText(e.target.value)}
+            onChange={(e) => setInputText(e.target.value)}
             style={inputStyle}
           />
           <button
@@ -118,7 +143,7 @@ const UsageHistory: React.FC = () => {
         </button>
       </div>
 
-      {/* ===== LEGEND (CHÚ THÍCH) ===== */}
+      {/* ===== LEGEND ===== */}
       <div style={legendStyle}>
         <div style={legendItem}>
           <span style={{ ...legendDot, background: "#2D9CDB" }} />
@@ -139,17 +164,20 @@ const UsageHistory: React.FC = () => {
                 "Cư Dân / Khách",
                 "Dịch Vụ",
                 "Hệ Thống",
-                "Thời Gian",
+                "Thời Gian Vào",
+                "Thời Gian Ra",
                 "Số Lượng",
                 "Phí",
-              ].map(h => (
-                <th key={h} style={thStyle}>{h}</th>
+              ].map((h) => (
+                <th key={h} style={thStyle}>
+                  {h}
+                </th>
               ))}
             </tr>
           </thead>
 
           <tbody>
-            {data.map(item => {
+            {data.map((item) => {
               const isResident = !!item.resident;
 
               return (
@@ -175,7 +203,12 @@ const UsageHistory: React.FC = () => {
                   </td>
                   <td style={tdStyle}>{item.service?.serviceName}</td>
                   <td style={tdStyle}>{item.system ?? "QR"}</td>
-                  <td style={tdStyle}>{item.usageTime}</td>
+                  <td style={tdStyle}>
+                    {formatDateTime(item.checkInOut?.checkInTime)}
+                  </td>
+                  <td style={tdStyle}>
+                    {formatDateTime(item.checkInOut?.checkOutTime)}
+                  </td>
                   <td style={tdStyle}>{item.quantity ?? 1}</td>
                   <td style={tdStyle}>{item.service?.price}</td>
                 </tr>
@@ -185,10 +218,9 @@ const UsageHistory: React.FC = () => {
         </table>
       </div>
 
-      {/* ===== PAGINATION (SYNC WITH TEMPLATE) ===== */}
+      {/* ===== PAGINATION (GIỮ NGUYÊN STYLE) ===== */}
       <div style={{ marginTop: 16, display: "flex", justifyContent: "center" }}>
         <div className="flex items-center gap-1 text-sm">
-          {/* PREV */}
           <button
             onClick={() => goToPage(Math.max(1, currentPage - 1))}
             disabled={currentPage === 1}
@@ -197,40 +229,39 @@ const UsageHistory: React.FC = () => {
             &lt;
           </button>
 
-          {/* PAGE NUMBERS (MAX 5) */}
           {Array.from({ length: Math.min(5, totalPages) }).map((_, i) => {
             const pageNum = i + 1;
             return (
               <button
                 key={pageNum}
                 onClick={() => goToPage(pageNum)}
-                className={`px-3 py-1 rounded ${currentPage === pageNum
+                className={`px-3 py-1 rounded ${
+                  currentPage === pageNum
                     ? "bg-indigo-600 text-white font-medium"
                     : "text-gray-700 hover:bg-gray-100"
-                  }`}
+                }`}
               >
                 {pageNum}
               </button>
             );
           })}
 
-          {/* ... + LAST PAGE */}
           {totalPages > 5 && (
             <>
               <span className="px-2 text-gray-500">...</span>
               <button
                 onClick={() => goToPage(totalPages)}
-                className={`px-3 py-1 rounded ${currentPage === totalPages
+                className={`px-3 py-1 rounded ${
+                  currentPage === totalPages
                     ? "bg-indigo-600 text-white font-medium"
                     : "text-gray-700 hover:bg-gray-100"
-                  }`}
+                }`}
               >
                 {totalPages}
               </button>
             </>
           )}
 
-          {/* NEXT */}
           <button
             onClick={() => goToPage(Math.min(totalPages, currentPage + 1))}
             disabled={currentPage === totalPages}
@@ -240,7 +271,6 @@ const UsageHistory: React.FC = () => {
           </button>
         </div>
       </div>
-
 
       {isModalOpen && selectedUser && (
         <DetailModal user={selectedUser} onClose={() => setIsModalOpen(false)} />
@@ -264,14 +294,15 @@ const DetailModal = ({ user, onClose }: any) => (
         <p><b>Cư dân:</b> {user.resident?.fullName}</p>
         <p><b>Dịch vụ:</b> {user.service?.serviceName}</p>
         <p><b>Hệ thống:</b> {user.system ?? "QR"}</p>
-        <p><b>Thời gian:</b> {user.usageTime}</p>
+        <p><b>Thời gian vào:</b> {formatDateTime(user.checkInOut?.checkInTime)}</p>
+        <p><b>Thời gian ra:</b> {formatDateTime(user.checkInOut?.checkOutTime)}</p>
         <p><b>Giá:</b> {user.service?.price}</p>
       </div>
     </div>
   </div>
 );
 
-/* ================== STYLES (GIỮ NGUYÊN FE) ================== */
+/* ================== STYLES (GIỮ NGUYÊN) ================== */
 const pageStyle: React.CSSProperties = { fontFamily: "Arial, sans-serif" };
 const topBarStyle: React.CSSProperties = { display: "flex", justifyContent: "space-between", marginBottom: 16 };
 const searchWrapStyle: React.CSSProperties = { display: "flex", gap: 12 };
@@ -285,27 +316,10 @@ const tdStyle: React.CSSProperties = { padding: "12px 16px" };
 const userCellStyle: React.CSSProperties = { display: "flex", alignItems: "center", gap: 10 };
 const colorBoxStyle: React.CSSProperties = { width: 12, height: 12, borderRadius: 4 };
 const avatarStyle: React.CSSProperties = { width: 36, height: 36, borderRadius: "50%" };
-const paginationStyle: React.CSSProperties = { display: "flex", justifyContent: "center", gap: 12, marginTop: 16 };
-const pageBtnStyle: React.CSSProperties = { padding: "6px 12px", borderRadius: 6, border: "1px solid #e5e7eb", background: "#fff" };
 const overlayStyle: React.CSSProperties = { position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", justifyContent: "center", alignItems: "center" };
 const modalStyle: React.CSSProperties = { width: 500, background: "#fff", borderRadius: 8 };
 const modalHeader: React.CSSProperties = { padding: "12px 16px", borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between" };
 
-/* ===== LEGEND STYLES ===== */
-const legendStyle: React.CSSProperties = {
-  display: "flex",
-  gap: 24,
-  marginBottom: 12,
-};
-
-const legendItem: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: 8,
-};
-
-const legendDot: React.CSSProperties = {
-  width: 14,
-  height: 14,
-  borderRadius: 4,
-};
+const legendStyle: React.CSSProperties = { display: "flex", gap: 24, marginBottom: 12 };
+const legendItem: React.CSSProperties = { display: "flex", alignItems: "center", gap: 8 };
+const legendDot: React.CSSProperties = { width: 14, height: 14, borderRadius: 4 };
