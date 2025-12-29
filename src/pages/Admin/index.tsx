@@ -6,39 +6,42 @@ import { getDashboardData, GroupBy } from "../../api/dashboard.api";
 import { formatCurrency } from "../../utils/formatters";
 
 export default function AdminPage() {
-  // trạng thái thống kê theo ngày / tháng / năm
   const [groupBy, setGroupBy] = useState<GroupBy>("month");
-
-  // dữ liệu dashboard lấy từ BE
+  const [fromDate, setFromDate] = useState<string>();
+  const [toDate, setToDate] = useState<string>();
   const [dashboard, setDashboard] = useState<any>(null);
 
-  // gọi API mỗi khi groupBy thay đổi
   useEffect(() => {
-    getDashboardData(groupBy).then(setDashboard);
-  }, [groupBy]);
+    const fetchData = async () => {
+      const res = await getDashboardData({
+        groupBy,
+        fromDate,
+        toDate,
+      });
 
-  // loading lần đầu
-  if (!dashboard) {
-    return <div>Loading...</div>;
-  }
+      setDashboard(res);
+    };
+
+    fetchData();
+  }, [groupBy, fromDate, toDate]);
+
+  if (!dashboard) return <div>Loading...</div>;
 
   return (
     <div className="space-y-6">
-      {/* ===== THỐNG KÊ ===== */}
+      {/* STAT */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <AdminStatCard
           title="Tổng lượt check-in hôm nay"
           value={dashboard.totalCheckInsToday}
           icon={FileText}
         />
-
         <AdminStatCard
-          title="Doanh thu ngày hôm nay"
+          title="Doanh thu hôm nay"
           value={formatCurrency(dashboard.totalRevenueToday)}
           icon={BarChart2}
           highlight
         />
-
         <AdminStatCard
           title="Cư dân đang sử dụng dịch vụ"
           value={dashboard.residentsCurrentlyInArea}
@@ -46,11 +49,15 @@ export default function AdminPage() {
         />
       </div>
 
-      {/* ===== BIỂU ĐỒ ===== */}
+      {/* CHART */}
       <AdminChart
-        data={dashboard.serviceUsageChart}
+        data={dashboard.serviceUsageChart || []}
         groupBy={groupBy}
+        fromDate={fromDate}
+        toDate={toDate}
         onChangeGroupBy={setGroupBy}
+        onChangeFromDate={setFromDate}
+        onChangeToDate={setToDate}
       />
     </div>
   );
