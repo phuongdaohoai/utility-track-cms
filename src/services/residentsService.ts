@@ -10,6 +10,7 @@ export interface Resident {
   gender: string;
   birthday: string;
   apartment: {
+    id: number,
     building: string;
     floorNumber: number;
     roomNumber: string;

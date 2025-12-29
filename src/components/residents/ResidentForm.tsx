@@ -1,7 +1,7 @@
 import { FC, useState, useEffect, useRef, ChangeEvent } from 'react';
 import { X, Upload, User, CheckCircle2, AlertCircle, Trash2 } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
-
+import residentsService from '../../services/residentsService';
 import {
   createResident,
   updateResident,
@@ -11,10 +11,18 @@ import {
 } from '../../store/residentsSlice';
 import { API_BASE_URL } from '../../utils/url';
 
+// 1. Interface
+interface Apartment {
+  id: number;
+  building: string;
+  roomNumber: string;
+  floorNumber: number | null;
+}
+
 interface ResidentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  residentId: number | null; // null = Create Mode
+  residentId: number | null;
   onSuccess?: () => void;
 }
 
@@ -27,7 +35,6 @@ export const ResidentModal: FC<ResidentModalProps> = ({
   const dispatch = useAppDispatch();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Lấy state chung từ Redux
   const {
     currentResident,
     loading,
@@ -38,16 +45,19 @@ export const ResidentModal: FC<ResidentModalProps> = ({
 
   const isEditMode = !!residentId;
   const currentStatus = isEditMode ? updateStatus : createStatus;
-
-  // Biến trạng thái UI
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const isSubmitting = currentStatus === 'loading';
   const isSuccess = currentStatus === 'success';
   const isFailed = currentStatus === 'failed';
 
-  // State local
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
+  // 2. State cho Căn hộ
+  const [apartments, setApartments] = useState<Apartment[]>([]);
+  const [showApartmentDropdown, setShowApartmentDropdown] = useState(false);
+  // Đã bỏ state apartmentSearch
 
   const [formData, setFormData] = useState({
     fullName: '',
@@ -64,7 +74,6 @@ export const ResidentModal: FC<ResidentModalProps> = ({
     version: 0,
   });
 
-  // --- Helper: Format phone ---
   const formatPhoneNumber = (value: string) => {
     if (!value) return value;
     const phoneNumber = value.replace(/[^\d]/g, '');
@@ -73,18 +82,31 @@ export const ResidentModal: FC<ResidentModalProps> = ({
     return `${phoneNumber.slice(0, 4)}-${phoneNumber.slice(4, 7)}-${phoneNumber.slice(7, 10)}`;
   };
 
-  // --- 1. Reset & Fetch data khi mở Modal ---
   useEffect(() => {
     if (isOpen) {
-      dispatch(resetResidentStatus()); // Reset lỗi/status cũ
+      dispatch(resetResidentStatus());
       setFormErrors({});
-      setAvatarFile(null);
+
       setAvatarPreview(null);
+      setShowApartmentDropdown(false);
+
+      // Gọi API lấy danh sách
+      const fetchApartments = async () => {
+        try {
+          const response = await fetch(`${API_BASE_URL}/apartment/getAll`);
+          const data = await response.json();
+          if (data.success) {
+            setApartments(data.data);
+          }
+        } catch (error) {
+          console.error("Lỗi lấy danh sách căn hộ:", error);
+        }
+      };
+      fetchApartments();
 
       if (isEditMode && residentId) {
         dispatch(fetchResidentById(residentId));
       } else {
-        // Reset form cho Create Mode
         setFormData({
           fullName: '', phone: '', email: '', citizenCard: '', gender: 'Nam',
           birthday: '', apartmentId: 0, qrCode: '', faceIdData: '', status: 1,
@@ -94,7 +116,6 @@ export const ResidentModal: FC<ResidentModalProps> = ({
     }
   }, [isOpen, residentId, isEditMode, dispatch]);
 
-  // --- 2. Fill data khi Edit ---
   useEffect(() => {
     if (isEditMode && currentResident && isOpen) {
       setFormData({
@@ -104,7 +125,7 @@ export const ResidentModal: FC<ResidentModalProps> = ({
         citizenCard: currentResident.citizenCard || '',
         gender: currentResident.gender || 'Nam',
         birthday: currentResident.birthday ? String(currentResident.birthday).split('T')[0] : '',
-        apartmentId: currentResident.apartment?.floorNumber || 0,
+        apartmentId: currentResident.apartment?.id || 0,
         qrCode: currentResident.qrCode || '',
         faceIdData: currentResident.faceIdData || '',
         status: currentResident.status ?? 1,
@@ -112,15 +133,12 @@ export const ResidentModal: FC<ResidentModalProps> = ({
         avatar: currentResident.avatar || "",
       });
 
-      // Xử lý hiển thị ảnh
       if (currentResident.avatar) {
         const cleanBaseUrl = API_BASE_URL.replace(/\/$/, "");
         const cleanAvatarPath = currentResident.avatar.startsWith('/') ? currentResident.avatar : `/${currentResident.avatar}`;
-
         const url = currentResident.avatar.startsWith('http')
           ? currentResident.avatar
           : `${cleanBaseUrl}${cleanAvatarPath}`;
-
         setAvatarPreview(url);
       } else {
         setAvatarPreview(null);
@@ -128,20 +146,16 @@ export const ResidentModal: FC<ResidentModalProps> = ({
     }
   }, [currentResident, isEditMode, isOpen]);
 
-  // --- 3. Xử lý Thành công (Banner) ---
   useEffect(() => {
     if (isSuccess) {
-      // Đợi 1.5s để user nhìn thấy thông báo thành công rồi mới đóng
       const timer = setTimeout(() => {
-        dispatch(resetResidentStatus()); // Reset ngay trước khi đóng để tránh loop
+        dispatch(resetResidentStatus());
         onClose();
         if (onSuccess) onSuccess();
       }, 1500);
       return () => clearTimeout(timer);
     }
   }, [isSuccess, dispatch, onClose, onSuccess]);
-
-  // --- Handlers ---
 
   const handlePhoneChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { value } = e.target;
@@ -158,19 +172,43 @@ export const ResidentModal: FC<ResidentModalProps> = ({
     if (formErrors[name]) setFormErrors(prev => ({ ...prev, [name]: '' }));
   };
 
-const handleAvatarChange = (e: ChangeEvent<HTMLInputElement>) => {
-  const file = e.target.files?.[0];
-  if (!file) return;
+  const handleAvatarChange = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-  if (file.size > 5 * 1024 * 1024) {
-    alert('File tối đa 5MB');
-    return;
-  }
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File tối đa 5MB');
+      return;
+    }
 
-  setAvatarFile(file);
-  setAvatarPreview(URL.createObjectURL(file));
-};
+    setIsUploadingAvatar(true); // Bật trạng thái loading
 
+    try {
+      // 1. Gọi service upload ngay lập tức
+      const res = await residentsService.uploadAvatar(file);
+
+      // Giả sử res.data chứa path của ảnh (vd: "uploads/avatar/img.jpg")
+      const uploadedPath = res.data;
+      console.log(uploadedPath)
+      // 2. Cập nhật URL vào formData
+      setFormData(prev => ({ ...prev, avatar: uploadedPath }));
+
+      // 3. Hiển thị Preview
+      const cleanBaseUrl = API_BASE_URL.replace(/\/$/, "");
+      const cleanAvatarPath = uploadedPath.startsWith('/') ? uploadedPath : `/${uploadedPath}`;
+      setAvatarPreview(`${cleanBaseUrl}${cleanAvatarPath}`);
+
+    } catch (error) {
+      console.error(error);
+      alert('Lỗi khi tải ảnh lên. Vui lòng thử lại.');
+    } finally {
+      setIsUploadingAvatar(false); // Tắt trạng thái loading
+      // Reset input để có thể chọn lại cùng 1 file nếu muốn
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
 
   const handleDelete = async () => {
     if (!residentId) return;
@@ -195,50 +233,65 @@ const handleAvatarChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (!cleanPhone) errors.phone = 'SĐT là bắt buộc';
     else if (!/^(0|\+84)(\d{9})$/.test(cleanPhone)) errors.phone = 'SĐT không hợp lệ (10 số)';
 
-    if (!formData.citizenCard.trim()) errors.citizenCard = 'CCCD là bắt buộc';
-    else if (formData.citizenCard.length !== 12) errors.citizenCard = 'CCCD phải đúng 12 số';
+    if (!formData.email.trim()) errors.email = 'Email là bắt buộc';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) errors.email = 'Email không hợp lệ';
 
-    if (!formData.birthday) errors.birthday = 'Ngày sinh là bắt buộc';
+    if (!formData.citizenCard.trim()) {
+      errors.citizenCard = 'CCCD là bắt buộc';
+    } else if (!/^\d+$/.test(formData.citizenCard)) {
+      errors.citizenCard = 'CCCD chỉ được chứa chữ số';
+    } else if (formData.citizenCard.length !== 12) {
+      errors.citizenCard = 'CCCD phải đúng 12 số';
+    }
+
+    if (!formData.birthday) {
+      errors.birthday = 'Ngày sinh là bắt buộc';
+    } else {
+      const birthday = new Date(formData.birthday);
+      const today = new Date();
+      birthday.setHours(0, 0, 0, 0);
+      today.setHours(0, 0, 0, 0);
+      if (birthday > today) {
+        errors.birthday = 'Ngày sinh không được lớn hơn ngày hiện tại';
+      }
+    }
 
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
   const handleSubmit = (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!validateForm()) return;
+    e.preventDefault();
+    if (!validateForm()) return;
 
-  const payload = {
-    fullName: formData.fullName,
-    phone: formData.phone.replace(/\D/g, ''),
-    email: formData.email,
-    citizenCard: formData.citizenCard,
-    gender: formData.gender,
-    birthday: formData.birthday,
-    apartmentId: Number(formData.apartmentId),
-    status: Number(formData.status),
-    qrCode: formData.qrCode,
-    faceIdData: formData.faceIdData,
-    avatar: formData.avatar || undefined, // avatar cũ
+    const payload = {
+      fullName: formData.fullName,
+      phone: formData.phone.replace(/\D/g, ''),
+      email: formData.email,
+      citizenCard: formData.citizenCard,
+      gender: formData.gender,
+      birthday: formData.birthday,
+      apartmentId: Number(formData.apartmentId),
+      status: Number(formData.status),
+      qrCode: formData.qrCode,
+      faceIdData: formData.faceIdData,
+      avatar: formData.avatar,
+    };
+
+    console.log(payload)
+    if (isEditMode && residentId) {
+      dispatch(updateResident({
+        id: residentId,
+        residentData: {
+          ...payload,
+          version: Number(formData.version),
+        },
+
+      }));
+    } else {
+      dispatch(createResident(payload));
+    }
   };
-  
-  if (isEditMode && residentId) {
-    dispatch(updateResident({
-      id: residentId,
-      residentData: {
-        ...payload,
-        version: Number(formData.version),
-      },
-      avatarFile, // 🔥 LUÔN TRUYỀN FILE
-    }));
-  } else {
-    dispatch(createResident({
-      residentData: payload,
-      avatarFile, // 🔥 LUÔN TRUYỀN FILE
-    }));
-  }
-};
-
 
   if (!isOpen) return null;
 
@@ -261,13 +314,11 @@ const handleAvatarChange = (e: ChangeEvent<HTMLInputElement>) => {
           </button>
         </div>
 
-        {/* Loading State */}
         {isEditMode && loading && !currentResident ? (
           <div className="p-10 text-center text-gray-500">Đang tải dữ liệu...</div>
         ) : (
           <form onSubmit={handleSubmit} className="p-8 flex-1">
 
-            {/* 🟢 SUCCESS NOTIFICATION (BANNER) */}
             {isSuccess && (
               <div className="mb-6 p-4 bg-green-50 text-green-700 rounded-lg flex items-center gap-3 border border-green-200 animate-fade-in">
                 <CheckCircle2 className="w-6 h-6" />
@@ -276,8 +327,6 @@ const handleAvatarChange = (e: ChangeEvent<HTMLInputElement>) => {
                 </span>
               </div>
             )}
-
-            {/* 🔴 ERROR NOTIFICATION (BANNER) */}
             {isFailed && (
               <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-lg flex items-center gap-3 border border-red-200">
                 <AlertCircle className="w-5 h-5" />
@@ -304,7 +353,6 @@ const handleAvatarChange = (e: ChangeEvent<HTMLInputElement>) => {
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     className="absolute bottom-0 right-2 p-2 bg-indigo-600 text-white rounded-full shadow-lg hover:bg-indigo-700 transition-transform hover:scale-105"
-                    title="Đổi ảnh"
                   >
                     <Upload className="w-4 h-4" />
                   </button>
@@ -312,7 +360,6 @@ const handleAvatarChange = (e: ChangeEvent<HTMLInputElement>) => {
                 <input ref={fileInputRef} type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
                 <div className="text-center">
                   <h3 className="font-semibold text-gray-900">{formData.fullName || "Tên Cư Dân"}</h3>
-                  {isEditMode && <p className="text-xs text-gray-500">ID: {residentId}</p>}
                 </div>
               </div>
 
@@ -352,6 +399,7 @@ const handleAvatarChange = (e: ChangeEvent<HTMLInputElement>) => {
                     className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none ${formErrors.email ? 'border-red-500' : 'border-gray-300'}`}
                     placeholder="email@example.com"
                   />
+                  {formErrors.email && <p className="text-xs text-red-500 mt-1">{formErrors.email}</p>}
                 </div>
 
                 <div>
@@ -392,19 +440,57 @@ const handleAvatarChange = (e: ChangeEvent<HTMLInputElement>) => {
                   {formErrors.birthday && <p className="text-xs text-red-500 mt-1">{formErrors.birthday}</p>}
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Mã căn hộ</label>
-                  <input
-                    type="number"
-                    name="apartmentId"
-                    value={formData.apartmentId}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                    placeholder="VD: 101"
-                  />
+                {/* --- CUSTOM DROPDOWN CĂN HỘ (KHÔNG SEARCH) --- */}
+                <div className="relative">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Căn hộ</label>
+
+                  {/* Ô hiển thị giá trị */}
+                  <div
+                    onClick={() => setShowApartmentDropdown(!showApartmentDropdown)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 cursor-pointer flex justify-between items-center"
+                  >
+                    <span className={formData.apartmentId ? 'text-gray-900' : 'text-gray-400'}>
+                      {formData.apartmentId
+                        ? apartments.find(a => a.id === Number(formData.apartmentId))?.roomNumber
+                          ? `${apartments.find(a => a.id === Number(formData.apartmentId))?.building} - ${apartments.find(a => a.id === Number(formData.apartmentId))?.roomNumber}`
+                          : "Đã chọn (ID: " + formData.apartmentId + ")"
+                        : "-- Chọn căn hộ --"}
+                    </span>
+                    <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                  </div>
+
+                  {/* Dropdown List - CHỈ CÓ LIST, KHÔNG CÓ SEARCH */}
+                  {showApartmentDropdown && (
+                    <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-xl">
+                      {/* max-h-60 giúp danh sách thấp (khoảng 240px) và có thanh cuộn */}
+                      <ul className="max-h-60 overflow-y-auto">
+                        {apartments.length > 0 ? (
+                          apartments.map((apt) => (
+                            <li
+                              key={apt.id}
+                              onClick={() => {
+                                setFormData(prev => ({ ...prev, apartmentId: apt.id }));
+                                setShowApartmentDropdown(false);
+                              }}
+                              className={`px-4 py-2 text-sm cursor-pointer hover:bg-indigo-50 transition-colors ${formData.apartmentId === apt.id ? 'bg-indigo-100 text-indigo-700 font-medium' : 'text-gray-700'
+                                }`}
+                            >
+                              {apt.building} - {apt.roomNumber} {apt.floorNumber ? `(Tầng ${apt.floorNumber})` : ''}
+                            </li>
+                          ))
+                        ) : (
+                          <li className="px-4 py-2 text-sm text-gray-500 text-center">Đang tải danh sách...</li>
+                        )}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Click ra ngoài để đóng */}
+                  {showApartmentDropdown && (
+                    <div className="fixed inset-0 z-40" onClick={() => setShowApartmentDropdown(false)}></div>
+                  )}
                 </div>
 
-                {/* Chỉ hiện Trạng thái khi Edit */}
                 {isEditMode && (
                   <div className='md:col-span-2'>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Trạng thái</label>
@@ -424,7 +510,7 @@ const handleAvatarChange = (e: ChangeEvent<HTMLInputElement>) => {
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-1">Mã QR</label>
                     <input
-                    disabled
+                      disabled
                       name="qrCode"
                       value={formData.qrCode}
                       onChange={handleInputChange}
@@ -432,7 +518,7 @@ const handleAvatarChange = (e: ChangeEvent<HTMLInputElement>) => {
                     />
                   </div>
                 )}
-                
+
               </div>
             </div>
 

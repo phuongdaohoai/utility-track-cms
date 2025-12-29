@@ -120,11 +120,11 @@ export const LoginPage: FC = () => {
                     )}
                   </button>
                 </div>
-                <div className="text-sm mt-2">
+                {/* <div className="text-sm mt-2">
                   <a id="forgot-password" href="#" className="text-indigo-600 font-bold hover:underline">
                     Quên Mật Khẩu?
                   </a>
-                </div>
+                </div> */}
               </div>
 
               <div className="pt-2">

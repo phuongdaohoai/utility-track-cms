@@ -31,7 +31,7 @@ async function run() {
     console.log("GET /getAll ->", resAll.status, "items:", resAll.data?.data?.items?.length ?? "unknown");
   } catch (e) {
     const msg = e?.response ? `${e.response.status} ${e.response.statusText}` : e?.message ?? e;
-    console.error("GET /getAll failed:", msg);
+    console.error("GET /getAl failed:", msg);
   }
 
   try {

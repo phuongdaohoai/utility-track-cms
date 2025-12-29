@@ -55,10 +55,10 @@ export const CSVImportModal: FC<CSVImportModalProps> = ({ onSuccess }) => {
   };
 
   const handleConfirm = async () => {
-    if (errors.length > 0) {
-      alert('Vui lòng sửa tất cả lỗi trước khi import');
-      return;
-    }
+    // if (errors.length > 0) {
+    //   alert('Vui lòng sửa tất cả lỗi trước khi import');
+    //   return;
+    // }
 
     if (data.length === 0) {
       alert('Không có dữ liệu để import');
@@ -223,8 +223,8 @@ export const CSVImportModal: FC<CSVImportModalProps> = ({ onSuccess }) => {
                   </button>
                   <button
                     onClick={handleConfirm}
-                    disabled={isLoading || uploadStatus === 'uploading' || data.length === 0 || errors.length > 0 || isHeaderError}
-                    className={`px-5 py-2.5 rounded-lg transition-colors min-w-[100px] ${isLoading || uploadStatus === 'uploading' || data.length === 0 || errors.length > 0 || isHeaderError
+                    // disabled={isLoading || uploadStatus === 'uploading' || data.length === 0 || errors.length > 0 || isHeaderError}
+                    className={`px-5 py-2.5 rounded-lg transition-colors min-w-[100px] ${isLoading || uploadStatus === 'uploading' || data.length === 0 || isHeaderError
                         ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                         : 'bg-indigo-600 text-white hover:bg-indigo-700'
                       }`}

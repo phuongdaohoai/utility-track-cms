@@ -24,7 +24,7 @@ export const CSV_CONFIG: Record<'staff' | 'residents', CsvColumnConfig[]> = {
     { key: 'citizenCard', label: 'CCCD/CMND', required: true, aliases: ['cccd', 'cmnd', 'citizencard', 'socancuoc'] },
     { key: 'gender', label: 'Giới tính', required: false, aliases: ['gioitinh', 'gender', 'sex'] },
     { key: 'birthday', label: 'Ngày sinh', required: false, aliases: ['ngaysinh', 'birthday', 'dob'] },
-    { key: 'apartmentId', label: 'Mã Căn Hộ (ID)', required: false, aliases: ['apartmentid', 'idcanho'] }, 
+    { key: 'apartmentId', label: 'Mã Căn Hộ (ID)', required: true, aliases: ['apartmentid', 'idcanho'] }, 
     // Nếu nhập số phòng thay vì ID, Backend cần tự map
    
   ],
