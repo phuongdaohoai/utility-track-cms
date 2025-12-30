@@ -67,23 +67,23 @@ const ServicesPage: React.FC = () => {
 
   /* ===== DELETE ===== */
   const handleDelete = async (serviceId: number) => {
-  const ok = window.confirm("Bạn có chắc muốn xóa dịch vụ này không?");
-  if (!ok) return;
+    const ok = window.confirm("Bạn có chắc muốn xóa dịch vụ này không?");
+    if (!ok) return;
 
-  try {
-    await deleteService(serviceId);
+    try {
+      await deleteService(serviceId);
 
-    // Chỉ xóa trên FE khi BE xóa thành công
-    dispatch(deleteServiceAction(serviceId));
-    alert("Xóa dịch vụ thành công");
-  } catch (err: any) {
-    console.error("Lỗi xóa service:", err);
-    alert(
-      err?.response?.data?.message ||
-      "Xóa dịch vụ thất bại"
-    );
-  }
-};
+      // Chỉ xóa trên FE khi BE xóa thành công
+      dispatch(deleteServiceAction(serviceId));
+      alert("Xóa dịch vụ thành công");
+    } catch (err: any) {
+      console.error("Lỗi xóa service:", err);
+      alert(
+        err?.response?.data?.message ||
+        "Xóa dịch vụ thất bại"
+      );
+    }
+  };
 
   /* ===== FILTER DATA ===== */
   const filteredServices = services.filter(service => {
@@ -134,85 +134,116 @@ const ServicesPage: React.FC = () => {
       {showAddModal && (
         <div style={modalOverlayStyle}>
           <div style={modalStyle}>
-            <h3>Thêm dịch vụ mới</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <input
-                placeholder="Tên dịch vụ"
-                value={newService.serviceName}
-                onChange={e => setNewService({ ...newService, serviceName: e.target.value })}
-                style={inputStyle}
-              />
-              <input
-                type="number"
-                placeholder="Sức chứa"
-                value={newService.capacity}
-                onChange={e => setNewService({ ...newService, capacity: +e.target.value })}
-                style={inputStyle}
-              />
-              <input
-                placeholder="Mô tả"
-                value={newService.description}
-                onChange={e => setNewService({ ...newService, description: e.target.value })}
-                style={inputStyle}
-              />
-              <input
-                type="number"
-                placeholder="Giá"
-                value={newService.price}
-                onChange={e => setNewService({ ...newService, price: +e.target.value })}
-                style={inputStyle}
-              />
-              <select
-                value={newService.status}
-                onChange={e => setNewService({ ...newService, status: +e.target.value as 0 | 1 })}
-                style={selectStyle}
+            {/* ===== HEADER ===== */}
+            <div style={modalHeaderStyle}>
+              <h3 style={{ margin: 0 }}>➕ Thêm dịch vụ mới</h3>
+              <button
+                style={modalCloseBtn}
+                onClick={() => setShowAddModal(false)}
               >
-                <option value={1}>Hoạt động</option>
-                <option value={0}>Không hoạt động</option>
-              </select>
-              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                <button
-                  style={{ ...addButtonStyle, background: '#6b7280' }}
-                  onClick={() => setShowAddModal(false)}
-                >
-                  Hủy
-                </button>
-                <button
-                  style={addButtonStyle}
-                  onClick={async () => {
-                    try {
-                      const res = await createService(newService);
+                ✕
+              </button>
+            </div>
 
-                      // BE phải trả về object service vừa tạo
-                      const created: Service = res.data.data;
-
-                      dispatch(addService(created));
-                      alert('Thêm thành công');
-
-                      setShowAddModal(false);
-                      setNewService({
-                        serviceName: '',
-                        capacity: 0,
-                        description: '',
-                        price: 0,
-                        status: 1,
-                      });
-                    } catch (err: any) {
-                      console.error('Add failed:', err);
-                      alert(
-                        err?.response?.data?.message ||
-                        'Thêm dịch vụ thất bại'
-                      );
-                    }
-                  }}
-                >
-                  Lưu
-                </button>
+            {/* ===== BODY ===== */}
+            <div style={modalBodyStyle}>
+              <div style={formGroupStyle}>
+                <label style={labelStyle}>Tên dịch vụ</label>
+                <input
+                  value={newService.serviceName}
+                  onChange={e =>
+                    setNewService({ ...newService, serviceName: e.target.value })
+                  }
+                  style={modalInputStyle}
+                  placeholder="Nhập tên dịch vụ"
+                />
               </div>
+
+              <div style={formGroupStyle}>
+                <label style={labelStyle}>Sức chứa</label>
+                <input
+                  type="number"
+                  value={newService.capacity}
+                  onChange={e =>
+                    setNewService({ ...newService, capacity: +e.target.value })
+                  }
+                  style={modalInputStyle}
+                />
+              </div>
+
+              <div style={formGroupStyle}>
+                <label style={labelStyle}>Mô tả</label>
+                <textarea
+                  value={newService.description}
+                  onChange={e =>
+                    setNewService({ ...newService, description: e.target.value })
+                  }
+                  style={modalTextareaStyle}
+                  placeholder="Mô tả dịch vụ"
+                />
+              </div>
+
+              <div style={{ display: "flex", gap: 12 }}>
+                <div style={{ flex: 1 }}>
+                  <label style={labelStyle}>Giá</label>
+                  <input
+                    type="number"
+                    value={newService.price}
+                    onChange={e =>
+                      setNewService({ ...newService, price: +e.target.value })
+                    }
+                    style={modalInputStyle}
+                  />
+                </div>
+
+                <div style={{ flex: 1 }}>
+                  <label style={labelStyle}>Trạng thái</label>
+                  <select
+                    value={newService.status}
+                    onChange={e =>
+                      setNewService({
+                        ...newService,
+                        status: +e.target.value as 0 | 1,
+                      })
+                    }
+                    style={modalInputStyle}
+                  >
+                    <option value={1}>Hoạt động</option>
+                    <option value={0}>Không hoạt động</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* ===== FOOTER ===== */}
+            <div style={modalFooterStyle}>
+              <button
+                style={cancelButtonStyle}
+                onClick={() => setShowAddModal(false)}
+              >
+                Hủy
+              </button>
+
+              <button
+                style={saveButtonStyle}
+                onClick={async () => {
+                  try {
+                    const res = await createService(newService);
+                    dispatch(addService(res.data.data));
+                    alert("Thêm thành công");
+                    setShowAddModal(false);
+                  } catch (err: any) {
+                    alert(err?.response?.data?.message || "Thêm thất bại");
+                  }
+                }}
+              >
+                Lưu
+              </button>
             </div>
           </div>
         </div>
       )}
+
 
       {/* ================= TABLE ================= */}
       <div style={tableWrapperStyle}>
@@ -298,6 +329,80 @@ const ServicesPage: React.FC = () => {
 export default ServicesPage;
 
 /* ================== CSS ================== */
+const modalHeaderStyle: React.CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  paddingBottom: 12,
+  borderBottom: "1px solid #e5e7eb",
+};
+
+const modalBodyStyle: React.CSSProperties = {
+  marginTop: 16,
+  display: "flex",
+  flexDirection: "column",
+  gap: 16,
+};
+
+const modalFooterStyle: React.CSSProperties = {
+  marginTop: 24,
+  display: "flex",
+  justifyContent: "flex-end",
+  gap: 12,
+  borderTop: "1px solid #e5e7eb",
+  paddingTop: 16,
+};
+
+const modalInputStyle: React.CSSProperties = {
+  width: "100%",
+  padding: "10px 12px",
+  borderRadius: 6,
+  border: "1px solid #d1d5db",
+  outline: "none",
+};
+
+const modalTextareaStyle: React.CSSProperties = {
+  ...modalInputStyle,
+  minHeight: 80,
+  resize: "vertical",
+};
+
+const labelStyle: React.CSSProperties = {
+  fontSize: 14,
+  fontWeight: 600,
+  marginBottom: 4,
+};
+
+const formGroupStyle: React.CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+};
+
+const modalCloseBtn: React.CSSProperties = {
+  border: "none",
+  background: "transparent",
+  fontSize: 18,
+  cursor: "pointer",
+};
+
+const cancelButtonStyle: React.CSSProperties = {
+  padding: "8px 16px",
+  borderRadius: 6,
+  border: "1px solid #d1d5db",
+  background: "#fff",
+  cursor: "pointer",
+};
+
+const saveButtonStyle: React.CSSProperties = {
+  padding: "8px 20px",
+  borderRadius: 6,
+  border: "none",
+  background: "#2563eb",
+  color: "#fff",
+  fontWeight: 600,
+  cursor: "pointer",
+};
+
 
 const filterWrapperStyle: React.CSSProperties = {
   display: "flex",

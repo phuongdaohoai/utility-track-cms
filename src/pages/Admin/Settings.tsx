@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-
+import  { API_BASE_URL }from '../../utils/url'
 /* ================= AXIOS INSTANCE ================= */
 const api = axios.create({
-  baseURL: "http://localhost:3000",
+  baseURL: API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
   },
