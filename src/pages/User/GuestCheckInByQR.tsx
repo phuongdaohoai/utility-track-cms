@@ -1,27 +1,30 @@
 import { useState, useEffect, type FC } from 'react'
 import { createGuestCheckIn, type CreateCheckInDto } from '../../api/checkin.api'
-import { getServices } from '../../api/services.api'
+import { getServiceById } from '../../api/services.api'
+import { QRCodeDisplay } from '../../components/QRCodeDisplay'
+import { QRScanner } from '../../components/QRScanner'
 
 interface Person {
   id: string
   name: string
 }
 
-interface ServiceOption {
+interface ServiceInfo {
   id: number
   serviceName: string
+  qrToken?: string
 }
 
-export const CheckInOutside: FC = () => {
+export const GuestCheckInByQR: FC = () => {
+  const [service, setService] = useState<ServiceInfo | null>(null)
   const [representative, setRepresentative] = useState<string>('')
   const [phone, setPhone] = useState<string>('')
-  const [serviceId, setServiceId] = useState<number | null>(null)
-  const [services, setServices] = useState<ServiceOption[]>([])
   const [people, setPeople] = useState<Person[]>([{ id: '1', name: '' }])
   const [checkinTime, setCheckinTime] = useState<string>('')
   const [loading, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [showQRScanner, setShowQRScanner] = useState(false)
 
   // Tự động cập nhật thời gian checkin
   useEffect(() => {
@@ -42,65 +45,50 @@ export const CheckInOutside: FC = () => {
     return () => clearInterval(interval)
   }, [])
 
-  // Tải danh sách dịch vụ để chọn (chỉ chọn được dịch vụ có trong hệ thống)
-  useEffect(() => {
-    // Kiểm tra token trước khi gọi API
-    const token = localStorage.getItem('accessToken')
-    if (!token) {
-      console.warn('Chưa có token, vui lòng đăng nhập')
-      setServices([])
-      return
+  // Xử lý khi quét QR code từ service
+  const handleServiceQRScan = async (qrData: string) => {
+    setShowQRScanner(false)
+    setError(null)
+
+    try {
+      // QR code có thể chứa serviceId hoặc qrToken
+      // Giả định QR code chứa serviceId hoặc qrToken
+      // Cần xác nhận format từ backend
+      
+      // Thử parse như JSON hoặc số
+      let serviceId: number | null = null
+      try {
+        const parsed = JSON.parse(qrData)
+        serviceId = parsed.serviceId || parsed.id
+      } catch {
+        // Nếu không phải JSON, thử parse như số
+        const num = parseInt(qrData, 10)
+        if (!isNaN(num)) {
+          serviceId = num
+        }
+      }
+
+      if (!serviceId) {
+        // Nếu không parse được, có thể là qrToken - cần gọi API để tìm service
+        // Tạm thời hiển thị lỗi
+        setError('Không thể xác định dịch vụ từ QR code. Vui lòng thử lại.')
+        return
+      }
+
+      // Lấy thông tin service
+      const res = await getServiceById(serviceId)
+      const serviceData = res?.data?.data || res?.data || res
+
+      setService({
+        id: serviceData.id,
+        serviceName: serviceData.serviceName || serviceData.name,
+        qrToken: serviceData.qrToken || serviceData.qr_token,
+      })
+    } catch (err: any) {
+      console.error('Lỗi khi tải thông tin dịch vụ:', err)
+      setError('Không thể tải thông tin dịch vụ từ QR code.')
     }
-
-    getServices(1, 50)
-      .then((res: any) => {
-        console.log('API Response Services:', res.data)
-        
-        // Xử lý response theo cấu trúc từ Services.tsx
-        const responseData = res?.data || res
-        const data = responseData?.data?.items || responseData?.items || []
-
-        if (!Array.isArray(data)) {
-          console.warn('Response không phải là mảng:', data)
-          setServices([])
-          return
-        }
-
-        // Lọc các dịch vụ đang hoạt động (status === 1)
-        const activeServices = data
-          .filter((s: any) => s.status === 1 || s.status === '1')
-          .map((s: any) => ({
-            id: s.id,
-            serviceName: s.serviceName || s.name || 'Dịch vụ không tên',
-          }))
-
-        console.log('Danh sách dịch vụ đã lọc:', activeServices)
-        setServices(activeServices)
-      })
-      .catch((err: any) => {
-        console.error('Lỗi khi tải danh sách dịch vụ:', err)
-        console.error('Chi tiết lỗi:', {
-          status: err?.response?.status,
-          statusText: err?.response?.statusText,
-          data: err?.response?.data,
-          message: err?.message,
-        })
-
-        // Nếu bị 401 (chưa đăng nhập hoặc token hết hạn)
-        if (err?.response?.status === 401) {
-          console.error('Token không hợp lệ hoặc đã hết hạn')
-          setServices([])
-          setError('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.')
-        } else if (err?.response?.status === 403) {
-          console.error('Không có quyền truy cập')
-          setServices([])
-          setError('Bạn không có quyền truy cập dịch vụ này.')
-        } else {
-          setServices([])
-          setError('Không thể tải danh sách dịch vụ. Vui lòng thử lại sau.')
-        }
-      })
-  }, [])
+  }
 
   const handleAddPerson = () => {
     const newPerson: Person = {
@@ -115,18 +103,16 @@ export const CheckInOutside: FC = () => {
   }
 
   const handleCheckin = async () => {
-    // Validation
+    if (!service) {
+      setError('Vui lòng quét QR code dịch vụ trước')
+      return
+    }
+
     if (!phone || phone.trim() === '') {
       setError('Vui lòng nhập số điện thoại')
       return
     }
 
-    if (!serviceId) {
-      setError('Vui lòng chọn dịch vụ')
-      return
-    }
-
-    // Lấy tên đại diện (người đầu tiên trong danh sách hoặc representative)
     const guestName = people.length > 0 && people[0].name
       ? people.map(p => p.name).filter(Boolean).join(', ')
       : representative || 'Khách vãng lai'
@@ -139,51 +125,90 @@ export const CheckInOutside: FC = () => {
       const checkInData: CreateCheckInDto = {
         guestName: guestName,
         guestPhone: phone.trim(),
-        serviceId: serviceId,
+        serviceId: service.id,
       }
 
       const result = await createGuestCheckIn(checkInData)
       
       if (result.status === 'CHECK_IN') {
         setSuccess(result.message || 'Check-in thành công!')
-        // Reset form sau 2 giây
         setTimeout(() => {
           setRepresentative('')
           setPhone('')
-          setServiceId(null)
           setPeople([{ id: '1', name: '' }])
+          setService(null)
         }, 2000)
       } else if (result.status === 'CHECK_OUT') {
         setSuccess(result.message || 'Check-out thành công!')
       }
     } catch (err: any) {
       console.error('Lỗi check-in:', err)
-      console.error('Chi tiết lỗi:', {
-        message: err?.message,
-        response: err?.response,
-        status: err?.response?.status,
-      })
-      
-      // Hiển thị thông báo lỗi chi tiết hơn
-      let errorMessage = err?.message || 'Có lỗi xảy ra khi check-in. Vui lòng thử lại.'
-      
-      // Nếu là lỗi network hoặc endpoint không tồn tại
-      if (err?.message?.includes('Cannot POST') || err?.message?.includes('404')) {
-        errorMessage = 'Endpoint API không đúng. Vui lòng kiểm tra lại cấu hình backend.'
-      }
-      
-      setError(errorMessage)
+      setError(err.message || 'Có lỗi xảy ra khi check-in. Vui lòng thử lại.')
     } finally {
       setLoading(false)
     }
   }
 
+  // Màn hình chưa quét QR code
+  if (!service) {
+    return (
+      <>
+        <div className="min-h-screen bg-gray-50 p-8 flex items-center justify-center">
+          <div className="max-w-2xl w-full">
+            <div className="bg-white p-8 rounded-lg shadow-md text-center">
+              <h1 className="text-3xl font-bold text-gray-800 mb-4">Check-in Khách Ngoài</h1>
+              <p className="text-gray-600 mb-6">Quét QR code của dịch vụ để bắt đầu check-in</p>
+              
+              <button
+                onClick={() => setShowQRScanner(true)}
+                className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold text-lg hover:bg-blue-700 transition-colors"
+              >
+                Quét QR Code Dịch Vụ
+              </button>
+
+              {error && (
+                <div className="mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+                  {error}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {showQRScanner && (
+          <QRScanner
+            onScan={handleServiceQRScan}
+            onClose={() => setShowQRScanner(false)}
+            title="Quét QR Code Dịch Vụ"
+          />
+        )}
+      </>
+    )
+  }
+
+  // Màn hình form check-in sau khi quét QR
   return (
     <div className="min-h-screen bg-white p-8 flex items-center justify-center">
       <div className="max-w-4xl w-full">
-        {/* Form container */}
         <div className="border border-gray-300 bg-white p-6 rounded-lg">
           <div className="space-y-4">
+            {/* Hiển thị QR code của service (nếu có) */}
+            {service.qrToken && (
+              <div className="mb-6">
+                <QRCodeDisplay 
+                  value={service.qrToken} 
+                  title={`QR Code - ${service.serviceName}`}
+                  size={200}
+                />
+              </div>
+            )}
+
+            {/* Dịch Vụ (đã set sẵn từ QR) */}
+            <div className="flex items-center">
+              <label className="w-48 text-gray-700 font-medium">Dịch Vụ</label>
+              <span className="flex-1 text-gray-700 font-semibold">{service.serviceName}</span>
+            </div>
+
             {/* Đại Diện */}
             <div className="flex items-center">
               <label className="w-48 text-gray-700 font-medium">Đại Diện</label>
@@ -208,26 +233,6 @@ export const CheckInOutside: FC = () => {
               />
             </div>
 
-            {/* Dịch Vụ (chỉ chọn trong hệ thống) */}
-            <div className="flex items-center">
-              <label className="w-48 text-gray-700 font-medium">Dịch Vụ</label>
-              <select
-                value={serviceId ?? ''}
-                onChange={(e) => {
-                  const id = e.target.value ? Number(e.target.value) : null
-                  setServiceId(id)
-                }}
-                className="flex-1 px-3 py-2 bg-gray-100 border border-gray-300 rounded"
-              >
-                <option value="">-- Chọn dịch vụ --</option>
-                {services.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.serviceName}
-                  </option>
-                ))}
-              </select>
-            </div>
-
             {/* Phương Thức Checkin */}
             <div className="flex items-center">
               <label className="w-48 text-gray-700 font-medium">Phương Thức Checkin</label>
@@ -244,7 +249,6 @@ export const CheckInOutside: FC = () => {
             <div className="flex items-start">
               <label className="w-48 text-gray-700 font-medium pt-2">Số Lượng</label>
               <div className="flex-1">
-                {/* Bảng */}
                 <table className="w-full border-collapse">
                   <thead>
                     <tr className="bg-gray-100">
@@ -314,7 +318,13 @@ export const CheckInOutside: FC = () => {
             )}
 
             {/* Nút Checkin */}
-            <div className="flex justify-center mt-6">
+            <div className="flex justify-center gap-4 mt-6">
+              <button
+                onClick={() => setService(null)}
+                className="bg-gray-500 text-white px-8 py-3 rounded-lg font-semibold text-lg hover:bg-gray-600 transition-colors"
+              >
+                Quét Lại
+              </button>
               <button
                 onClick={handleCheckin}
                 disabled={loading}
@@ -330,5 +340,5 @@ export const CheckInOutside: FC = () => {
   )
 }
 
-export default CheckInOutside
+export default GuestCheckInByQR
 

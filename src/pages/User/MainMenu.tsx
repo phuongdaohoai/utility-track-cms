@@ -49,7 +49,7 @@ export const MainMenu: FC = () => {
             <div className="flex justify-center gap-8">
               <button
                 onClick={() => {
-                  navigate('/checkinapartment')
+                  navigate('/screen-checkin')
                 }}
                 className="bg-yellow-400 text-black px-12 py-6 rounded-lg font-semibold text-lg hover:bg-yellow-500 transition-colors shadow-md"
               >

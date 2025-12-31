@@ -1,4 +1,5 @@
 import { api } from '../utils/api'
+import { API_BASE_URL } from '../utils/url'
 
 /**
  * DTO cho Check-in cư dân ngoài (Guest)
@@ -39,28 +40,65 @@ export interface CheckInResponse {
 
 /**
  * Check-in cho cư dân ngoài (Guest)
- * Endpoint: POST /checkin hoặc /check-in/create
- * TODO: Cần xác nhận endpoint chính xác từ BE
+ * Endpoint: POST /check-in/guests
  */
 export const createGuestCheckIn = async (data: CreateCheckInDto): Promise<CheckInResponse> => {
-  const response = await api.post('/checkin', data)
+  const endpoint = '/check-in/guests'
+  const fullUrl = `${API_BASE_URL}${endpoint}`
+  
+  console.log('🔍 [DEBUG] Check-in Guest Request:', {
+    endpoint,
+    fullUrl,
+    baseUrl: API_BASE_URL,
+    data,
+    token: localStorage.getItem('accessToken') ? 'Có token' : 'Không có token',
+  })
+  
+  const response = await api.post(endpoint, data)
+  
+  console.log('📡 [DEBUG] Response Status:', {
+    status: response.status,
+    statusText: response.statusText,
+    ok: response.ok,
+    url: response.url,
+  })
   
   if (!response.ok) {
-    const error = await response.json().catch(() => ({}))
-    throw new Error(error.message || 'Lỗi khi check-in')
+    let errorMessage = 'Lỗi khi check-in'
+    let errorData: any = null
+    
+    try {
+      errorData = await response.json()
+      errorMessage = errorData.message || errorData.error || errorMessage
+      console.error('❌ [DEBUG] Error Response:', errorData)
+    } catch {
+      // Nếu không parse được JSON, dùng status text
+      console.error('❌ [DEBUG] Cannot parse error response as JSON')
+      if (response.status === 404) {
+        errorMessage = `Endpoint không tồn tại: ${fullUrl}. Vui lòng kiểm tra lại cấu hình API.`
+      } else if (response.status === 401) {
+        errorMessage = 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.'
+      } else if (response.status === 403) {
+        errorMessage = 'Bạn không có quyền thực hiện check-in.'
+      } else {
+        errorMessage = `Lỗi server (${response.status}): ${response.statusText}`
+      }
+    }
+    
+    throw new Error(errorMessage)
   }
   
   const result = await response.json()
+  console.log('✅ [DEBUG] Success Response:', result)
   return result.data || result
 }
 
 /**
  * Check-in/Check-out cho cư dân CC (Resident)
- * Endpoint: POST /checkin/resident hoặc /check-in/resident
- * TODO: Cần xác nhận endpoint chính xác từ BE
+ * Endpoint: POST /check-in/resident-check-in
  */
 export const residentCheckInOrOut = async (data: ResidentCheckInDto): Promise<CheckInResponse> => {
-  const response = await api.post('/checkin/resident', data)
+  const response = await api.post('/check-in/resident-check-in', data)
   
   if (!response.ok) {
     const error = await response.json().catch(() => ({}))
@@ -73,21 +111,20 @@ export const residentCheckInOrOut = async (data: ResidentCheckInDto): Promise<Ch
 
 /**
  * Lấy danh sách check-in hiện tại
- * Endpoint: GET /checkin/current
- * TODO: Cần xác nhận endpoint chính xác từ BE
+ * Endpoint: GET /check-in/current-check-ins
  */
 export const getCurrentCheckIns = async (params?: {
   page?: number
   pageSize?: number
   search?: string
 }) => {
-  const queryParams = new URLSearchParams()
-  
-  if (params?.page) queryParams.append('page', params.page.toString())
-  if (params?.pageSize) queryParams.append('pageSize', params.pageSize.toString())
-  if (params?.search) queryParams.append('search', params.search)
-  
-  const response = await api.get(`/checkin/current?${queryParams.toString()}`)
+  const response = await api.get('/check-in/current-check-ins', {
+    params: {
+      page: params?.page,
+      pageSize: params?.pageSize,
+      search: params?.search,
+    }
+  })
   
   if (!response.ok) {
     const error = await response.json().catch(() => ({}))
@@ -100,15 +137,32 @@ export const getCurrentCheckIns = async (params?: {
 
 /**
  * Check-out theo checkinId
- * Endpoint: POST /checkin/checkout/:id hoặc PUT /checkin/:id/checkout
- * TODO: Cần xác nhận endpoint chính xác từ BE
+ * Endpoint: POST /check-in/current-check-outs/{checkinId}
  */
 export const checkoutById = async (checkinId: number) => {
-  const response = await api.post(`/checkin/checkout/${checkinId}`, {})
+  const response = await api.post(`/check-in/current-check-outs/${checkinId}`, {
+    checkinId: checkinId
+  })
   
   if (!response.ok) {
     const error = await response.json().catch(() => ({}))
     throw new Error(error.message || 'Lỗi khi check-out')
+  }
+  
+  const result = await response.json()
+  return result.data || result
+}
+
+/**
+ * Tìm cư dân (Resident) để check-in
+ * Endpoint: POST /check-in/find-resident
+ */
+export const findResident = async (data: { qrCode?: string; faceDescriptor?: number[] }) => {
+  const response = await api.post('/check-in/find-resident', data)
+  
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}))
+    throw new Error(error.message || 'Lỗi khi tìm cư dân')
   }
   
   const result = await response.json()

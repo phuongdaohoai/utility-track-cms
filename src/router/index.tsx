@@ -3,6 +3,8 @@ import CheckInOutside from '../pages/User/CheckInOutside'
 import AdminLayout from '../layouts/AdminLayout'
 import MainMenu from '../pages/User/MainMenu'
 import CheckInApartment from '../pages/User/CheckInApartment'
+import ScreenCheckIn from '../pages/User/ScreenCheckIn'
+import GuestCheckInByQR from '../pages/User/GuestCheckInByQR'
 // Pages
 import LoginPage from '../pages/Login'
 import AdminPage from '../pages/Admin'
@@ -43,6 +45,14 @@ export const router = createBrowserRouter([
     path: '/checkout',
     element: <Checkout />,
    
+  },
+  {
+    path: '/screen-checkin',
+    element: <ScreenCheckIn />,
+  },
+  {
+    path: '/guest-checkin-qr',
+    element: <GuestCheckInByQR />,
   },
   {
     path: '/admin',
