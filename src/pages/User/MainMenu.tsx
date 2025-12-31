@@ -57,7 +57,7 @@ export const MainMenu: FC = () => {
               </button>
               <button
                 onClick={() => {
-                  navigate('/checkinoutside')
+                  navigate('/select-service-guest')
                 }}
                 className="bg-yellow-400 text-black px-12 py-6 rounded-lg font-semibold text-lg hover:bg-yellow-500 transition-colors shadow-md"
               >
