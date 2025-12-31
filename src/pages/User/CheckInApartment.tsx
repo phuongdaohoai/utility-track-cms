@@ -1,14 +1,29 @@
 import { useState, useEffect, type FC } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { residentCheckInOrOut, type ResidentCheckInDto, type CheckInResponse } from '../../api/checkin.api'
+import { residentCheckInOrOut, type ResidentCheckInDto } from '../../api/checkin.api'
 
 interface AdditionalGuest {
   id: string
   name: string
 }
 
+interface ResidentData {
+  id?: number
+  fullName?: string
+  phone?: string
+  email?: string
+  apartment?: {
+    id?: number
+    building?: string
+    floorNumber?: number
+    roomNumber?: string
+  } | string
+  qrCode?: string
+  [key: string]: any
+}
+
 interface LocationState {
-  checkInData: CheckInResponse
+  residentData: ResidentData // Thông tin cư dân từ find-resident
   serviceId: number
   serviceName: string
   qrCode?: string
@@ -22,20 +37,27 @@ export const CheckInApartment: FC = () => {
 
   // Nếu không có dữ liệu từ ScreenCheckIn, quay lại
   useEffect(() => {
-    if (!state?.checkInData) {
+    if (!state?.residentData) {
       navigate('/screen-checkin')
     }
   }, [state, navigate])
 
-  const checkInData = state?.checkInData
+  const residentData = state?.residentData
   const serviceId = state?.serviceId
-  const serviceName = state?.serviceName || checkInData?.serviceName || ''
-  const apartment = checkInData?.apartment || ''
-  const ownerName = checkInData?.representative || ''
-  const checkInTime = checkInData?.checkInTime || ''
-
-  // Lấy danh sách members từ checkInData
-  const initialMembers = checkInData?.members || []
+  const serviceName = state?.serviceName || ''
+  
+  // Lấy thông tin căn hộ
+  const apartment = typeof residentData?.apartment === 'string' 
+    ? residentData.apartment 
+    : residentData?.apartment?.roomNumber 
+      ? `${residentData.apartment.building || ''}${residentData.apartment.roomNumber || ''}`.trim()
+      : ''
+  
+  const ownerName = residentData?.fullName || ''
+  
+  // Format thời gian hiện tại
+  const now = new Date()
+  const checkInTime = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`
   
   const [additionalGuests, setAdditionalGuests] = useState<AdditionalGuest[]>([
     { id: '1', name: '' }
@@ -44,7 +66,7 @@ export const CheckInApartment: FC = () => {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
-  if (!checkInData || !serviceId) {
+  if (!residentData || !serviceId) {
     return null // Sẽ redirect trong useEffect
   }
 
@@ -134,40 +156,18 @@ export const CheckInApartment: FC = () => {
               </span>
             </div>
 
-            {/* Danh sách cư dân (từ check-in) */}
-            {initialMembers.length > 0 && (
-              <div className="flex items-start">
-                <label className="w-48 text-gray-700 font-medium pt-2">Cư Dân</label>
-                <div className="flex-1">
-                  <div className="max-h-32 overflow-y-auto border border-gray-300 rounded">
-                    <table className="w-full border-collapse">
-                      <thead className="sticky top-0 bg-gray-100">
-                        <tr>
-                          <th className="border border-gray-300 px-4 py-2 text-left font-semibold text-gray-700">
-                            STT
-                          </th>
-                          <th className="border border-gray-300 px-4 py-2 text-left font-semibold text-gray-700">
-                            Họ Và Tên
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {initialMembers.map((member, index) => (
-                          <tr key={index} className="bg-white">
-                            <td className="border border-gray-300 px-4 py-2 text-gray-700">
-                              {member.stt || index + 1}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2 text-gray-700">
-                              {member.fullName}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+            {/* Thông tin cư dân chính */}
+            <div className="flex items-start">
+              <label className="w-48 text-gray-700 font-medium pt-2">Cư Dân</label>
+              <div className="flex-1">
+                <div className="border border-gray-300 rounded p-3 bg-gray-50">
+                  <p className="text-gray-700 font-medium">{ownerName}</p>
+                  {residentData?.phone && (
+                    <p className="text-gray-500 text-sm mt-1">SĐT: {residentData.phone}</p>
+                  )}
                 </div>
               </div>
-            )}
+            </div>
 
             {/* Người đi cùng (additional guests) */}
             <div className="flex items-start">

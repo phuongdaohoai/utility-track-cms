@@ -1,27 +1,40 @@
 import { useState, useEffect, type FC } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { createGuestCheckIn, type CreateCheckInDto } from '../../api/checkin.api'
-import { getServices } from '../../api/services.api'
 
 interface Person {
   id: string
   name: string
 }
 
-interface ServiceOption {
-  id: number
+interface LocationState {
+  serviceId: number
   serviceName: string
 }
 
 export const CheckInOutside: FC = () => {
+  const location = useLocation()
+  const navigate = useNavigate()
+  const state = location.state as LocationState | null
+
   const [representative, setRepresentative] = useState<string>('')
   const [phone, setPhone] = useState<string>('')
-  const [serviceId, setServiceId] = useState<number | null>(null)
-  const [services, setServices] = useState<ServiceOption[]>([])
   const [people, setPeople] = useState<Person[]>([{ id: '1', name: '' }])
   const [checkinTime, setCheckinTime] = useState<string>('')
   const [loading, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+
+  // Lấy serviceId và serviceName từ location state
+  const serviceId = state?.serviceId || null
+  const serviceName = state?.serviceName || ''
+
+  // Nếu không có serviceId, redirect về trang chọn dịch vụ
+  useEffect(() => {
+    if (!serviceId) {
+      navigate('/select-service-guest')
+    }
+  }, [serviceId, navigate])
 
   // Tự động cập nhật thời gian checkin
   useEffect(() => {
@@ -42,65 +55,7 @@ export const CheckInOutside: FC = () => {
     return () => clearInterval(interval)
   }, [])
 
-  // Tải danh sách dịch vụ để chọn (chỉ chọn được dịch vụ có trong hệ thống)
-  useEffect(() => {
-    // Kiểm tra token trước khi gọi API
-    const token = localStorage.getItem('accessToken')
-    if (!token) {
-      console.warn('Chưa có token, vui lòng đăng nhập')
-      setServices([])
-      return
-    }
-
-    getServices(1, 50)
-      .then((res: any) => {
-        console.log('API Response Services:', res.data)
-        
-        // Xử lý response theo cấu trúc từ Services.tsx
-        const responseData = res?.data || res
-        const data = responseData?.data?.items || responseData?.items || []
-
-        if (!Array.isArray(data)) {
-          console.warn('Response không phải là mảng:', data)
-          setServices([])
-          return
-        }
-
-        // Lọc các dịch vụ đang hoạt động (status === 1)
-        const activeServices = data
-          .filter((s: any) => s.status === 1 || s.status === '1')
-          .map((s: any) => ({
-            id: s.id,
-            serviceName: s.serviceName || s.name || 'Dịch vụ không tên',
-          }))
-
-        console.log('Danh sách dịch vụ đã lọc:', activeServices)
-        setServices(activeServices)
-      })
-      .catch((err: any) => {
-        console.error('Lỗi khi tải danh sách dịch vụ:', err)
-        console.error('Chi tiết lỗi:', {
-          status: err?.response?.status,
-          statusText: err?.response?.statusText,
-          data: err?.response?.data,
-          message: err?.message,
-        })
-
-        // Nếu bị 401 (chưa đăng nhập hoặc token hết hạn)
-        if (err?.response?.status === 401) {
-          console.error('Token không hợp lệ hoặc đã hết hạn')
-          setServices([])
-          setError('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.')
-        } else if (err?.response?.status === 403) {
-          console.error('Không có quyền truy cập')
-          setServices([])
-          setError('Bạn không có quyền truy cập dịch vụ này.')
-        } else {
-          setServices([])
-          setError('Không thể tải danh sách dịch vụ. Vui lòng thử lại sau.')
-        }
-      })
-  }, [])
+  // Không cần tải danh sách dịch vụ nữa vì đã chọn từ trang trước
 
   const handleAddPerson = () => {
     const newPerson: Person = {
@@ -122,7 +77,7 @@ export const CheckInOutside: FC = () => {
     }
 
     if (!serviceId) {
-      setError('Vui lòng chọn dịch vụ')
+      setError('Không có dịch vụ được chọn. Vui lòng quay lại chọn dịch vụ.')
       return
     }
 
@@ -146,12 +101,9 @@ export const CheckInOutside: FC = () => {
       
       if (result.status === 'CHECK_IN') {
         setSuccess(result.message || 'Check-in thành công!')
-        // Reset form sau 2 giây
+        // Reset form sau 2 giây và quay về trang chọn dịch vụ
         setTimeout(() => {
-          setRepresentative('')
-          setPhone('')
-          setServiceId(null)
-          setPeople([{ id: '1', name: '' }])
+          navigate('/select-service-guest')
         }, 2000)
       } else if (result.status === 'CHECK_OUT') {
         setSuccess(result.message || 'Check-out thành công!')
@@ -208,24 +160,10 @@ export const CheckInOutside: FC = () => {
               />
             </div>
 
-            {/* Dịch Vụ (chỉ chọn trong hệ thống) */}
+            {/* Dịch Vụ (chỉ hiển thị, không cho chọn) */}
             <div className="flex items-center">
               <label className="w-48 text-gray-700 font-medium">Dịch Vụ</label>
-              <select
-                value={serviceId ?? ''}
-                onChange={(e) => {
-                  const id = e.target.value ? Number(e.target.value) : null
-                  setServiceId(id)
-                }}
-                className="flex-1 px-3 py-2 bg-gray-100 border border-gray-300 rounded"
-              >
-                <option value="">-- Chọn dịch vụ --</option>
-                {services.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.serviceName}
-                  </option>
-                ))}
-              </select>
+              <span className="flex-1 text-gray-700 font-semibold">{serviceName}</span>
             </div>
 
             {/* Phương Thức Checkin */}
@@ -314,7 +252,13 @@ export const CheckInOutside: FC = () => {
             )}
 
             {/* Nút Checkin */}
-            <div className="flex justify-center mt-6">
+            <div className="flex justify-center gap-4 mt-6">
+              <button
+                onClick={() => navigate('/select-service-guest')}
+                className="bg-gray-500 text-white px-8 py-3 rounded-lg font-semibold text-lg hover:bg-gray-600 transition-colors"
+              >
+                Quay lại
+              </button>
               <button
                 onClick={handleCheckin}
                 disabled={loading}

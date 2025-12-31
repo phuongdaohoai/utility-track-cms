@@ -1,7 +1,7 @@
 import { useState, useEffect, type FC } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getServices } from '../../api/services.api'
-import { residentCheckInOrOut, type ResidentCheckInDto, type CheckInResponse } from '../../api/checkin.api'
+import { findResident, type CheckInResponse} from '../../api/checkin.api'
 import { QRScanner } from '../../components/QRScanner'
 import { FaceIDScanner } from '../../components/FaceIDScanner'
 
@@ -64,29 +64,27 @@ export const ScreenCheckIn: FC = () => {
     setLoading(true)
     setError(null)
     setSuccess(null)
+    setScanMode(null)
 
     try {
-      const checkInData: ResidentCheckInDto = {
-        qrCode: qrCode,
-        faceDescriptor: undefined, // Chỉ dùng QR code
-        serviceId: selectedService.id,
-      }
-
-      const result = await residentCheckInOrOut(checkInData)
-      setCheckInResult(result)
-
-      // Chuyển sang màn hình CheckInApartment với dữ liệu từ response
+      // Bước 1: Tìm thông tin cư dân từ QR code (chưa check-in)
+      const residentData = await findResident({ qrCode: qrCode })
+      
+      console.log('Thông tin cư dân tìm được:', residentData)
+      
+      // Chuyển sang màn hình CheckInApartment với dữ liệu
       navigate('/checkinapartment', {
         state: {
-          checkInData: result,
+          residentData: residentData, // Thông tin cư dân từ find-resident
           serviceId: selectedService.id,
           serviceName: selectedService.serviceName,
           qrCode: qrCode,
+          faceDescriptor: undefined,
         }
       })
     } catch (err: any) {
-      console.error('Lỗi check-in:', err)
-      setError(err.message || 'Có lỗi xảy ra khi check-in.')
+      console.error('Lỗi khi tìm cư dân:', err)
+      setError(err.message || 'Không tìm thấy cư dân. Vui lòng thử lại.')
       setLoading(false)
     }
   }
@@ -97,29 +95,27 @@ export const ScreenCheckIn: FC = () => {
     setLoading(true)
     setError(null)
     setSuccess(null)
+    setScanMode(null)
 
     try {
-      const checkInData: ResidentCheckInDto = {
-        qrCode: undefined, // Chỉ dùng Face ID
-        faceDescriptor: faceDescriptor,
-        serviceId: selectedService.id,
-      }
-      console.log('📤 Send descriptor to API:', faceDescriptor)
-      const result = await residentCheckInOrOut(checkInData)
-      setCheckInResult(result)
-      console.log('📥 API /find-resident response:', result)
-      // Chuyển sang màn hình CheckInApartment với dữ liệu từ response
+      // Bước 1: Tìm thông tin cư dân từ Face ID (chưa check-in)
+      const residentData = await findResident({ faceDescriptor: faceDescriptor })
+      
+      console.log('Thông tin cư dân tìm được:', residentData)
+      
+      // Chuyển sang màn hình CheckInApartment với dữ liệu
       navigate('/checkinapartment', {
         state: {
-          checkInData: result,
+          residentData: residentData, // Thông tin cư dân từ find-resident
           serviceId: selectedService.id,
           serviceName: selectedService.serviceName,
+          qrCode: undefined,
           faceDescriptor: faceDescriptor,
         }
       })
     } catch (err: any) {
-      console.error('Lỗi check-in:', err)
-      setError(err.message || 'Có lỗi xảy ra khi check-in.')
+      console.error('Lỗi khi tìm cư dân:', err)
+      setError(err.message || 'Không tìm thấy cư dân. Vui lòng thử lại.')
       setLoading(false)
     }
   }
