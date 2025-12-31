@@ -1,71 +1,97 @@
 import { useState, useEffect, type FC } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { residentCheckInOrOut, type ResidentCheckInDto, type CheckInResponse } from '../../api/checkin.api'
 
-interface Resident {
+interface AdditionalGuest {
   id: string
   name: string
-  selected: boolean
-  isExtra: boolean // true nếu là người thêm vào, false nếu là cư dân có sẵn
+}
+
+interface LocationState {
+  checkInData: CheckInResponse
+  serviceId: number
+  serviceName: string
+  qrCode?: string
+  faceDescriptor?: number[]
 }
 
 export const CheckInApartment: FC = () => {
-  const [apartment] = useState<string>('A22.01')
-  const [ownerName] = useState<string>('Nguyễn A')
-  const [service, setService] = useState<string>()
-  const [residents, setResidents] = useState<Resident[]>([
-    { id: '1', name: 'Nguyễn A', selected: false, isExtra: false },
-    { id: '2', name: '', selected: false, isExtra: true },
-  ])
-  const [checkinTime, setCheckinTime] = useState<string>('')
+  const location = useLocation()
+  const navigate = useNavigate()
+  const state = location.state as LocationState | null
 
-  // Tự động cập nhật thời gian checkin
+  // Nếu không có dữ liệu từ ScreenCheckIn, quay lại
   useEffect(() => {
-    const updateTime = () => {
-      const now = new Date()
-      const year = now.getFullYear()
-      const month = String(now.getMonth() + 1).padStart(2, '0')
-      const day = String(now.getDate()).padStart(2, '0')
-      const hours = String(now.getHours()).padStart(2, '0')
-      const minutes = String(now.getMinutes()).padStart(2, '0')
-      const seconds = String(now.getSeconds()).padStart(2, '0')
-      setCheckinTime(`${year}/${month}/${day} ${hours}:${minutes}:${seconds}`)
+    if (!state?.checkInData) {
+      navigate('/screen-checkin')
     }
+  }, [state, navigate])
 
-    updateTime()
-    const interval = setInterval(updateTime, 1000)
+  const checkInData = state?.checkInData
+  const serviceId = state?.serviceId
+  const serviceName = state?.serviceName || checkInData?.serviceName || ''
+  const apartment = checkInData?.apartment || ''
+  const ownerName = checkInData?.representative || ''
+  const checkInTime = checkInData?.checkInTime || ''
 
-    return () => clearInterval(interval)
-  }, [])
+  // Lấy danh sách members từ checkInData
+  const initialMembers = checkInData?.members || []
+  
+  const [additionalGuests, setAdditionalGuests] = useState<AdditionalGuest[]>([
+    { id: '1', name: '' }
+  ])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
 
-  const handleAddPerson = () => {
-    const newPerson: Resident = {
+  if (!checkInData || !serviceId) {
+    return null // Sẽ redirect trong useEffect
+  }
+
+  const handleAddGuest = () => {
+    const newGuest: AdditionalGuest = {
       id: Date.now().toString(),
       name: '',
-      selected: false,
-      isExtra: true,
     }
-    setResidents([...residents, newPerson])
+    setAdditionalGuests([...additionalGuests, newGuest])
   }
 
-  const handlePersonNameChange = (id: string, name: string) => {
-    setResidents(residents.map((r) => (r.id === id ? { ...r, name } : r)))
+  const handleGuestNameChange = (id: string, name: string) => {
+    setAdditionalGuests(additionalGuests.map((g) => (g.id === id ? { ...g, name } : g)))
   }
 
-  const handleToggleSelect = (id: string) => {
-    setResidents(
-      residents.map((r) => (r.id === id ? { ...r, selected: !r.selected } : r))
-    )
-  }
+  const handleCheckin = async () => {
+    // Lấy danh sách tên người đi cùng (chỉ lấy những người có tên)
+    const guestNames = additionalGuests
+      .map(g => g.name.trim())
+      .filter(name => name !== '')
 
-  const handleCheckin = () => {
-    const selectedResidents = residents.filter((r) => r.selected)
-    // TODO: Xử lý logic checkin
-    console.log('Checkin:', {
-      apartment,
-      ownerName,
-      service,
-      selectedResidents,
-      checkinTime,
-    })
+    setLoading(true)
+    setError(null)
+    setSuccess(null)
+
+    try {
+      const checkInData: ResidentCheckInDto = {
+        serviceId: serviceId,
+        qrCode: state?.qrCode,
+        faceDescriptor: state?.faceDescriptor,
+        additionalGuests: guestNames.length > 0 ? guestNames : undefined,
+      }
+
+      const result = await residentCheckInOrOut(checkInData)
+      setSuccess(result.message || 'Check-in thành công!')
+      
+      // Reset form sau 2 giây
+      setTimeout(() => {
+        setAdditionalGuests([{ id: '1', name: '' }])
+        navigate('/mainmenu')
+      }, 2000)
+    } catch (err: any) {
+      console.error('Lỗi check-in:', err)
+      setError(err.message || 'Có lỗi xảy ra khi check-in. Vui lòng thử lại.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -89,32 +115,64 @@ export const CheckInApartment: FC = () => {
             {/* Dịch Vụ */}
             <div className="flex items-center">
               <label className="w-48 text-gray-700 font-medium">Dịch Vụ</label>
-              <input
-                type="text"
-                value={service}
-                onChange={(e) => setService(e.target.value)}
-                placeholder="Bơi (Hồ A)"
-                className="flex-1 px-3 py-2 bg-gray-100 border border-gray-300 rounded"
-              />
+              <span className="flex-1 text-gray-700 font-semibold">{serviceName}</span>
             </div>
 
             {/* Phương Thức Checkin */}
             <div className="flex items-center">
               <label className="w-48 text-gray-700 font-medium">Phương Thức Checkin</label>
-              <span className="flex-1 text-gray-700">Thẻ</span>
+              <span className="flex-1 text-gray-700">
+                {state?.qrCode ? 'QR Code' : state?.faceDescriptor ? 'Face ID' : 'Thẻ'}
+              </span>
             </div>
 
             {/* Thời Gian Vào */}
             <div className="flex items-center">
               <label className="w-48 text-gray-700 font-medium">Thời Gian Vào</label>
-              <span className="flex-1 text-gray-700">{checkinTime}</span>
+              <span className="flex-1 text-gray-700">
+                {checkInTime ? new Date(checkInTime).toLocaleString('vi-VN') : ''}
+              </span>
             </div>
 
-            {/* Số Lượng */}
+            {/* Danh sách cư dân (từ check-in) */}
+            {initialMembers.length > 0 && (
+              <div className="flex items-start">
+                <label className="w-48 text-gray-700 font-medium pt-2">Cư Dân</label>
+                <div className="flex-1">
+                  <div className="max-h-32 overflow-y-auto border border-gray-300 rounded">
+                    <table className="w-full border-collapse">
+                      <thead className="sticky top-0 bg-gray-100">
+                        <tr>
+                          <th className="border border-gray-300 px-4 py-2 text-left font-semibold text-gray-700">
+                            STT
+                          </th>
+                          <th className="border border-gray-300 px-4 py-2 text-left font-semibold text-gray-700">
+                            Họ Và Tên
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {initialMembers.map((member, index) => (
+                          <tr key={index} className="bg-white">
+                            <td className="border border-gray-300 px-4 py-2 text-gray-700">
+                              {member.stt || index + 1}
+                            </td>
+                            <td className="border border-gray-300 px-4 py-2 text-gray-700">
+                              {member.fullName}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Người đi cùng (additional guests) */}
             <div className="flex items-start">
-              <label className="w-48 text-gray-700 font-medium pt-2">Số Lượng</label>
+              <label className="w-48 text-gray-700 font-medium pt-2">Người Đi Cùng</label>
               <div className="flex-1">
-                {/* Bảng */}
                 <div className="max-h-64 overflow-y-auto border border-gray-300 rounded">
                   <table className="w-full border-collapse">
                     <thead className="sticky top-0 bg-gray-100">
@@ -126,60 +184,44 @@ export const CheckInApartment: FC = () => {
                           Họ Và Tên
                         </th>
                         <th className="border border-gray-300 px-4 py-2 text-right font-semibold text-gray-700">
-                          Chọn
+                          Hoạt Động
                         </th>
                       </tr>
                     </thead>
                     <tbody>
-                      {residents.map((resident, index) => (
-                        <tr key={resident.id} className="bg-white">
+                      {additionalGuests.map((guest, index) => (
+                        <tr key={guest.id} className="bg-white">
                           <td className="border border-gray-300 px-4 py-2 text-gray-700">
                             {index + 1}
                           </td>
                           <td className="border border-gray-300 px-4 py-2">
-                            <div className="flex items-center">
-                              <input
-                                type="text"
-                                value={resident.name}
-                                onChange={(e) =>
-                                  handlePersonNameChange(resident.id, e.target.value)
-                                }
-                                placeholder="Nhập Tên..."
-                                readOnly={!resident.isExtra}
-                                className="w-full bg-transparent border-0 outline-none focus:ring-0 text-gray-700"
-                              />
-                            </div>
+                            <input
+                              type="text"
+                              value={guest.name}
+                              onChange={(e) => handleGuestNameChange(guest.id, e.target.value)}
+                              placeholder="Nhập tên người đi cùng..."
+                              className="w-full px-2 py-1 bg-white border-0 outline-none"
+                            />
                           </td>
                           <td className="border border-gray-300 px-4 py-2">
-                            <div className="flex items-center justify-end">
-                              {resident.isExtra ? (
-                                <button
-                                  onClick={handleAddPerson}
-                                  className="bg-blue-600 text-white px-3 py-1.5 rounded flex items-center gap-1 hover:bg-blue-700 transition-colors text-sm"
-                                >
-                                  <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    className="h-4 w-4"
-                                    viewBox="0 0 20 20"
-                                    fill="currentColor"
-                                  >
-                                    <path
-                                      fillRule="evenodd"
-                                      d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
-                                      clipRule="evenodd"
-                                    />
-                                  </svg>
-                                  Thêm
-                                </button>
-                              ) : (
-                                <input
-                                  type="checkbox"
-                                  checked={resident.selected}
-                                  onChange={() => handleToggleSelect(resident.id)}
-                                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                            <button
+                              onClick={handleAddGuest}
+                              className="bg-blue-600 text-white px-3 py-1.5 rounded flex items-center gap-1 hover:bg-blue-700 transition-colors text-sm ml-auto"
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-4 w-4"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                                  clipRule="evenodd"
                                 />
-                              )}
-                            </div>
+                              </svg>
+                              Thêm
+                            </button>
                           </td>
                         </tr>
                       ))}
@@ -189,13 +231,32 @@ export const CheckInApartment: FC = () => {
               </div>
             </div>
 
+            {/* Thông báo lỗi/thành công */}
+            {error && (
+              <div className="mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+                {error}
+              </div>
+            )}
+            {success && (
+              <div className="mt-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded">
+                {success}
+              </div>
+            )}
+
             {/* Nút Checkin */}
-            <div className="flex justify-center mt-6">
+            <div className="flex justify-center gap-4 mt-6">
+              <button
+                onClick={() => navigate('/screen-checkin')}
+                className="bg-gray-500 text-white px-8 py-3 rounded-lg font-semibold text-lg hover:bg-gray-600 transition-colors"
+              >
+                Quay lại
+              </button>
               <button
                 onClick={handleCheckin}
-                className="bg-blue-800 text-white px-16 py-3 rounded-lg font-semibold text-lg hover:bg-blue-900 transition-colors"
+                disabled={loading}
+                className="bg-blue-800 text-white px-16 py-3 rounded-lg font-semibold text-lg hover:bg-blue-900 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
               >
-                Checkin
+                {loading ? 'Đang xử lý...' : 'Checkin'}
               </button>
             </div>
           </div>

@@ -47,5 +47,6 @@ export const getDashboardData = async (params: DashboardParams) => {
   }
 
   const result = await response.json();
+  console.log("Dashboard Data:", result);
   return result.data;
 };
