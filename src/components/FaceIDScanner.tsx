@@ -1,4 +1,6 @@
 import { useRef, useEffect, useState } from 'react'
+import * as faceapi from 'face-api.js'
+import { loadFaceModels } from '../utils/faceApi'
 
 interface FaceIDScannerProps {
   onScan: (descriptor: number[]) => void
@@ -20,30 +22,28 @@ export const FaceIDScanner: React.FC<FaceIDScannerProps> = ({ onScan, onClose, t
         setError(null)
         setScanning(true)
 
-        // Yêu cầu quyền camera
+        await loadFaceModels()
+
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'user' } // Camera trước (face)
+          video: { facingMode: 'user' }
         })
 
         streamRef.current = stream
 
         if (videoRef.current) {
           videoRef.current.srcObject = stream
-          videoRef.current.play()
+          await videoRef.current.play()
         }
-      } catch (err: any) {
-        console.error('Lỗi khi truy cập camera:', err)
-        setError('Không thể truy cập camera. Vui lòng kiểm tra quyền truy cập.')
-        setScanning(false)
+      } catch (err) {
+        console.error(err)
+        setError('Không thể truy cập camera')
       }
     }
 
     startScanning()
-
-    return () => {
-      stopScanning()
-    }
+    return stopScanning
   }, [])
+
 
   const stopScanning = () => {
     if (streamRef.current) {
@@ -56,41 +56,36 @@ export const FaceIDScanner: React.FC<FaceIDScannerProps> = ({ onScan, onClose, t
     setScanning(false)
   }
 
-  const captureFace = () => {
-    if (!videoRef.current || !canvasRef.current || capturing) return
+ const captureFace = async () => {
+  if (!videoRef.current || capturing) return
 
-    setCapturing(true)
+  setCapturing(true)
 
-    const canvas = canvasRef.current
-    const video = videoRef.current
+  const video = videoRef.current
 
-    canvas.width = video.videoWidth
-    canvas.height = video.videoHeight
+  const detection = await faceapi
+    .detectSingleFace(
+      video,
+      new faceapi.TinyFaceDetectorOptions()
+    )
+    .withFaceLandmarks()
+    .withFaceDescriptor()
 
-    const ctx = canvas.getContext('2d')
-    if (ctx) {
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
-
-      // TODO: Ở đây cần tích hợp face-api.js hoặc TensorFlow.js để:
-      // 1. Detect khuôn mặt
-      // 2. Crop ảnh mặt
-      // 3. Tính face descriptor (mảng 128 số)
-      
-      // Tạm thời: Tạo mock descriptor (128 số ngẫu nhiên)
-      // Trong thực tế, cần thay thế bằng face-api.js
-      const mockDescriptor = Array.from({ length: 128 }, () => 
-        Math.random() * 2 - 1 // Số từ -1 đến 1
-      )
-
-      // Simulate delay xử lý
-      setTimeout(() => {
-        onScan(mockDescriptor)
-        setCapturing(false)
-        stopScanning()
-        onClose()
-      }, 500)
-    }
+  if (!detection) {
+    setError('Không phát hiện khuôn mặt')
+    setCapturing(false)
+    return
   }
+
+  const descriptor = Array.from(detection.descriptor) // Float32Array → number[]
+
+  console.log('🧠 Face descriptor (128):', descriptor)
+
+  onScan(descriptor)
+  stopScanning()
+  onClose()
+}
+
 
   const handleClose = () => {
     stopScanning()
@@ -124,7 +119,7 @@ export const FaceIDScanner: React.FC<FaceIDScannerProps> = ({ onScan, onClose, t
               muted
             />
             <canvas ref={canvasRef} className="hidden" />
-            
+
             {/* Overlay hướng dẫn */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div className="border-4 border-blue-500 rounded-full w-48 h-48"></div>

@@ -74,7 +74,7 @@ export const ScreenCheckIn: FC = () => {
 
       const result = await residentCheckInOrOut(checkInData)
       setCheckInResult(result)
-      
+
       // Chuyển sang màn hình CheckInApartment với dữ liệu từ response
       navigate('/checkinapartment', {
         state: {
@@ -104,10 +104,10 @@ export const ScreenCheckIn: FC = () => {
         faceDescriptor: faceDescriptor,
         serviceId: selectedService.id,
       }
-
+      console.log('📤 Send descriptor to API:', faceDescriptor)
       const result = await residentCheckInOrOut(checkInData)
       setCheckInResult(result)
-      
+      console.log('📥 API /find-resident response:', result)
       // Chuyển sang màn hình CheckInApartment với dữ liệu từ response
       navigate('/checkinapartment', {
         state: {

@@ -13,12 +13,16 @@ import {
 
 /* ================= FORMAT TIME ================= */
 
-function formatPeriod(period: string, groupBy: GroupBy) {
+function formatPeriod(period: string | number | Date | any, groupBy: GroupBy) {
   if (!period) return "";
 
-  const date = new Date(period);
+  // Convert period to string if it's not already
+  const periodStr = typeof period === "string" ? period : String(period);
 
   if (groupBy === "day") {
+    const date = new Date(periodStr);
+    if (isNaN(date.getTime())) return periodStr; // Invalid date
+
     const hh = date.getHours().toString().padStart(2, "0");
     const mm = date.getMinutes().toString().padStart(2, "0");
     const dd = date.getDate().toString().padStart(2, "0");
@@ -29,11 +33,17 @@ function formatPeriod(period: string, groupBy: GroupBy) {
   }
 
   if (groupBy === "month") {
-    const [year, month] = period.split("-");
-    return `${month}/${year}`;
+    // Ensure periodStr is a string before splitting
+    if (typeof periodStr !== "string") return String(periodStr);
+    const parts = periodStr.split("-");
+    if (parts.length >= 2) {
+      const [year, month] = parts;
+      return `${month}/${year}`;
+    }
+    return periodStr;
   }
 
-  return period;
+  return periodStr;
 }
 
 /* ================= UI ================= */
