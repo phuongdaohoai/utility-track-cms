@@ -98,39 +98,37 @@ export const FaceIDScanner: React.FC<FaceIDScannerProps> = ({
    * Chụp & lấy Face Descriptor
    */
   const captureFace = async () => {
-    if (!videoRef.current || capturing) return
+  if (!videoRef.current || capturing) return
 
-    setCapturing(true)
-    setError(null)
+  setCapturing(true)
+  setError(null)
 
-    try {
-      const detection = await faceapi
-        .detectSingleFace(
-          videoRef.current,
-          new faceapi.TinyFaceDetectorOptions()
-        )
-        .withFaceLandmarks()
-        .withFaceDescriptor()
+  try {
+    const detection = await faceapi
+      .detectSingleFace(
+        videoRef.current,
+        new faceapi.TinyFaceDetectorOptions()
+      )
+      .withFaceLandmarks()
+      .withFaceDescriptor()
 
-      if (!detection) {
-        setError('Không phát hiện khuôn mặt')
-        setCapturing(false)
-        return
-      }
-
-      const descriptor = Array.from(detection.descriptor) // Float32Array → number[]
-
-      console.log('🧠 Face Descriptor (128):', descriptor)
-
-      onScan(descriptor)
-      handleClose()
-    } catch (err) {
-      console.error(err)
-      setError('Lỗi khi xử lý khuôn mặt')
-    } finally {
+    if (!detection) {
+      setError('Không phát hiện khuôn mặt')
       setCapturing(false)
+      return
     }
+
+    const descriptor = Array.from(detection.descriptor)
+
+    stopCamera()
+    onScan(descriptor)
+  } catch {
+    setError('Lỗi khi xử lý khuôn mặt')
+  } finally {
+    setCapturing(false)
   }
+}
+
 
   /**
    * Đóng modal
