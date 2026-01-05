@@ -1,3 +1,5 @@
+import { ChangeEvent } from "react";
+import { GroupBy } from "../api/dashboard.api";
 import {
   BarChart,
   Bar,
@@ -8,19 +10,43 @@ import {
   ResponsiveContainer,
   CartesianGrid,
 } from "recharts";
-import { useState, useRef, useEffect } from "react";
 
-/* ===================== TYPES ===================== */
+/* ================= FORMAT TIME ================= */
 
-type GroupByValue = "day" | "month" | "year";
+function formatPeriod(period: string | number | Date | any, groupBy: GroupBy) {
+  if (!period) return "";
 
-interface Props {
-  data: any[];
-  groupBy: GroupByValue;
-  onChangeGroupBy: (value: GroupByValue) => void;
+  // Convert period to string if it's not already
+  const periodStr = typeof period === "string" ? period : String(period);
+
+  if (groupBy === "day") {
+    const date = new Date(periodStr);
+    if (isNaN(date.getTime())) return periodStr; // Invalid date
+
+    const hh = date.getHours().toString().padStart(2, "0");
+    const mm = date.getMinutes().toString().padStart(2, "0");
+    const dd = date.getDate().toString().padStart(2, "0");
+    const MM = (date.getMonth() + 1).toString().padStart(2, "0");
+    const yyyy = date.getFullYear();
+
+    return `${hh}:${mm} - ${dd}/${MM}/${yyyy}`;
+  }
+
+  if (groupBy === "month") {
+    // Ensure periodStr is a string before splitting
+    if (typeof periodStr !== "string") return String(periodStr);
+    const parts = periodStr.split("-");
+    if (parts.length >= 2) {
+      const [year, month] = parts;
+      return `${month}/${year}`;
+    }
+    return periodStr;
+  }
+
+  return periodStr;
 }
 
-/* ===================== CONSTANTS ===================== */
+/* ================= UI ================= */
 
 const COLORS = [
   "#3b82f6",
@@ -31,214 +57,120 @@ const COLORS = [
   "#14b8a6",
 ];
 
-const GROUP_OPTIONS: { label: string; value: GroupByValue }[] = [
-  { label: "Năm", value: "year" },
-  { label: "Tháng", value: "month" },
-  { label: "Ngày", value: "day" },
-];
-
-/* ===================== DROPDOWN ===================== */
-
-function GroupByDropdown({
-  value,
-  onChange,
-}: {
-  value: GroupByValue;
-  onChange: (v: GroupByValue) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const current = GROUP_OPTIONS.find(o => o.value === value);
-
-  return (
-    <div ref={ref} className="relative w-[120px] text-sm">
-      {/* Trigger */}
-      <button
-        type="button"
-        onClick={() => setOpen(prev => !prev)}
-        className="
-          flex w-full items-center justify-between
-          rounded-md
-          border border-gray-300
-          bg-white
-          px-3 py-2
-          text-gray-700
-          hover:border-gray-400
-        "
-      >
-        <span>{current?.label}</span>
-
-        {/* Chevron */}
-        <svg
-          className={`h-4 w-4 text-gray-400 transition-transform ${
-            open ? "rotate-180" : ""
-          }`}
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M19 9l-7 7-7-7"
-          />
-        </svg>
-      </button>
-
-      {/* Dropdown list */}
-      {open && (
-        <div
-          className="
-            absolute z-50 mt-1 w-full
-            rounded-md
-            border border-gray-200
-            bg-white
-            shadow-sm
-          "
-        >
-          {GROUP_OPTIONS.map(option => (
-            <div
-              key={option.value}
-              onClick={() => {
-                onChange(option.value);
-                setOpen(false);
-              }}
-              className="
-                cursor-pointer
-                px-3 py-2
-                text-gray-700
-                hover:text-blue-600
-              "
-            >
-              {option.label}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+interface Props {
+  data: any[];
+  groupBy: GroupBy;
+  fromDate?: string;
+  toDate?: string;
+  onChangeGroupBy: (value: GroupBy) => void;
+  onChangeFromDate: (value?: string) => void;
+  onChangeToDate: (value?: string) => void;
 }
-
-/* ===================== CHART HELPERS ===================== */
-
-const CustomTooltip = ({ active, payload, label }: any) => {
-  if (!active || !payload?.length) return null;
-
-  return (
-    <div className="rounded-lg border bg-white px-4 py-2 shadow">
-      <p className="mb-2 font-semibold text-blue-600">{label}</p>
-
-      {payload.map((item: any) => (
-        <div key={item.dataKey} className="flex items-center gap-2 text-sm">
-          <span
-            className="h-2 w-2 rounded-full"
-            style={{ backgroundColor: item.color }}
-          />
-          <span>{item.name}:</span>
-          <span className="font-medium">{item.value}</span>
-        </div>
-      ))}
-    </div>
-  );
-};
-
-const CustomXAxisTick = ({ x, y, payload, index, activeIndex }: any) => {
-  const isActive = index === activeIndex;
-
-  return (
-    <text
-      x={x}
-      y={y + 14}
-      textAnchor="middle"
-      fill={isActive ? "#2563eb" : "#374151"}
-      fontSize={12}
-      fontWeight={isActive ? 600 : 400}
-    >
-      {payload.value}
-    </text>
-  );
-};
-
-/* ===================== MAIN COMPONENT ===================== */
 
 export default function AdminChart({
   data,
   groupBy,
+  fromDate,
+  toDate,
   onChangeGroupBy,
+  onChangeFromDate,
+  onChangeToDate,
 }: Props) {
-  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const handleGroupByChange = (e: ChangeEvent<HTMLSelectElement>) => {
+    onChangeGroupBy(e.target.value as GroupBy);
+  };
 
-  if (!data?.length) return null;
-
-  const services = Object.keys(data[0]).filter(
-    key => key !== "Period"
-  );
+  const serviceKeys =
+    data.length > 0
+      ? Object.keys(data[0]).filter((k) => k !== "Period")
+      : [];
 
   return (
-    <div className="rounded-xl border bg-white p-6">
-      {/* Header */}
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="font-semibold text-gray-800">Biểu đồ</h2>
-
-        <GroupByDropdown
+    <div className="space-y-4 rounded-lg bg-white p-4 shadow">
+      {/* ===== FILTER ===== */}
+      <div className="flex flex-wrap items-center gap-4">
+        <select
           value={groupBy}
-          onChange={onChangeGroupBy}
-        />
+          onChange={(e) => onChangeGroupBy(e.target.value as GroupBy)}
+          className="
+    rounded
+    border
+    px-3
+    py-2
+    pr-10
+    bg-white
+    text-gray-800
+    focus:outline-none
+    focus:ring-0
+    focus:border-gray-400
+    hover:bg-gray-100
+    hover:border-gray-400
+    appearance-none
+    cursor-pointer
+  "
+        >
+          <option value="day">Tùy chọn thời gian</option>
+          <option value="month">Tháng</option>
+          <option value="quarter">Quý</option>
+          <option value="halfYear">Nửa năm</option>
+          <option value="year">Năm</option>
+        </select>
+
+
+
+        {groupBy === "day" && (
+          <>
+            <input
+              type="date"
+              value={fromDate || ""}
+              onChange={(e) => onChangeFromDate(e.target.value)}
+              className="rounded border px-3 py-2"
+            />
+
+            <input
+              type="date"
+              value={toDate || ""}
+              onChange={(e) => onChangeToDate(e.target.value)}
+              className="rounded border px-3 py-2"
+            />
+          </>
+        )}
+
       </div>
 
-      {/* Chart */}
-      <ResponsiveContainer width="100%" height={320}>
-        <BarChart
-          data={data}
-          barSize={10}
-          barGap={3}
-          barCategoryGap={28}
-          onMouseMove={(state: any) => {
-            if (state?.activeTooltipIndex !== undefined) {
-              setActiveIndex(state.activeTooltipIndex);
-            }
-          }}
-          onMouseLeave={() => setActiveIndex(null)}
-        >
-          <CartesianGrid strokeDasharray="3 3" vertical={false} />
-
-          <XAxis
-            dataKey="Period"
-            tick={(props) => (
-              <CustomXAxisTick
-                {...props}
-                activeIndex={activeIndex}
+      {/* ===== CHART ===== */}
+      <div className="h-72">
+        {data.length === 0 ? (
+          <div className="flex h-full items-center justify-center text-gray-400">
+            Không có dữ liệu
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data} barSize={14} barGap={4}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis
+                dataKey="Period"
+                tickFormatter={(value) => formatPeriod(value, groupBy)}
               />
-            )}
-          />
+              <YAxis />
+              <Tooltip
+                labelFormatter={(value) => formatPeriod(value as string, groupBy)}
+              />
+              <Legend />
 
-          <YAxis />
-          <Tooltip content={<CustomTooltip />} />
-          <Legend verticalAlign="bottom" />
-
-          {services.map((service, index) => (
-            <Bar
-              key={service}
-              dataKey={service}
-              name={service}
-              fill={COLORS[index % COLORS.length]}
-              radius={[4, 4, 0, 0]}
-            />
-          ))}
-        </BarChart>
-      </ResponsiveContainer>
+              {serviceKeys.map((key, index) => (
+                <Bar
+                  key={key}
+                  dataKey={key}
+                  name={key}
+                  fill={COLORS[index % COLORS.length]}
+                  radius={[4, 4, 0, 0]}
+                />
+              ))}
+            </BarChart>
+          </ResponsiveContainer>
+        )}
+      </div>
     </div>
   );
 }
