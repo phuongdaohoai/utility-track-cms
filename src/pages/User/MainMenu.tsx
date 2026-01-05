@@ -1,10 +1,12 @@
 import { useState, type FC } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useLocale } from '../../i18n/LocaleContext'
 
 type MenuStep = 'initial' | 'showOptions'
 type Mode = 'checkin' | 'checkout'
 
 export const MainMenu: FC = () => {
+  const { t } = useLocale();
   const [step, setStep] = useState<MenuStep>('initial')
   const [mode, setMode] = useState<Mode>('checkin')
   const navigate = useNavigate()
@@ -32,13 +34,13 @@ export const MainMenu: FC = () => {
               onClick={handleCheckInClick}
               className="bg-yellow-400 text-black px-12 py-6 rounded-lg font-semibold text-lg hover:bg-yellow-500 shadow-md"
             >
-              Check in
+              {t.mainMenu.checkIn}
             </button>
             <button
               onClick={handleCheckOutClick}
               className="bg-yellow-400 text-black px-12 py-6 rounded-lg font-semibold text-lg hover:bg-yellow-500 shadow-md"
             >
-              Check out
+              {t.mainMenu.checkOut}
             </button>
           </div>
         </div>
@@ -52,14 +54,14 @@ export const MainMenu: FC = () => {
                 onClick={() => navigate('/screen-checkin', { state: { mode } })}
                 className="bg-yellow-400 text-black px-12 py-6 rounded-lg font-semibold text-lg hover:bg-yellow-500 shadow-md"
               >
-                Cư dân CC
+                {t.mainMenu.resident}
               </button>
              {mode === 'checkin' && (
                 <button
                   onClick={() => navigate('/select-service-guest', { state: { mode } })}
                   className="bg-yellow-400 text-black px-12 py-6 rounded-lg font-semibold text-lg hover:bg-yellow-500 shadow-md"
                 >
-                  Cư dân ngoài
+                  {t.mainMenu.outsideResident}
                 </button>
               )}
             </div>
@@ -68,14 +70,14 @@ export const MainMenu: FC = () => {
               onClick={() => navigate('/checkout')}
               className="bg-yellow-400 text-black px-12 py-6 rounded-lg font-semibold text-lg hover:bg-yellow-500 shadow-md"
             >
-              Quản lý
+              {t.mainMenu.manage}
             </button>
 
             <button
               onClick={handleBack}
               className="mt-4 text-gray-600 underline text-sm"
             >
-              Quay lại
+              {t.common.back}
             </button>
           </div>
         </div>

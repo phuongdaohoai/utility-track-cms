@@ -3,11 +3,13 @@ import Button from '../../components/Button'
 import { useAppDispatch, useAppSelector } from '../../store/hooks'
 import { login } from '../../store/authSlice'
 import { useNavigate } from 'react-router-dom'
+import { useLocale } from '../../i18n/LocaleContext'
+
 export const LoginPage: FC = () => {
   const [emailOrPhone, setEmailOrPhone] = useState<string>('')
   const [password, setPassword] = useState<string>('')
   const [showPassword, setShowPassword] = useState<boolean>(false)
-  const [locale, setLocale] = useState<'vi' | 'en'>('vi')
+  const { locale, setLocale, t } = useLocale()
   const navigate = useNavigate();
   const dispatch = useAppDispatch()
   const authState = useAppSelector((s) => s.auth)
@@ -15,10 +17,9 @@ export const LoginPage: FC = () => {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault()
     try {
-      const a = await dispatch(
+      await dispatch(
         login({ identifier: emailOrPhone, password, locale }) as any
       ).unwrap()
-  
 
       navigate('/admin');
     } catch (err) {
@@ -49,7 +50,7 @@ export const LoginPage: FC = () => {
                 : 'text-gray-400 hover:text-indigo-600'
             }`}
           >
-            Tiếng Việt
+            {t.language.vietnamese}
           </button>
           <span className="text-gray-300 select-none">|</span>
           <button
@@ -62,18 +63,18 @@ export const LoginPage: FC = () => {
                 : 'text-gray-400 hover:text-indigo-600'
             }`}
           >
-            English
+            {t.language.english}
           </button>
         </div>
 
         <div className="relative max-w-md w-full px-6 py-12">
           <div className="bg-white border rounded-2xl p-8">
-            <h2 className="text-3xl font-bold text-[#191c5e] text-center mb-6">Đăng Nhập</h2>
+            <h2 className="text-3xl font-bold text-[#191c5e] text-center mb-6">{t.login.title}</h2>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label htmlFor="emailOrPhone" className="block font-bold text-sm text-gray-600 mb-1">
-                  Email hoặc Số điện thoại
+                  {t.login.emailOrPhone}
                 </label>
                 {/* type="text" để hỗ trợ cả email lẫn số điện thoại */}
                 <input
@@ -81,14 +82,14 @@ export const LoginPage: FC = () => {
                   type="text"
                   value={emailOrPhone}
                   onChange={(e) => setEmailOrPhone(e.target.value)}
-                  placeholder="Email Hoặc Số Điện Thoại Của Bạn"
+                  placeholder={t.login.emailOrPhonePlaceholder}
                   className="w-full px-3 py-2 border border-gray-200 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-200"
                 />
               </div>
 
               <div>
                 <label htmlFor="password" className="block font-bold text-sm text-gray-600 mb-1">
-                  Mật khẩu
+                  {t.login.password}
                 </label>
                 <div className="relative">
                   <input
@@ -96,7 +97,7 @@ export const LoginPage: FC = () => {
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Mật Khẩu Của Bạn"
+                    placeholder={t.login.passwordPlaceholder}
                     className="w-full px-3 py-2 border border-gray-200 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-200"
                     aria-describedby="forgot-password"
                   />
@@ -134,7 +135,7 @@ export const LoginPage: FC = () => {
                   className="w-full bg-[#3a5a89]"
                   disabled={authState.status === 'loading'}
                 >
-                  {authState.status === 'loading' ? 'Đang xử lý...' : 'Đăng Nhập'}
+                  {authState.status === 'loading' ? t.login.submitting : t.login.submit}
                 </Button>
                 {authState.error ? (
                   <p className="text-sm text-red-600 mt-2">{authState.error}</p>

@@ -5,13 +5,15 @@ import { Bell, ChevronDown, LogOut, Menu } from 'lucide-react';
 import { getBreadcrumb } from '../utils/breadcrumb';
 import { useAppSelector } from '../store/hooks';
 import { API_BASE_URL } from '../utils/url';
+import { useLocale } from '../i18n/LocaleContext';
 interface TopNavProps {
   onMenuClick?: () => void;
 }
 
 const TopNav: FC<TopNavProps> = ({ onMenuClick }) => {
+  const { t, locale } = useLocale();
   const { pathname } = useLocation();
-  const breadcrumbs = getBreadcrumb(pathname);
+  const breadcrumbs = getBreadcrumb(pathname, locale);
   const navigate = useNavigate();
 
   const { name, role, avatar } = useAppSelector(
@@ -187,7 +189,7 @@ const TopNav: FC<TopNavProps> = ({ onMenuClick }) => {
                                hover:bg-red-50 transition-colors text-left"
                   >
                     <LogOut size={18} />
-                    Đăng xuất
+                    {t.common.logout}
                   </button>
                 </div>
               </div>

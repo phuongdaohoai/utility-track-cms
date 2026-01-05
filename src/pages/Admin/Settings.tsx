@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import  { API_BASE_URL }from '../../utils/url'
+import { useLocale } from '../../i18n/LocaleContext';
 /* ================= AXIOS INSTANCE ================= */
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -21,7 +22,7 @@ api.interceptors.response.use(
   (res) => res,
   (err) => {
     if (err.response?.status === 401) {
-      alert("Phiên đăng nhập đã hết hạn");
+      alert(t.settings.sessionExpired);
       localStorage.removeItem("accessToken");
       window.location.href = "/login";
     }
@@ -46,11 +47,12 @@ interface CheckinItem {
 
 /* ================= COMPONENT ================= */
 const SystemConfiguration: React.FC = () => {
+  const { t } = useLocale();
   /* ===== FORM STATE ===== */
   const [formState, setFormState] = useState({
     operatingHours: "",
     activity: "",
-    guestCheckIn: "Tắt",
+    guestCheckIn: t.settings.off,
   });
 
   /* ===== TABLE STATE ===== */
@@ -77,8 +79,8 @@ const SystemConfiguration: React.FC = () => {
           data.find((i) => i.configKey === "SYSTEM_STATUS")?.description || "",
         guestCheckIn:
           data.find((i) => i.configKey === "GUEST_CHECKIN")?.configValue === "1"
-            ? "Bật"
-            : "Tắt",
+            ? t.settings.on
+            : t.settings.off,
       });
 
       /* ===== TABLE ===== */
@@ -87,7 +89,7 @@ const SystemConfiguration: React.FC = () => {
       setCheckinList(
         methods.map((m) => ({
           id: m.id,
-          type: mapMethodName(m.configKey),
+          type: mapMethodName(m.configKey, t),
           desc: m.description,
           status: m.configValue === "1" ? "active" : "inactive",
         }))
@@ -116,11 +118,11 @@ const SystemConfiguration: React.FC = () => {
         }),
         api.put("/system_config/general", {
           key: "GUEST_CHECKIN",
-          value: formState.guestCheckIn === "Bật" ? "1" : "0",
+          value: formState.guestCheckIn === t.settings.on ? "1" : "0",
         }),
       ]);
 
-      alert("Đã lưu cấu hình");
+      alert(t.common.saveSuccess);
       fetchConfig();
     } finally {
       setLoading(false);
@@ -159,7 +161,7 @@ const SystemConfiguration: React.FC = () => {
     <div style={pageStyle}>
       {/* ================= FORM ================= */}
       <div style={boxStyle}>
-        <FormRow label="Giờ Hoạt Động">
+        <FormRow label={t.settings.operatingHours}>
           <input
             style={inputStyle}
             value={formState.operatingHours}
@@ -169,11 +171,11 @@ const SystemConfiguration: React.FC = () => {
           />
         </FormRow>
 
-        <FormRow label="Hoạt Động">
+        <FormRow label={t.settings.activity}>
           <input style={inputStyle} value={formState.activity} disabled />
         </FormRow>
 
-        <FormRow label="Check-in Khách Ngoài">
+        <FormRow label={t.settings.guestCheckIn}>
           <select
             style={inputStyle}
             value={formState.guestCheckIn}
@@ -181,8 +183,8 @@ const SystemConfiguration: React.FC = () => {
               handleFormChange("guestCheckIn", e.target.value)
             }
           >
-            <option>Bật</option>
-            <option>Tắt</option>
+            <option>{t.settings.on}</option>
+            <option>{t.settings.off}</option>
           </select>
         </FormRow>
 
@@ -192,22 +194,22 @@ const SystemConfiguration: React.FC = () => {
             onClick={handleSaveForm}
             disabled={loading}
           >
-            {loading ? "Đang lưu..." : "Lưu thông tin"}
+            {loading ? t.settings.saving : t.settings.saveInfo}
           </button>
         </div>
       </div>
 
       {/* ================= TABLE ================= */}
-      <h3 style={titleStyle}>Danh sách phương thức checkin</h3>
+      <h3 style={titleStyle}>{t.settings.checkinMethods}</h3>
 
       <div style={tableWrapperStyle}>
         <table style={tableStyle}>
           <thead>
             <tr>
-              <th style={thStyle}>Kiểu Checkin</th>
-              <th style={thStyle}>Mô Tả</th>
-              <th style={thStyle}>Trạng Thái</th>
-              <th style={thStyle}>Thao Tác</th>
+              <th style={thStyle}>{t.settings.methodType}</th>
+              <th style={thStyle}>{t.settings.methodDescription}</th>
+              <th style={thStyle}>{t.settings.methodStatus}</th>
+              <th style={thStyle}>{t.common.actions}</th>
             </tr>
           </thead>
 
@@ -215,7 +217,7 @@ const SystemConfiguration: React.FC = () => {
             {loading ? (
               <tr>
                 <td colSpan={4} style={tdStyle}>
-                  Đang tải...
+                  {t.common.loading}
                 </td>
               </tr>
             ) : (
@@ -241,8 +243,8 @@ const SystemConfiguration: React.FC = () => {
                             handleEditChange("status", e.target.value)
                           }
                         >
-                          <option value="active">Hoạt động</option>
-                          <option value="inactive">Không hoạt động</option>
+                          <option value="active">{t.common.active}</option>
+                          <option value="inactive">{t.common.inactive}</option>
                         </select>
                       </td>
                       <td style={tdStyle}>
@@ -270,8 +272,8 @@ const SystemConfiguration: React.FC = () => {
                           }
                         >
                           {item.status === "active"
-                            ? "Hoạt động"
-                            : "Không hoạt động"}
+                            ? t.common.active
+                            : t.common.inactive}
                         </span>
                       </td>
                       <td style={tdStyle}>
@@ -297,18 +299,18 @@ const SystemConfiguration: React.FC = () => {
 export default SystemConfiguration;
 
 /* ================= HELPERS ================= */
-const mapMethodName = (key: string) => {
+const mapMethodName = (key: string, t: any) => {
   switch (key) {
     case "METHOD_CARD":
-      return "Thẻ";
+      return t.settings.methodTypes.card;
     case "METHOD_MANUAL":
-      return "Thủ Công";
+      return t.settings.methodTypes.manual;
     case "METHOD_FACEID":
-      return "FaceID";
+      return t.settings.methodTypes.faceId;
     case "METHOD_QR":
-      return "QR Code";
+      return t.settings.methodTypes.qr;
     case "METHOD_FINGERPRINT":
-      return "Vân Tay";
+      return t.settings.methodTypes.fingerprint;
     default:
       return key;
   }

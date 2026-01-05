@@ -4,8 +4,10 @@ import AdminChart from "../../components/AdminChart";
 import { FileText, BarChart2, Users } from "lucide-react";
 import { getDashboardData, GroupBy } from "../../api/dashboard.api";
 import { formatCurrency } from "../../utils/formatters";
+import { useLocale } from "../../i18n/LocaleContext";
 
 export default function AdminPage() {
+  const { t } = useLocale();
   const [groupBy, setGroupBy] = useState<GroupBy>("month");
   const [fromDate, setFromDate] = useState<string>();
   const [toDate, setToDate] = useState<string>();
@@ -25,25 +27,25 @@ export default function AdminPage() {
     fetchData();
   }, [groupBy, fromDate, toDate]);
 
-  if (!dashboard) return <div>Loading...</div>;
+  if (!dashboard) return <div>{t.common.loading}</div>;
 
   return (
     <div className="space-y-6">
       {/* STAT */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <AdminStatCard
-          title="Tổng lượt check-in hôm nay"
+          title={t.dashboard.totalCheckInsToday}
           value={dashboard.totalCheckInsToday}
           icon={FileText}
         />
         <AdminStatCard
-          title="Doanh thu hôm nay"
+          title={t.dashboard.totalRevenueToday}
           value={formatCurrency(dashboard.totalRevenueToday)}
           icon={BarChart2}
           highlight
         />
         <AdminStatCard
-          title="Cư dân đang sử dụng dịch vụ"
+          title={t.dashboard.residentsCurrentlyInArea}
           value={dashboard.residentsCurrentlyInArea}
           icon={Users}
         />

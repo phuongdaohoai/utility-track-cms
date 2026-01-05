@@ -3,9 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { getServices, deleteService, createService } from "../../api/services.api";
 import { setServices, deleteService as deleteServiceAction, Service, addService } from "../../store/servicesSlice";
+import { useLocale } from "../../i18n/LocaleContext";
 
 /* ================== MAIN ================== */
 const ServicesPage: React.FC = () => {
+  const { t } = useLocale();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const services = useAppSelector(state => state.services.services);
@@ -56,7 +58,7 @@ const ServicesPage: React.FC = () => {
           },
         ];
         dispatch(setServices(mockData));
-        alert("Sử dụng dữ liệu mẫu do API lỗi");
+        alert(t.services.usingMockData);
       })
       .finally(() => setLoading(false));
   };
@@ -67,7 +69,7 @@ const ServicesPage: React.FC = () => {
 
   /* ===== DELETE ===== */
   const handleDelete = async (serviceId: number) => {
-    const ok = window.confirm("Bạn có chắc muốn xóa dịch vụ này không?");
+    const ok = window.confirm(t.services.confirmDelete);
     if (!ok) return;
 
     try {
@@ -75,12 +77,12 @@ const ServicesPage: React.FC = () => {
 
       // Chỉ xóa trên FE khi BE xóa thành công
       dispatch(deleteServiceAction(serviceId));
-      alert("Xóa dịch vụ thành công");
+      alert(t.services.deleteSuccess);
     } catch (err: any) {
       console.error("Lỗi xóa service:", err);
       alert(
         err?.response?.data?.message ||
-        "Xóa dịch vụ thất bại"
+        t.services.deleteFailed
       );
     }
   };
@@ -99,14 +101,14 @@ const ServicesPage: React.FC = () => {
     return matchName && matchStatus;
   });
 
-  if (loading) return <div>Đang tải dữ liệu...</div>;
+  if (loading) return <div>{t.common.loadingData}</div>;
 
   return (
     <div style={{ fontFamily: "Arial, sans-serif" }}>
       {/* ================= FILTER ================= */}
       <div style={filterWrapperStyle}>
         <input
-          placeholder="Tìm theo tên dịch vụ..."
+          placeholder={t.services.searchPlaceholder}
           value={keyword}
           onChange={e => setKeyword(e.target.value)}
           style={inputStyle}
@@ -117,16 +119,16 @@ const ServicesPage: React.FC = () => {
           onChange={e => setStatusFilter(e.target.value as any)}
           style={selectStyle}
         >
-          <option value="all">Tất cả trạng thái</option>
-          <option value="active">Hoạt động</option>
-          <option value="inactive">Không hoạt động</option>
+          <option value="all">{t.services.allStatus}</option>
+          <option value="active">{t.common.active}</option>
+          <option value="inactive">{t.common.inactive}</option>
         </select>
 
         <button
           style={addButtonStyle}
           onClick={() => setShowAddModal(true)}
         >
-          + Thêm mới
+          + {t.common.addNew}
         </button>
       </div>
 
@@ -136,7 +138,7 @@ const ServicesPage: React.FC = () => {
           <div style={modalStyle}>
             {/* ===== HEADER ===== */}
             <div style={modalHeaderStyle}>
-              <h3 style={{ margin: 0 }}>➕ Thêm dịch vụ mới</h3>
+              <h3 style={{ margin: 0 }}>➕ {t.services.addNewService}</h3>
               <button
                 style={modalCloseBtn}
                 onClick={() => setShowAddModal(false)}
@@ -148,19 +150,19 @@ const ServicesPage: React.FC = () => {
             {/* ===== BODY ===== */}
             <div style={modalBodyStyle}>
               <div style={formGroupStyle}>
-                <label style={labelStyle}>Tên dịch vụ</label>
+                <label style={labelStyle}>{t.services.serviceNameLabel}</label>
                 <input
                   value={newService.serviceName}
                   onChange={e =>
                     setNewService({ ...newService, serviceName: e.target.value })
                   }
                   style={modalInputStyle}
-                  placeholder="Nhập tên dịch vụ"
+                  placeholder={t.services.serviceNamePlaceholder}
                 />
               </div>
 
               <div style={formGroupStyle}>
-                <label style={labelStyle}>Sức chứa</label>
+                <label style={labelStyle}>{t.services.capacityLabel}</label>
                 <input
                   type="number"
                   value={newService.capacity}
@@ -172,20 +174,20 @@ const ServicesPage: React.FC = () => {
               </div>
 
               <div style={formGroupStyle}>
-                <label style={labelStyle}>Mô tả</label>
+                <label style={labelStyle}>{t.services.descriptionLabel}</label>
                 <textarea
                   value={newService.description}
                   onChange={e =>
                     setNewService({ ...newService, description: e.target.value })
                   }
                   style={modalTextareaStyle}
-                  placeholder="Mô tả dịch vụ"
+                  placeholder={t.services.descriptionPlaceholder}
                 />
               </div>
 
               <div style={{ display: "flex", gap: 12 }}>
                 <div style={{ flex: 1 }}>
-                  <label style={labelStyle}>Giá</label>
+                  <label style={labelStyle}>{t.services.priceLabel}</label>
                   <input
                     type="number"
                     value={newService.price}
@@ -197,7 +199,7 @@ const ServicesPage: React.FC = () => {
                 </div>
 
                 <div style={{ flex: 1 }}>
-                  <label style={labelStyle}>Trạng thái</label>
+                  <label style={labelStyle}>{t.services.statusLabel}</label>
                   <select
                     value={newService.status}
                     onChange={e =>
@@ -208,8 +210,8 @@ const ServicesPage: React.FC = () => {
                     }
                     style={modalInputStyle}
                   >
-                    <option value={1}>Hoạt động</option>
-                    <option value={0}>Không hoạt động</option>
+                    <option value={1}>{t.common.active}</option>
+                    <option value={0}>{t.common.inactive}</option>
                   </select>
                 </div>
               </div>
@@ -221,7 +223,7 @@ const ServicesPage: React.FC = () => {
                 style={cancelButtonStyle}
                 onClick={() => setShowAddModal(false)}
               >
-                Hủy
+                {t.common.cancel}
               </button>
 
               <button
@@ -230,14 +232,14 @@ const ServicesPage: React.FC = () => {
                   try {
                     const res = await createService(newService);
                     dispatch(addService(res.data.data));
-                    alert("Thêm thành công");
+                    alert(t.common.addSuccess);
                     setShowAddModal(false);
                   } catch (err: any) {
-                    alert(err?.response?.data?.message || "Thêm thất bại");
+                    alert(err?.response?.data?.message || t.common.addFailed);
                   }
                 }}
               >
-                Lưu
+                {t.common.save}
               </button>
             </div>
           </div>
@@ -250,12 +252,12 @@ const ServicesPage: React.FC = () => {
         <table style={tableStyle}>
           <thead style={theadStyle}>
             <tr>
-              <th style={thStyle}>Tên Dịch Vụ</th>
-              <th style={thStyle}>Phí / Giờ</th>
-              <th style={thStyle}>Mô Tả</th>
-              <th style={thStyle}>Trạng Thái</th>
-              <th style={thStyle}>Sức Chứa</th>
-              <th style={thStyle}>Thao Tác</th>
+              <th style={thStyle}>{t.services.serviceName}</th>
+              <th style={thStyle}>{t.services.pricePerHour}</th>
+              <th style={thStyle}>{t.services.description}</th>
+              <th style={thStyle}>{t.common.status}</th>
+              <th style={thStyle}>{t.services.capacity}</th>
+              <th style={thStyle}>{t.common.actions}</th>
             </tr>
           </thead>
 
@@ -263,7 +265,7 @@ const ServicesPage: React.FC = () => {
             {filteredServices.length === 0 && (
               <tr>
                 <td colSpan={6} style={{ textAlign: "center", padding: 20 }}>
-                  Không có dịch vụ phù hợp
+                  {t.services.noServices}
                 </td>
               </tr>
             )}
@@ -287,8 +289,8 @@ const ServicesPage: React.FC = () => {
                     }
                   >
                     {service.status === 1
-                      ? "Hoạt động"
-                      : "Không hoạt động"}
+                      ? t.common.active
+                      : t.common.inactive}
                   </span>
                 </td>
 
@@ -302,7 +304,7 @@ const ServicesPage: React.FC = () => {
                       onClick={() =>
                         navigate(`/admin/services/${service.id}`, { state: { service } })
                       }
-                      title="Chỉnh sửa"
+                      title={t.common.edit}
                     >
                       ✏️
                     </button>
@@ -311,7 +313,7 @@ const ServicesPage: React.FC = () => {
                     <button
                       style={deleteButtonStyle}
                       onClick={() => handleDelete(service.id)}
-                      title="Xóa dịch vụ"
+                      title={t.common.delete}
                     >
                       🗑️
                     </button>
