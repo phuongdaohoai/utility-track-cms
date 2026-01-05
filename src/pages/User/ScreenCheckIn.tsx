@@ -107,6 +107,12 @@ export const ScreenCheckIn: FC = () => {
     return (
       <div className="min-h-screen bg-gray-50 p-8">
         <div className="max-w-6xl mx-auto">
+          <button
+            onClick={() => navigate('/mainmenu')}
+            className="text-blue-600 hover:text-blue-800 flex items-center gap-2 mb-4"
+          >
+            ← Quay lại
+          </button>
           <h1 className="text-3xl font-bold mb-6">
             {mode === 'checkout' ? 'Chọn Dịch Vụ Check-out' : 'Chọn Dịch Vụ Check-in'}
           </h1>
@@ -121,6 +127,7 @@ export const ScreenCheckIn: FC = () => {
                 className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg text-left"
               >
                 <h3 className="text-xl font-semibold">{service.serviceName}</h3>
+                <p className="text-gray-500 text-sm">Nhấn để chọn dịch vụ này</p>
               </button>
             ))}
           </div>
