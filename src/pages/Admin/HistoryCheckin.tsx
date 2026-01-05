@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import { api } from "../../utils/api";
+import { useLocale } from "../../i18n/LocaleContext";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -29,6 +30,7 @@ interface UsageItem {
   checkInOut?: {
     checkInTime?: string;
     checkOutTime?: string;
+    method?: string;
   };
 
   resident?: {
@@ -44,6 +46,7 @@ interface UsageItem {
 
 /* ================== MAIN ================== */
 const UsageHistory: React.FC = () => {
+  const { t } = useLocale();
   const [inputText, setInputText] = useState("");
   const [searchText, setSearchText] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -61,10 +64,11 @@ const UsageHistory: React.FC = () => {
           `/history_checkin?searchName=${searchText}&page=${currentPage}&limit=${ITEMS_PER_PAGE}`
         );
         if (!res.ok) {
-          throw new Error("Lỗi khi tải dữ liệu");
+          throw new Error(t.common.loadingData);
         }
 
         const json = await res.json();
+        console.log("json", json.data.data);
         setData(json.data.data);
         setTotalPages(json.data.meta.totalPages);
       } catch (err) {
@@ -93,14 +97,14 @@ const UsageHistory: React.FC = () => {
   /* ================== EXPORT EXCEL ================== */
   const exportToExcel = () => {
     const excelData = data.map((item) => ({
-      "Loại": item.resident ? "Cư dân" : "Khách ngoài",
-      "Cư Dân / Khách": item.resident?.fullName,
-      "Dịch Vụ": item.service?.serviceName,
-      "Hệ Thống": item.system ?? "QR",
-      "Thời Gian Vào": formatDateTime(item.checkInOut?.checkInTime),
-      "Thời Gian Ra": formatDateTime(item.checkInOut?.checkOutTime),
-      "Số Lượng": item.quantity ?? 1,
-      "Phí": item.service?.price,
+      [t.history.type]: item.resident ? t.history.resident : t.history.guest,
+      [t.history.residentOrGuest]: item.resident?.fullName,
+      [t.history.service]: item.service?.serviceName,
+      [t.history.system]: item.checkInOut?.method,
+      [t.history.checkInTime]: formatDateTime(item.checkInOut?.checkInTime),
+      [t.history.checkOutTime]: formatDateTime(item.checkInOut?.checkOutTime),
+      [t.history.quantity]: item.quantity ?? 1,
+      [t.history.fee]: item.service?.price,
     }));
 
     const ws = XLSX.utils.json_to_sheet(excelData);
@@ -122,7 +126,7 @@ const UsageHistory: React.FC = () => {
       <div style={topBarStyle}>
         <div style={searchWrapStyle}>
           <input
-            placeholder="Tìm theo cư dân / khách"
+            placeholder={t.history.searchPlaceholder}
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             style={inputStyle}
@@ -134,12 +138,12 @@ const UsageHistory: React.FC = () => {
               setCurrentPage(1);
             }}
           >
-            Tìm kiếm
+            {t.common.search}
           </button>
         </div>
 
         <button style={primaryBtn} onClick={exportToExcel}>
-          Xuất Excel
+          {t.common.exportExcel}
         </button>
       </div>
 
@@ -147,11 +151,11 @@ const UsageHistory: React.FC = () => {
       <div style={legendStyle}>
         <div style={legendItem}>
           <span style={{ ...legendDot, background: "#2D9CDB" }} />
-          <span>Cư dân</span>
+          <span>{t.history.resident}</span>
         </div>
         <div style={legendItem}>
           <span style={{ ...legendDot, background: "#F2C94C" }} />
-          <span>Khách ngoài</span>
+          <span>{t.history.guest}</span>
         </div>
       </div>
 
@@ -161,13 +165,13 @@ const UsageHistory: React.FC = () => {
           <thead>
             <tr>
               {[
-                "Cư Dân / Khách",
-                "Dịch Vụ",
-                "Hệ Thống",
-                "Thời Gian Vào",
-                "Thời Gian Ra",
-                "Số Lượng",
-                "Phí",
+                t.history.residentOrGuest,
+                t.history.service,
+                t.history.system,
+                t.history.checkInTime,
+                t.history.checkOutTime,
+                t.history.quantity,
+                t.history.fee,
               ].map((h) => (
                 <th key={h} style={thStyle}>
                   {h}
@@ -198,11 +202,11 @@ const UsageHistory: React.FC = () => {
                         src={item.resident?.avatar || "https://i.pravatar.cc/44"}
                         style={avatarStyle}
                       />
-                      {item.resident?.fullName || "Khách ngoài"}
+                      {item.resident?.fullName || t.history.guest}
                     </div>
                   </td>
                   <td style={tdStyle}>{item.service?.serviceName}</td>
-                  <td style={tdStyle}>{item.system ?? "QR"}</td>
+                  <td style={tdStyle}>{item.checkInOut?.method}</td>
                   <td style={tdStyle}>
                     {formatDateTime(item.checkInOut?.checkInTime)}
                   </td>
@@ -273,7 +277,7 @@ const UsageHistory: React.FC = () => {
       </div>
 
       {isModalOpen && selectedUser && (
-        <DetailModal user={selectedUser} onClose={() => setIsModalOpen(false)} />
+        <DetailModal user={selectedUser} onClose={() => setIsModalOpen(false)} t={t} />
       )}
     </div>
   );
@@ -282,21 +286,21 @@ const UsageHistory: React.FC = () => {
 export default UsageHistory;
 
 /* ================== MODAL ================== */
-const DetailModal = ({ user, onClose }: any) => (
+const DetailModal = ({ user, onClose, t }: any) => (
   <div style={overlayStyle}>
     <div style={modalStyle}>
       <div style={modalHeader}>
-        <b>Chi tiết</b>
+        <b>{t.history.detail}</b>
         <button onClick={onClose}>✕</button>
       </div>
       <div style={{ padding: 20 }}>
-        <p><b>Loại:</b> {user.resident ? "Cư dân" : "Khách ngoài"}</p>
-        <p><b>Cư dân:</b> {user.resident?.fullName}</p>
-        <p><b>Dịch vụ:</b> {user.service?.serviceName}</p>
-        <p><b>Hệ thống:</b> {user.system ?? "QR"}</p>
-        <p><b>Thời gian vào:</b> {formatDateTime(user.checkInOut?.checkInTime)}</p>
-        <p><b>Thời gian ra:</b> {formatDateTime(user.checkInOut?.checkOutTime)}</p>
-        <p><b>Giá:</b> {user.service?.price}</p>
+        <p><b>{t.history.type}:</b> {user.resident ? t.history.resident : t.history.guest}</p>
+        <p><b>{t.history.resident}:</b> {user.resident?.fullName}</p>
+        <p><b>{t.history.service}:</b> {user.service?.serviceName}</p>
+        <p><b>{t.history.system}:</b> {user.checkInOut?.method ?? "QR"}</p>
+        <p><b>{t.history.checkInTime}:</b> {formatDateTime(user.checkInOut?.checkInTime)}</p>
+        <p><b>{t.history.checkOutTime}:</b> {formatDateTime(user.checkInOut?.checkOutTime)}</p>
+        <p><b>{t.history.price}:</b> {user.service?.price}</p>
       </div>
     </div>
   </div>

@@ -49,6 +49,7 @@ const login = async (credentials: LoginCredentials): Promise<AuthResponse> => {
   const body = {
     email: credentials.email ?? credentials.identifier,
     password: credentials.password,
+    locale: credentials.locale || 'vi', // Gửi locale trong request
   };
 
 
