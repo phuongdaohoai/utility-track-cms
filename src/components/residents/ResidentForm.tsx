@@ -1,5 +1,5 @@
 import { FC, useState, useEffect, useRef, ChangeEvent } from 'react';
-import { X, Upload, User, CheckCircle2, AlertCircle, Trash2 } from 'lucide-react';
+import { X, Upload, User, CheckCircle2, AlertCircle, Trash2, RefreshCw } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import residentsService from '../../services/residentsService';
 import {
@@ -7,10 +7,10 @@ import {
   updateResident,
   deleteResident,
   fetchResidentById,
-  resetResidentStatus
+  resetResidentStatus,
 } from '../../store/residentsSlice';
 import { API_BASE_URL } from '../../utils/url';
-
+import { QRCodeSVG } from 'qrcode.react';
 // 1. Interface
 interface Apartment {
   id: number;
@@ -42,7 +42,7 @@ export const ResidentModal: FC<ResidentModalProps> = ({
     updateStatus,
     error: reduxError
   } = useAppSelector((state) => state.residents);
-
+  const [isResettingQr, setIsResettingQr] = useState(false);
   const isEditMode = !!residentId;
   const currentStatus = isEditMode ? updateStatus : createStatus;
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
@@ -171,7 +171,34 @@ export const ResidentModal: FC<ResidentModalProps> = ({
     setFormData(prev => ({ ...prev, [name]: value }));
     if (formErrors[name]) setFormErrors(prev => ({ ...prev, [name]: '' }));
   };
+  const handleResetQrCode = async () => {
+    if (!residentId) return;
 
+    // Xác nhận trước khi reset (tuỳ chọn)
+    if (!window.confirm("Bạn có chắc chắn muốn làm mới mã QR của cư dân này? Mã cũ sẽ không còn hiệu lực.")) {
+      return;
+    }
+
+    setIsResettingQr(true);
+    try {
+      const res = await residentsService.resetQrCode(residentId);
+      const newQrCode = res.data?.qrCode || res.data;
+
+      if (newQrCode) {
+        setFormData(prev => ({ ...prev, qrCode: newQrCode }));
+        alert("Đã làm mới mã QR thành công!");
+      } else {
+        dispatch(fetchResidentById(residentId));
+        alert("Đã reset. Đang tải lại dữ liệu...");
+      }
+
+    } catch (error) {
+      console.error("Lỗi reset QR:", error);
+      alert("Không thể làm mới mã QR. Vui lòng thử lại.");
+    } finally {
+      setIsResettingQr(false);
+    }
+  };
   const handleAvatarChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -506,19 +533,43 @@ export const ResidentModal: FC<ResidentModalProps> = ({
                   </div>
                 )}
 
-                {isEditMode && (
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Mã QR</label>
-                    <input
-                      disabled
-                      name="qrCode"
-                      value={formData.qrCode}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                    />
+              {isEditMode && (
+                  <div className="md:col-span-2 mt-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Mã QR Truy cập</label>
+                    <div className="flex items-center gap-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                      <div className="bg-white p-2 rounded shadow-sm border border-gray-100">
+                        {formData.qrCode ? (
+                          <QRCodeSVG 
+                            value={formData.qrCode}
+                            size={100}
+                            level="M"
+                          />
+                        ) : (
+                          <div className="w-[100px] h-[100px] bg-gray-200 flex items-center justify-center text-xs text-gray-500 text-center">
+                            Chưa có mã
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <div className="mb-3">
+                          <p className="text-xs text-gray-500 mb-1">Chuỗi mã:</p>
+                          <code className="block bg-gray-200 px-2 py-1 rounded text-sm text-gray-700 break-all font-mono">
+                            {formData.qrCode || "N/A"}
+                          </code>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleResetQrCode}
+                          disabled={isResettingQr}
+                          className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-100 hover:text-indigo-600 transition-all text-sm font-medium shadow-sm disabled:opacity-50"
+                        >
+                          <RefreshCw className={`w-4 h-4 ${isResettingQr ? 'animate-spin' : ''}`} />
+                          {isResettingQr ? 'Đang tạo mới...' : 'Làm mới QR Code'}
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 )}
-
               </div>
             </div>
 

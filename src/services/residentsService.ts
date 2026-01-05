@@ -85,10 +85,14 @@ const deleteResident = async (id: number | string) => {
   return response.json();
 };
 
+const resetQrCode= async (residentId: number) => {
+    return api.put(`/residents/resetQrCode/${residentId}`, {});
+  };
 export default {
   getById,
   update,
   delete: deleteResident,
   create,
   uploadAvatar,
+  resetQrCode
 };
