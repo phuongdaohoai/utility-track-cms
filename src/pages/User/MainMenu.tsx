@@ -54,12 +54,14 @@ export const MainMenu: FC = () => {
               >
                 Cư dân CC
               </button>
-              <button
-                onClick={() => navigate('/select-service-guest')}
-                className="bg-yellow-400 text-black px-12 py-6 rounded-lg font-semibold text-lg hover:bg-yellow-500 shadow-md"
-              >
-                Cư dân ngoài
-              </button>
+             {mode === 'checkin' && (
+                <button
+                  onClick={() => navigate('/select-service-guest', { state: { mode } })}
+                  className="bg-yellow-400 text-black px-12 py-6 rounded-lg font-semibold text-lg hover:bg-yellow-500 shadow-md"
+                >
+                  Cư dân ngoài
+                </button>
+              )}
             </div>
 
             <button
