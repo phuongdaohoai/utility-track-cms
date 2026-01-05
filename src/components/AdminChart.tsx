@@ -80,10 +80,16 @@ export default function AdminChart({
     onChangeGroupBy(e.target.value as GroupBy);
   };
 
-  const serviceKeys =
-    data.length > 0
-      ? Object.keys(data[0]).filter((k) => k !== "Period")
-      : [];
+  const serviceKeys = Array.from(
+    data.reduce((keys, item) => {
+      Object.keys(item).forEach((key) => {
+        if (key !== "Period") {
+          keys.add(key);
+        }
+      });
+      return keys;
+    }, new Set<string>())
+  );
 
   return (
     <div className="space-y-4 rounded-lg bg-white p-4 shadow">
