@@ -19,11 +19,7 @@ export const SelectServiceForGuest: FC = () => {
     const loadServices = async () => {
       try {
         setLoading(true)
-        const token = localStorage.getItem('accessToken')
-        if (!token) {
-          setError('Chưa đăng nhập. Vui lòng đăng nhập lại.')
-          return
-        }
+       
 
         const res = await getServices(1, 100)
         const responseData = res?.data || res
