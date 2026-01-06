@@ -23,13 +23,12 @@ function formatPeriod(period: string | number | Date | any, groupBy: GroupBy) {
     const date = new Date(periodStr);
     if (isNaN(date.getTime())) return periodStr; // Invalid date
 
-    const hh = date.getHours().toString().padStart(2, "0");
-    const mm = date.getMinutes().toString().padStart(2, "0");
+    // Chỉ hiển thị ngày, bỏ giờ
     const dd = date.getDate().toString().padStart(2, "0");
     const MM = (date.getMonth() + 1).toString().padStart(2, "0");
     const yyyy = date.getFullYear();
 
-    return `${hh}:${mm} - ${dd}/${MM}/${yyyy}`;
+    return `${dd}/${MM}/${yyyy}`;
   }
 
   if (groupBy === "month") {
@@ -77,7 +76,26 @@ export default function AdminChart({
   onChangeToDate,
 }: Props) {
   const handleGroupByChange = (e: ChangeEvent<HTMLSelectElement>) => {
-    onChangeGroupBy(e.target.value as GroupBy);
+    const newGroupBy = e.target.value as GroupBy;
+    onChangeGroupBy(newGroupBy);
+
+    // Khi chọn "day", tự động set mặc định 7 ngày gần nhất
+    if (newGroupBy === "day") {
+      const today = new Date();
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(today.getDate() - 7);
+
+      // Format thành YYYY-MM-DD
+      const formatDate = (date: Date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+      };
+
+      onChangeFromDate(formatDate(sevenDaysAgo));
+      onChangeToDate(formatDate(today));
+    }
   };
 
   const serviceKeys = Array.from(
@@ -97,7 +115,7 @@ export default function AdminChart({
       <div className="flex flex-wrap items-center gap-4">
         <select
           value={groupBy}
-          onChange={(e) => onChangeGroupBy(e.target.value as GroupBy)}
+          onChange={handleGroupByChange}
           className="
     rounded
     border
@@ -146,7 +164,19 @@ export default function AdminChart({
 
       {/* ===== CHART ===== */}
       <div className="h-72">
-        {data.length === 0 ? (
+        {/* Kiểm tra nếu groupBy là "day" và thiếu fromDate hoặc toDate */}
+        {groupBy === "day" && (!fromDate || !toDate) ? (
+          <div className="flex h-full items-center justify-center text-gray-500">
+            <div className="text-center">
+              <p className="text-lg font-medium mb-2">
+                Vui lòng chọn đủ cả 2 ngày
+              </p>
+              <p className="text-sm text-gray-400">
+                Chọn ngày bắt đầu và ngày kết thúc để xem dữ liệu
+              </p>
+            </div>
+          </div>
+        ) : data.length === 0 ? (
           <div className="flex h-full items-center justify-center text-gray-400">
             Không có dữ liệu
           </div>
@@ -166,9 +196,9 @@ export default function AdminChart({
 
               {serviceKeys.map((key, index) => (
                 <Bar
-                  key={key}
-                  dataKey={key}
-                  name={key}
+                  key={String(key)}
+                  dataKey={String(key)}
+                  name={String(key)}
                   fill={COLORS[index % COLORS.length]}
                   radius={[4, 4, 0, 0]}
                 />
