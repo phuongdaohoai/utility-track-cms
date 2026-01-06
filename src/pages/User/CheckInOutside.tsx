@@ -68,6 +68,10 @@ export const CheckInOutside: FC = () => {
   const handlePersonNameChange = (id: string, name: string) => {
     setPeople(people.map((p) => (p.id === id ? { ...p, name } : p)))
   }
+  // <-- Thêm hàm xóa ở đây
+  const handleRemovePerson = (id: string) => {
+    setPeople(people.filter((p) => p.id !== id))
+  }
 
   const handleCheckin = async () => {
     // Validation
@@ -98,7 +102,7 @@ export const CheckInOutside: FC = () => {
       }
 
       const result = await createGuestCheckIn(checkInData)
-      
+
       if (result.status === 'CHECK_IN') {
         setSuccess(result.message || 'Check-in thành công!')
         // Reset form sau 2 giây và quay về trang chọn dịch vụ
@@ -115,15 +119,15 @@ export const CheckInOutside: FC = () => {
         response: err?.response,
         status: err?.response?.status,
       })
-      
+
       // Hiển thị thông báo lỗi chi tiết hơn
       let errorMessage = err?.message || 'Có lỗi xảy ra khi check-in. Vui lòng thử lại.'
-      
+
       // Nếu là lỗi network hoặc endpoint không tồn tại
       if (err?.message?.includes('Cannot POST') || err?.message?.includes('404')) {
         errorMessage = 'Endpoint API không đúng. Vui lòng kiểm tra lại cấu hình backend.'
       }
-      
+
       setError(errorMessage)
     } finally {
       setLoading(false)
@@ -212,14 +216,15 @@ export const CheckInOutside: FC = () => {
                             className="w-full px-2 py-1 bg-white border-0 outline-none"
                           />
                         </td>
-                        <td className="border border-gray-300 px-4 py-2">
+                        <td className="border border-gray-300 px-4 py-2 flex gap-2">
+                          {/* Nút Thêm */}
                           <button
                             onClick={handleAddPerson}
-                            className="bg-blue-600 text-white px-4 py-2 rounded flex items-center gap-2 hover:bg-blue-700 transition-colors"
+                            className="bg-blue-600 text-white px-3 py-1 rounded flex items-center gap-1 hover:bg-blue-700 transition-colors"
                           >
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
-                              className="h-5 w-5"
+                              className="h-4 w-4"
                               viewBox="0 0 20 20"
                               fill="currentColor"
                             >
@@ -231,10 +236,32 @@ export const CheckInOutside: FC = () => {
                             </svg>
                             Thêm
                           </button>
+
+                          {/* Nút Xóa */}
+                          {people.length > 1 && ( // Chỉ hiển thị nếu còn >1 người
+                            <button
+                              onClick={() => handleRemovePerson(person.id)}
+                              className="bg-red-600 text-white px-3 py-1 rounded flex items-center gap-1 hover:bg-red-700 transition-colors"
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-4 w-4"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                                strokeWidth={2}
+                              >
+                                <circle cx="12" cy="12" r="10" className="stroke-current" />
+                                <line x1="8" y1="12" x2="16" y2="12" className="stroke-current" />
+                              </svg>
+                              Xóa
+                            </button>
+                          )}
                         </td>
                       </tr>
                     ))}
                   </tbody>
+
                 </table>
               </div>
             </div>
