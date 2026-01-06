@@ -20,8 +20,8 @@ export const GuestCheckout: FC = () => {
   const [options, setOptions] = useState<CheckInOption[]>([])
   const [selectedCheckIn, setSelectedCheckIn] = useState<CheckInItem | null>(null)
   const [loading, setLoading] = useState(false)
-  const [checkoutQuantity, setCheckoutQuantity] = useState<number | null>(null)
   const [isCheckingOut, setIsCheckingOut] = useState(false)
+  const [selectedPeople, setSelectedPeople] = useState<number[]>([])
 
   // Lấy tất cả check-ins khi component mount
   useEffect(() => {
@@ -75,11 +75,22 @@ export const GuestCheckout: FC = () => {
   const handleSelectChange = (selected: CheckInOption | null) => {
     if (selected) {
       setSelectedCheckIn(selected.data)
-      setCheckoutQuantity(null)
+      setSelectedPeople([])
     } else {
       setSelectedCheckIn(null)
-      setCheckoutQuantity(null)
+      setSelectedPeople([])
     }
+  }
+
+  // Xử lý chọn/bỏ chọn người trong bảng
+  const handleTogglePerson = (index: number) => {
+    setSelectedPeople(prev => {
+      if (prev.includes(index)) {
+        return prev.filter(i => i !== index)
+      } else {
+        return [...prev, index]
+      }
+    })
   }
 
   // Format thời gian
@@ -114,7 +125,7 @@ export const GuestCheckout: FC = () => {
       alert(t.guestCheckout.checkoutSuccess)
       // Reset và load lại
       setSelectedCheckIn(null)
-      setCheckoutQuantity(null)
+      setSelectedPeople([])
       setInputValue('')
       // Có thể reload danh sách nếu cần
     } catch (error: any) {
@@ -125,20 +136,15 @@ export const GuestCheckout: FC = () => {
     }
   }
 
-  // Xử lý checkout theo số lượng
+  // Xử lý checkout theo số lượng đã chọn
   const handleCheckoutByQuantity = async () => {
-    if (!selectedCheckIn || !checkoutQuantity || checkoutQuantity <= 0) {
-      alert('Vui lòng chọn số lượng hợp lệ')
-      return
-    }
-
-    if (checkoutQuantity > selectedCheckIn.totalPeople) {
-      alert('Số lượng checkout không được vượt quá số người đã check-in')
+    if (!selectedCheckIn || selectedPeople.length === 0) {
+      alert('Vui lòng chọn ít nhất một người để checkout')
       return
     }
 
     const confirm = window.confirm(
-      `${t.guestCheckout.confirmCheckout}\n${t.guestCheckout.selectQuantity}: ${checkoutQuantity}`
+      `${t.guestCheckout.confirmCheckout}\n${t.guestCheckout.selectQuantity}: ${selectedPeople.length} người`
     )
     if (!confirm) return
 
@@ -149,7 +155,7 @@ export const GuestCheckout: FC = () => {
       alert(t.guestCheckout.checkoutSuccess)
       // Reset
       setSelectedCheckIn(null)
-      setCheckoutQuantity(null)
+      setSelectedPeople([])
       setInputValue('')
     } catch (error: any) {
       console.error('Lỗi checkout:', error)
@@ -159,14 +165,6 @@ export const GuestCheckout: FC = () => {
     }
   }
 
-  // Tạo options cho select số lượng
-  const quantityOptions = useMemo(() => {
-    if (!selectedCheckIn) return []
-    return Array.from({ length: selectedCheckIn.totalPeople }, (_, i) => ({
-      value: i + 1,
-      label: `${i + 1} ${i === 0 ? 'người' : 'người'}`
-    }))
-  }, [selectedCheckIn])
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -209,7 +207,7 @@ export const GuestCheckout: FC = () => {
                 }}
               />
             </div>
-
+{/*  */}
             {selectedCheckIn && (
               <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
                 <p className="text-sm text-gray-600 mb-2">{t.guestCheckout.selectGuest}</p>
@@ -221,84 +219,131 @@ export const GuestCheckout: FC = () => {
 
           {/* Bên phải: Giao diện checkout */}
           <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">
-              {t.guestCheckout.guestInfo}
-            </h2>
-
             {!selectedCheckIn ? (
               <div className="text-center py-12 text-gray-500">
                 <p>{t.guestCheckout.selectGuest}</p>
               </div>
             ) : (
-              <div className="space-y-4">
-                {/* Thông tin khách */}
-                <div className="border-b pb-4">
-                  <div className="flex items-center gap-4 mb-4">
-                    <img
-                      src={`https://i.pravatar.cc/60?img=${selectedCheckIn.id % 70}`}
-                      className="w-16 h-16 rounded-full object-cover border-2 border-gray-200"
-                      alt="Avatar"
-                    />
-                    <div>
-                      <h3 className="text-lg font-bold text-gray-800">
-                        {selectedCheckIn.displayName}
-                      </h3>
-                      <p className="text-sm text-gray-500">Khách ngoài</p>
-                    </div>
+              <div className="border border-gray-300 bg-white p-6 rounded-lg">
+                <div className="space-y-4">
+                  {/* Đại Diện */}
+                  <div className="flex items-center">
+                    <label className="w-48 text-gray-700 font-medium">Đại Diện</label>
+                    <span className="flex-1 text-gray-700 font-semibold">
+                      {selectedCheckIn.displayName}
+                    </span>
                   </div>
-                </div>
 
-                {/* Chi tiết */}
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center py-2 border-b">
-                    <span className="text-gray-600">{t.guestCheckout.service}:</span>
-                    <span className="font-semibold text-gray-800">
+                  {/* Số Điện Thoại */}
+                  <div className="flex items-center">
+                    <label className="w-48 text-gray-700 font-medium">Số Điện Thoại</label>
+                    <span className="flex-1 text-gray-700 font-semibold">
+                      {selectedCheckIn.displayName}
+                    </span>
+                  </div>
+
+                  {/* Dịch Vụ */}
+                  <div className="flex items-center">
+                    <label className="w-48 text-gray-700 font-medium">Dịch Vụ</label>
+                    <span className="flex-1 text-gray-700 font-semibold">
                       {selectedCheckIn.serviceName}
                     </span>
                   </div>
 
-                  <div className="flex justify-between items-center py-2 border-b">
-                    <span className="text-gray-600">{t.guestCheckout.checkInTime}:</span>
-                    <span className="font-semibold text-gray-800">
-                      {formatTime(selectedCheckIn.checkInTime)}
+                  {/* Phương Thức Checkin */}
+                  <div className="flex items-center">
+                    <label className="w-48 text-gray-700 font-medium">Phương Thức Checkin</label>
+                    <span className="flex-1 text-gray-700">
+                      {selectedCheckIn.method || 'Thủ Công'}
                     </span>
                   </div>
 
-                  <div className="flex justify-between items-center py-2 border-b">
-                    <span className="text-gray-600">{t.guestCheckout.quantity}:</span>
-                    <span className="font-semibold text-indigo-600 text-lg">
-                      {selectedCheckIn.totalPeople}
-                    </span>
+                  {/* Thời Gian Vào */}
+                  <div className="flex items-center">
+                    <label className="w-48 text-gray-700 font-medium">Thời Gian Vào</label>
+                    <span className="flex-1 text-gray-700">{formatTime(selectedCheckIn.checkInTime)}</span>
                   </div>
-                </div>
 
-                {/* Actions */}
-                <div className="mt-6 space-y-3">
-                  {/* Checkout tất cả */}
-                  <button
-                    onClick={handleCheckoutAll}
-                    disabled={isCheckingOut}
-                    className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isCheckingOut ? t.common.loading : t.guestCheckout.checkoutAll}
-                  </button>
+                  {/* Số Lượng */}
+                  <div className="flex items-start">
+                    <label className="w-48 text-gray-700 font-medium pt-2">Số Lượng</label>
+                    <div className="flex-1">
+                      {/* Bảng */}
+                      <table className="w-full border-collapse">
+                        <thead>
+                          <tr className="bg-gray-100">
+                            <th className="border border-gray-300 px-4 py-2 text-left font-semibold text-gray-700">
+                              STT
+                            </th>
+                            <th className="border border-gray-300 px-4 py-2 text-left font-semibold text-gray-700">
+                              Họ Và Tên
+                            </th>
+                            <th className="border border-gray-300 px-4 py-2 text-left font-semibold text-gray-700">
+                              Chọn
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {Array.from({ length: selectedCheckIn.totalPeople }, (_, index) => (
+                            <tr key={index} className="bg-white">
+                              <td className="border border-gray-300 px-4 py-2 text-gray-700">
+                                {index + 1}
+                              </td>
+                              <td className="border border-gray-300 px-4 py-2 text-gray-700">
+                                {index === 0 ? selectedCheckIn.displayName : `Người ${index + 1}`}
+                              </td>
+                              <td className="border border-gray-300 px-4 py-2">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedPeople.includes(index)}
+                                  onChange={() => handleTogglePerson(index)}
+                                  className="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                                />
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
 
-                  {/* Checkout theo số lượng */}
-                  {selectedCheckIn.totalPeople > 1 && (
-                    <div className="space-y-2">
-                      <Select
-                        options={quantityOptions}
-                        onChange={(option) => setCheckoutQuantity(option?.value || null)}
-                        placeholder={t.guestCheckout.selectQuantity}
-                        className="react-select-container"
-                        classNamePrefix="react-select"
-                      />
+                  {/* Thông báo */}
+                  {selectedPeople.length > 0 && (
+                    <div className="mt-4 p-3 bg-blue-50 border border-blue-200 text-blue-700 rounded">
+                      Đã chọn {selectedPeople.length} người để checkout
+                    </div>
+                  )}
+
+                  {/* Nút Checkout */}
+                  <div className="flex justify-center gap-4 mt-6">
+                    <button
+                      onClick={() => {
+                        setSelectedCheckIn(null)
+                        setSelectedPeople([])
+                        setInputValue('')
+                      }}
+                      className="bg-gray-500 text-white px-8 py-3 rounded-lg font-semibold text-lg hover:bg-gray-600 transition-colors"
+                    >
+                      {t.common.cancel}
+                    </button>
+                    <button
+                      onClick={handleCheckoutAll}
+                      disabled={isCheckingOut}
+                      className="bg-blue-800 text-white px-16 py-3 rounded-lg font-semibold text-lg hover:bg-blue-900 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    >
+                      {isCheckingOut ? t.common.loading : t.guestCheckout.checkoutAll}
+                    </button>
+                  </div>
+
+                  {/* Checkout theo số lượng đã chọn */}
+                  {selectedCheckIn.totalPeople > 1 && selectedPeople.length > 0 && (
+                    <div className="flex justify-center">
                       <button
                         onClick={handleCheckoutByQuantity}
-                        disabled={isCheckingOut || !checkoutQuantity}
-                        className="w-full py-3 bg-yellow-500 hover:bg-yellow-600 text-black font-semibold rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={isCheckingOut || selectedPeople.length === 0}
+                        className="bg-yellow-500 text-black px-16 py-3 rounded-lg font-semibold text-lg hover:bg-yellow-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                       >
-                        {isCheckingOut ? t.common.loading : t.guestCheckout.checkoutByQuantity}
+                        {isCheckingOut ? t.common.loading : `Checkout ${selectedPeople.length} người`}
                       </button>
                     </div>
                   )}
