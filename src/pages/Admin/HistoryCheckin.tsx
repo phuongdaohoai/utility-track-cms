@@ -24,8 +24,8 @@ const formatDateTime = (value?: string) => {
 /* ================== TYPES ================== */
 interface UsageItem {
   id: number;
-  system?: string;
   quantity?: number;
+  additionalGuests?: string;
 
   checkInOut?: {
     checkInTime?: string;
@@ -36,13 +36,42 @@ interface UsageItem {
   resident?: {
     fullName: string;
     avatar?: string;
+    phone?: string;
   };
 
   service?: {
     serviceName: string;
     price: number;
   };
+
+  staff?: {
+    fullName: string;
+  };
 }
+interface HistoryDetail {
+  id: number;
+  usageTime: string;
+  item: {
+    displayName: string;
+    remainingNames: string[];
+    totalGuests: number;
+    checkInTime?: string;
+    checkOutTime?: string;
+    method?: string;
+    phone?: string;
+  };
+  apartment?: string | null;
+  service: {
+    serviceName: string;
+    price: number;
+    capacity: number;
+  };
+  staff?: {
+    fullName: string;
+  } | null;
+}
+
+
 
 /* ================== MAIN ================== */
 const UsageHistory: React.FC = () => {
@@ -53,7 +82,8 @@ const UsageHistory: React.FC = () => {
   const [totalPages, setTotalPages] = useState(0);
 
   const [data, setData] = useState<UsageItem[]>([]);
-  const [selectedUser, setSelectedUser] = useState<UsageItem | null>(null);
+  const [selectedUser, setSelectedUser] = useState<HistoryDetail | null>(null);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   /* ================== FETCH LIST ================== */
@@ -203,6 +233,12 @@ const UsageHistory: React.FC = () => {
                         style={avatarStyle}
                       />
                       {item.resident?.fullName || t.history.guest}
+
+                      {item.quantity && item.quantity > 1 && (
+                        <span style={{ color: "#6b7280", marginLeft: 4 }}>
+                          (+{item.quantity - 1})
+                        </span>
+                      )}
                     </div>
                   </td>
                   <td style={tdStyle}>{item.service?.serviceName}</td>
@@ -239,11 +275,10 @@ const UsageHistory: React.FC = () => {
               <button
                 key={pageNum}
                 onClick={() => goToPage(pageNum)}
-                className={`px-3 py-1 rounded ${
-                  currentPage === pageNum
+                className={`px-3 py-1 rounded ${currentPage === pageNum
                     ? "bg-indigo-600 text-white font-medium"
                     : "text-gray-700 hover:bg-gray-100"
-                }`}
+                  }`}
               >
                 {pageNum}
               </button>
@@ -255,11 +290,10 @@ const UsageHistory: React.FC = () => {
               <span className="px-2 text-gray-500">...</span>
               <button
                 onClick={() => goToPage(totalPages)}
-                className={`px-3 py-1 rounded ${
-                  currentPage === totalPages
+                className={`px-3 py-1 rounded ${currentPage === totalPages
                     ? "bg-indigo-600 text-white font-medium"
                     : "text-gray-700 hover:bg-gray-100"
-                }`}
+                  }`}
               >
                 {totalPages}
               </button>
@@ -286,25 +320,52 @@ const UsageHistory: React.FC = () => {
 export default UsageHistory;
 
 /* ================== MODAL ================== */
-const DetailModal = ({ user, onClose, t }: any) => (
-  <div style={overlayStyle}>
-    <div style={modalStyle}>
-      <div style={modalHeader}>
-        <b>{t.history.detail}</b>
-        <button onClick={onClose}>✕</button>
-      </div>
-      <div style={{ padding: 20 }}>
-        <p><b>{t.history.type}:</b> {user.resident ? t.history.resident : t.history.guest}</p>
-        <p><b>{t.history.resident}:</b> {user.resident?.fullName}</p>
-        <p><b>{t.history.service}:</b> {user.service?.serviceName}</p>
-        <p><b>{t.history.system}:</b> {user.checkInOut?.method ?? "QR"}</p>
-        <p><b>{t.history.checkInTime}:</b> {formatDateTime(user.checkInOut?.checkInTime)}</p>
-        <p><b>{t.history.checkOutTime}:</b> {formatDateTime(user.checkInOut?.checkOutTime)}</p>
-        <p><b>{t.history.price}:</b> {user.service?.price}</p>
+const DetailModal = ({ user, onClose, t }: any) => {
+  const remainingNames = user.item.remainingNames?.filter(Boolean) || [];
+
+  return (
+    <div style={overlayStyle}>
+      <div style={modalStyle}>
+        <div style={modalHeader}>
+          <b>{t.history.detail}</b>
+          <button onClick={onClose}>✕</button>
+        </div>
+
+        <div style={{ padding: 20, lineHeight: 1.6 }}>
+          <p><b>Người đại diện:</b> {user.item.displayName}</p>
+
+          <div>
+            <b>Người đi cùng:</b>
+            {remainingNames.length > 0 ? (
+              <ul style={{ margin: "4px 0 0 20px", padding: 0 }}>
+                {remainingNames.map((name: string, i: number) => (
+                  <li key={i} style={{ listStyleType: "disc" }}>
+                    {name}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <span> -- </span>
+            )}
+          </div>
+
+          <p><b>Số lượng:</b> {user.item.totalGuests}</p>
+          <p><b>Dịch vụ:</b> {user.service.serviceName}</p>
+          <p><b>Hệ thống:</b> {user.item.method}</p>
+          <p><b>Giờ vào:</b> {formatDateTime(user.item.checkInTime)}</p>
+          <p><b>Giờ ra:</b> {formatDateTime(user.item.checkOutTime)}</p>
+          <p><b>Căn hộ:</b> {user.apartment || "--"}</p>
+          <p><b>Giá:</b> {user.service.price.toLocaleString()} đ</p>
+          <p><b>Nhân viên check-in:</b> {user.staff?.fullName || "--"}</p>
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
+
+
+
+
 
 /* ================== STYLES (GIỮ NGUYÊN) ================== */
 const pageStyle: React.CSSProperties = { fontFamily: "Arial, sans-serif" };
