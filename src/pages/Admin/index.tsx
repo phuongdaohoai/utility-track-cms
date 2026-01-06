@@ -15,6 +15,15 @@ export default function AdminPage() {
 
   useEffect(() => {
     const fetchData = async () => {
+      // Nếu groupBy là "day", chỉ gọi API khi có đủ cả fromDate và toDate
+      if (groupBy === "day") {
+        if (!fromDate || !toDate) {
+          // Không gọi API nếu thiếu một trong hai ngày, nhưng không clear dashboard
+          // để người dùng vẫn có thể tương tác và chọn lại ngày
+          return;
+        }
+      }
+
       const res = await getDashboardData({
         groupBy,
         fromDate,
@@ -27,6 +36,7 @@ export default function AdminPage() {
     fetchData();
   }, [groupBy, fromDate, toDate]);
 
+  // Chỉ hiển thị loading khi lần đầu load (dashboard chưa có dữ liệu)
   if (!dashboard) return <div>{t.common.loading}</div>;
 
   return (
