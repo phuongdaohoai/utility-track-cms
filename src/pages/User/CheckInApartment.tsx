@@ -1,6 +1,7 @@
 import { useState, useEffect, type FC } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { residentCheckInOrOut, type ResidentCheckInDto } from '../../api/checkin.api'
+import { useLocale } from '../../i18n/LocaleContext'
 
 interface AdditionalGuest {
   id: string
@@ -23,7 +24,7 @@ interface ResidentData {
 }
 
 interface LocationState {
-  residentData: ResidentData // Thông tin cư dân từ find-resident
+  residentData: ResidentData
   serviceId: number
   serviceName: string
   qrCode?: string
@@ -31,11 +32,11 @@ interface LocationState {
 }
 
 export const CheckInApartment: FC = () => {
+  const { t, locale } = useLocale()
   const location = useLocation()
   const navigate = useNavigate()
   const state = location.state as LocationState | null
 
-  // Nếu không có dữ liệu từ ScreenCheckIn, quay lại
   useEffect(() => {
     if (!state?.residentData) {
       navigate('/screen-checkin')
@@ -45,37 +46,30 @@ export const CheckInApartment: FC = () => {
   const residentData = state?.residentData
   const serviceId = state?.serviceId
   const serviceName = state?.serviceName || ''
-  
-  // Lấy thông tin căn hộ
-  const apartment = typeof residentData?.apartment === 'string' 
-    ? residentData.apartment 
-    : residentData?.apartment?.roomNumber 
+
+  const apartment =
+    typeof residentData?.apartment === 'string'
+      ? residentData.apartment
+      : residentData?.apartment?.roomNumber
       ? `${residentData.apartment.building || ''}${residentData.apartment.roomNumber || ''}`.trim()
       : ''
-  
+
   const ownerName = residentData?.fullName || ''
-  
-  // Format thời gian hiện tại
+
   const now = new Date()
-  const checkInTime = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`
-  
+  const checkInTime = now.toLocaleString(locale === 'vi' ? 'vi-VN' : 'en-US')
+
   const [additionalGuests, setAdditionalGuests] = useState<AdditionalGuest[]>([
-    { id: '1', name: '' }
+    { id: '1', name: '' },
   ])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
-  if (!residentData || !serviceId) {
-    return null // Sẽ redirect trong useEffect
-  }
+  if (!residentData || !serviceId) return null
 
   const handleAddGuest = () => {
-    const newGuest: AdditionalGuest = {
-      id: Date.now().toString(),
-      name: '',
-    }
-    setAdditionalGuests([...additionalGuests, newGuest])
+    setAdditionalGuests([...additionalGuests, { id: Date.now().toString(), name: '' }])
   }
 
   const handleGuestNameChange = (id: string, name: string) => {
@@ -83,10 +77,7 @@ export const CheckInApartment: FC = () => {
   }
 
   const handleCheckin = async () => {
-    // Lấy danh sách tên người đi cùng (chỉ lấy những người có tên)
-    const guestNames = additionalGuests
-      .map(g => g.name.trim())
-      .filter(name => name !== '')
+    const guestNames = additionalGuests.map(g => g.name.trim()).filter(Boolean)
 
     setLoading(true)
     setError(null)
@@ -94,23 +85,21 @@ export const CheckInApartment: FC = () => {
 
     try {
       const checkInData: ResidentCheckInDto = {
-        serviceId: serviceId,
+        serviceId,
         qrCode: state?.qrCode,
         faceDescriptor: state?.faceDescriptor,
-        additionalGuests: guestNames.length > 0 ? guestNames : undefined,
+        additionalGuests: guestNames.length ? guestNames : undefined,
       }
 
       const result = await residentCheckInOrOut(checkInData)
-      setSuccess(result.message || 'Check-in thành công!')
-      
-      // Reset form sau 2 giây
+      setSuccess(result.message || t.checkInApartment.checkinSuccess)
+
       setTimeout(() => {
         setAdditionalGuests([{ id: '1', name: '' }])
         navigate('/mainmenu')
       }, 2000)
     } catch (err: any) {
-      console.error('Lỗi check-in:', err)
-      setError(err.message || 'Có lỗi xảy ra khi check-in. Vui lòng thử lại.')
+      setError(err.message || t.checkInApartment.checkinFailed)
     } finally {
       setLoading(false)
     }
@@ -119,144 +108,144 @@ export const CheckInApartment: FC = () => {
   return (
     <div className="min-h-screen bg-white p-8 flex items-center justify-center">
       <div className="max-w-4xl w-full">
-        {/* Form container */}
         <div className="border border-gray-300 bg-white p-6 rounded-lg">
           <div className="space-y-4">
             {/* Căn Hộ */}
             <div className="flex items-center">
-              <label className="w-48 text-gray-700 font-medium">Căn Hộ</label>
-              <span className="flex-1 text-gray-700">{apartment}</span>
+              <label className="w-48 font-medium">
+                {t.checkInApartment.apartment}
+              </label>
+              <span className="flex-1">{apartment}</span>
             </div>
 
             {/* Chủ Hộ */}
             <div className="flex items-center">
-              <label className="w-48 text-gray-700 font-medium">Chủ Hộ</label>
-              <span className="flex-1 text-gray-700">{ownerName}</span>
+              <label className="w-48 font-medium">
+                {t.checkInApartment.owner}
+              </label>
+              <span className="flex-1">{ownerName}</span>
             </div>
 
             {/* Dịch Vụ */}
             <div className="flex items-center">
-              <label className="w-48 text-gray-700 font-medium">Dịch Vụ</label>
-              <span className="flex-1 text-gray-700 font-semibold">{serviceName}</span>
+              <label className="w-48 font-medium">
+                {t.checkInApartment.service}
+              </label>
+              <span className="flex-1 font-semibold">{serviceName}</span>
             </div>
 
-            {/* Phương Thức Checkin */}
+            {/* Phương Thức */}
             <div className="flex items-center">
-              <label className="w-48 text-gray-700 font-medium">Phương Thức Checkin</label>
-              <span className="flex-1 text-gray-700">
-                {state?.qrCode ? 'QR Code' : state?.faceDescriptor ? 'Face ID' : 'Thẻ'}
+              <label className="w-48 font-medium">
+                {t.checkInApartment.checkinMethod}
+              </label>
+              <span className="flex-1">
+                {state?.qrCode
+                  ? t.checkInApartment.method.qr
+                  : state?.faceDescriptor
+                  ? t.checkInApartment.method.faceId
+                  : t.checkInApartment.method.card}
               </span>
             </div>
 
-            {/* Thời Gian Vào */}
+            {/* Thời Gian */}
             <div className="flex items-center">
-              <label className="w-48 text-gray-700 font-medium">Thời Gian Vào</label>
-              <span className="flex-1 text-gray-700">
-                {checkInTime ? new Date(checkInTime).toLocaleString('vi-VN') : ''}
-              </span>
+              <label className="w-48 font-medium">
+                {t.checkInApartment.checkinTime}
+              </label>
+              <span className="flex-1">{checkInTime}</span>
             </div>
 
-            {/* Thông tin cư dân chính */}
+            {/* Cư Dân */}
             <div className="flex items-start">
-              <label className="w-48 text-gray-700 font-medium pt-2">Cư Dân</label>
-              <div className="flex-1">
-                <div className="border border-gray-300 rounded p-3 bg-gray-50">
-                  <p className="text-gray-700 font-medium">{ownerName}</p>
-                  {residentData?.phone && (
-                    <p className="text-gray-500 text-sm mt-1">SĐT: {residentData.phone}</p>
-                  )}
-                </div>
+              <label className="w-48 font-medium pt-2">
+                {t.checkInApartment.resident}
+              </label>
+              <div className="flex-1 border rounded p-3 bg-gray-50">
+                <p className="font-medium">{ownerName}</p>
+                {residentData?.phone && (
+                  <p className="text-sm text-gray-500">
+                    {t.users.phone}: {residentData.phone}
+                  </p>
+                )}
               </div>
             </div>
 
-            {/* Người đi cùng (additional guests) */}
+            {/* Người Đi Cùng */}
             <div className="flex items-start">
-              <label className="w-48 text-gray-700 font-medium pt-2">Người Đi Cùng</label>
-              <div className="flex-1">
-                <div className="max-h-64 overflow-y-auto border border-gray-300 rounded">
-                  <table className="w-full border-collapse">
-                    <thead className="sticky top-0 bg-gray-100">
-                      <tr>
-                        <th className="border border-gray-300 px-4 py-2 text-left font-semibold text-gray-700">
-                          STT
-                        </th>
-                        <th className="border border-gray-300 px-4 py-2 text-left font-semibold text-gray-700">
-                          Họ Và Tên
-                        </th>
-                        <th className="border border-gray-300 px-4 py-2 text-right font-semibold text-gray-700">
-                          Hoạt Động
-                        </th>
+              <label className="w-48 font-medium pt-2">
+                {t.checkInApartment.additionalGuests}
+              </label>
+              <div className="flex-1 border rounded max-h-64 overflow-y-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-100">
+                    <tr>
+                      <th className="border p-2">STT</th>
+                      <th className="border p-2">
+                        {t.checkInApartment.guestName}
+                      </th>
+                      <th className="border p-2 text-right">
+                        {t.common.actions}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {additionalGuests.map((guest, i) => (
+                      <tr key={guest.id}>
+                        <td className="border p-2">{i + 1}</td>
+                        <td className="border p-2">
+                          <input
+                            value={guest.name}
+                            onChange={(e) =>
+                              handleGuestNameChange(guest.id, e.target.value)
+                            }
+                            placeholder={t.checkInApartment.enterGuestName}
+                            className="w-full outline-none"
+                          />
+                        </td>
+                        <td className="border p-2 text-right">
+                          <button
+                            onClick={handleAddGuest}
+                            className="bg-blue-600 text-white px-3 py-1 rounded"
+                          >
+                            {t.checkInApartment.add}
+                          </button>
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {additionalGuests.map((guest, index) => (
-                        <tr key={guest.id} className="bg-white">
-                          <td className="border border-gray-300 px-4 py-2 text-gray-700">
-                            {index + 1}
-                          </td>
-                          <td className="border border-gray-300 px-4 py-2">
-                            <input
-                              type="text"
-                              value={guest.name}
-                              onChange={(e) => handleGuestNameChange(guest.id, e.target.value)}
-                              placeholder="Nhập tên người đi cùng..."
-                              className="w-full px-2 py-1 bg-white border-0 outline-none"
-                            />
-                          </td>
-                          <td className="border border-gray-300 px-4 py-2">
-                            <button
-                              onClick={handleAddGuest}
-                              className="bg-blue-600 text-white px-3 py-1.5 rounded flex items-center gap-1 hover:bg-blue-700 transition-colors text-sm ml-auto"
-                            >
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                className="h-4 w-4"
-                                viewBox="0 0 20 20"
-                                fill="currentColor"
-                              >
-                                <path
-                                  fillRule="evenodd"
-                                  d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
-                                  clipRule="evenodd"
-                                />
-                              </svg>
-                              Thêm
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
 
-            {/* Thông báo lỗi/thành công */}
+            {/* Message */}
             {error && (
-              <div className="mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+              <div className="bg-red-100 text-red-700 p-3 rounded">
                 {error}
               </div>
             )}
             {success && (
-              <div className="mt-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded">
+              <div className="bg-green-100 text-green-700 p-3 rounded">
                 {success}
               </div>
             )}
 
-            {/* Nút Checkin */}
+            {/* Buttons */}
             <div className="flex justify-center gap-4 mt-6">
               <button
                 onClick={() => navigate('/screen-checkin')}
-                className="bg-gray-500 text-white px-8 py-3 rounded-lg font-semibold text-lg hover:bg-gray-600 transition-colors"
+                className="bg-gray-500 text-white px-8 py-3 rounded-lg"
               >
-                Quay lại
+                {t.common.back}
               </button>
               <button
                 onClick={handleCheckin}
                 disabled={loading}
-                className="bg-blue-800 text-white px-16 py-3 rounded-lg font-semibold text-lg hover:bg-blue-900 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                className="bg-blue-800 text-white px-16 py-3 rounded-lg disabled:bg-gray-400"
               >
-                {loading ? 'Đang xử lý...' : 'Checkin'}
+                {loading
+                  ? t.checkInApartment.processing
+                  : t.checkInApartment.checkin}
               </button>
             </div>
           </div>
@@ -267,4 +256,3 @@ export const CheckInApartment: FC = () => {
 }
 
 export default CheckInApartment
-
