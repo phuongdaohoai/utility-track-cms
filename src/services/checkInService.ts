@@ -4,10 +4,12 @@ export interface CheckInItem {
   id: number;
   displayName: string;
   room: string;
+  phone: string;
   totalPeople: number;
   serviceName: string;
   checkInTime: string;
   method: string | null;
+  additionalGuests?: string[]; // Thêm trường này
 }
 
 // 1. Get List

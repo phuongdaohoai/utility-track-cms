@@ -64,6 +64,14 @@ export const MainMenu: FC = () => {
                   {t.mainMenu.outsideResident}
                 </button>
               )}
+              {mode === 'checkout' && (
+                <button
+                  onClick={() => navigate('/guest-checkout', { state: { mode } })}
+                  className="bg-yellow-400 text-black px-12 py-6 rounded-lg font-semibold text-lg hover:bg-yellow-500 shadow-md"
+                >
+                  {t.mainMenu.outsideResident}
+                </button>
+              )}
             </div>
 
             <button

@@ -136,7 +136,24 @@ export const getCurrentCheckIns = async (params?: {
 }
 
 /**
- * Check-out theo checkinId
+ * Lấy tất cả check-in (không phân trang)
+ * Endpoint: GET /check-in/get-all-check-ins
+ */
+export const getAllCheckIns = async () => {
+  const response = await api.get('/check-in/get-all-check-ins')
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}))
+    throw new Error(error.message || 'Lỗi khi lấy danh sách check-in')
+  }
+
+  const result = await response.json()
+  // API trả về { success: true, message: "Success", data: [...] }
+  return result.data || []
+}
+
+/**
+ * Check-out theo checkinId (Checkout All)
  * Endpoint: POST /check-in/current-check-outs/{checkinId}
  */
 export const checkoutById = async (checkinId: number) => {
@@ -149,6 +166,25 @@ export const checkoutById = async (checkinId: number) => {
     throw new Error(error.message || 'Lỗi khi check-out')
   }
   
+  const result = await response.json()
+  return result.data || result
+}
+
+/**
+ * Check-out một phần (Partial Checkout)
+ * Endpoint: POST /check-in/partial-check-out/{checkinId}
+ * Body: { guestsToCheckout: ["Khách 1", "Khách 2"] }
+ */
+export const partialCheckout = async (checkinId: number, guestsToCheckout: string[]) => {
+  const response = await api.post(`/check-in/partial-check-out/${checkinId}`, {
+    guestsToCheckout
+  })
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}))
+    throw new Error(error.message || 'Lỗi khi check-out một phần')
+  }
+
   const result = await response.json()
   return result.data || result
 }
