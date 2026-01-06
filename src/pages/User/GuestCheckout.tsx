@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, type FC } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Select from 'react-select'
 import { useLocale } from '../../i18n/LocaleContext'
-import { getCurrentCheckIns } from '../../api/checkin.api'
+import { getAllCheckIns, partialCheckout } from '../../api/checkin.api'
 import { checkoutById } from '../../api/checkin.api'
 import type { CheckInItem } from '../../services/checkInService'
 
@@ -23,51 +23,46 @@ export const GuestCheckout: FC = () => {
   const [isCheckingOut, setIsCheckingOut] = useState(false)
   const [selectedPeople, setSelectedPeople] = useState<number[]>([])
 
-  // Lấy tất cả check-ins khi component mount
-  useEffect(() => {
-    const loadAllCheckIns = async () => {
-      try {
-        setLoading(true)
-        // Lấy tất cả check-ins với pageSize lớn
-        const response = await getCurrentCheckIns({
-          page: 1,
-          pageSize: 1000,
-          search: ''
-        })
-        
-        const items = response?.items || response?.data?.items || []
-        // Lọc chỉ lấy khách ngoài (room === "-" hoặc không có room)
-        const guestCheckIns = items.filter((item: CheckInItem) => 
-          !item.room || item.room === '-' || item.room === ''
-        )
-        
-        // Tạo options cho Select
-        const checkInOptions: CheckInOption[] = guestCheckIns.map((item: CheckInItem) => ({
-          value: item.id,
-          label: `${item.displayName} - ${item.serviceName}`,
-          phone: item.displayName, // Có thể cần điều chỉnh nếu có field phone riêng
-          data: item
-        }))
-        
-        setOptions(checkInOptions)
-      } catch (error) {
-        console.error('Lỗi khi tải danh sách check-in:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
+  // Hàm tải tất cả check-ins (tách ra để có thể gọi lại khi cần)
+  const loadAllCheckIns = async () => {
+    try {
+      setLoading(true)
+      // Lấy tất cả check-ins (API mới)
+      const items = await getAllCheckIns()
 
+      // Lọc chỉ lấy khách ngoài (room === "-" hoặc không có room)
+      const guestCheckIns = items.filter((item: any) =>
+        !item.room || item.room === '-' || item.room === ''
+      )
+
+      // Tạo options cho Select
+      const checkInOptions: CheckInOption[] = guestCheckIns.map((item: any) => ({
+        value: item.id,
+        label: `${item.displayName} - ${item.serviceName}`,
+        phone: item.phone || '', // đảm bảo là chuỗi
+        data: item
+      }))
+
+      setOptions(checkInOptions)
+    } catch (error) {
+      console.error('Lỗi khi tải danh sách check-in:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
     loadAllCheckIns()
   }, [])
 
   // Lọc options theo input
   const filteredOptions = useMemo(() => {
     if (!inputValue) return options
-    
-    const searchLower = inputValue.toLowerCase()
-    return options.filter(option => 
+
+    const searchLower = inputValue.toLowerCase().trim()
+    return options.filter(option =>
       option.label.toLowerCase().includes(searchLower) ||
-      option.phone.toLowerCase().includes(searchLower)
+      (option.phone || '').toLowerCase().includes(searchLower)
     )
   }, [inputValue, options])
 
@@ -127,7 +122,8 @@ export const GuestCheckout: FC = () => {
       setSelectedCheckIn(null)
       setSelectedPeople([])
       setInputValue('')
-      // Có thể reload danh sách nếu cần
+      // Load lại danh sách check-ins
+      await loadAllCheckIns()
     } catch (error: any) {
       console.error('Lỗi checkout:', error)
       alert(error.message || t.guestCheckout.checkoutFailed)
@@ -150,13 +146,28 @@ export const GuestCheckout: FC = () => {
 
     try {
       setIsCheckingOut(true)
-      // Gọi API checkout với quantity (có thể cần điều chỉnh API)
-      await checkoutById(selectedCheckIn.id)
+      
+      // Lấy danh sách tên khách cần checkout
+      const guestsToCheckout = selectedPeople.map(index => {
+        if (index === 0) return selectedCheckIn.displayName
+        
+        const guestIndex = index - 1
+        if (selectedCheckIn.additionalGuests && selectedCheckIn.additionalGuests[guestIndex]) {
+          return selectedCheckIn.additionalGuests[guestIndex]
+        }
+        return `Người ${index + 1}`
+      })
+
+      // Gọi API checkout một phần
+      await partialCheckout(selectedCheckIn.id, guestsToCheckout)
+
       alert(t.guestCheckout.checkoutSuccess)
       // Reset
       setSelectedCheckIn(null)
       setSelectedPeople([])
       setInputValue('')
+      // Load lại danh sách check-ins
+      await loadAllCheckIns()
     } catch (error: any) {
       console.error('Lỗi checkout:', error)
       alert(error.message || t.guestCheckout.checkoutFailed)
@@ -238,7 +249,7 @@ export const GuestCheckout: FC = () => {
                   <div className="flex items-center">
                     <label className="w-48 text-gray-700 font-medium">Số Điện Thoại</label>
                     <span className="flex-1 text-gray-700 font-semibold">
-                      {selectedCheckIn.displayName}
+                      {selectedCheckIn.phone}
                     </span>
                   </div>
 
@@ -284,24 +295,38 @@ export const GuestCheckout: FC = () => {
                           </tr>
                         </thead>
                         <tbody>
-                          {Array.from({ length: selectedCheckIn.totalPeople }, (_, index) => (
-                            <tr key={index} className="bg-white">
-                              <td className="border border-gray-300 px-4 py-2 text-gray-700">
-                                {index + 1}
-                              </td>
-                              <td className="border border-gray-300 px-4 py-2 text-gray-700">
-                                {index === 0 ? selectedCheckIn.displayName : `Người ${index + 1}`}
-                              </td>
-                              <td className="border border-gray-300 px-4 py-2">
-                                <input
-                                  type="checkbox"
-                                  checked={selectedPeople.includes(index)}
-                                  onChange={() => handleTogglePerson(index)}
-                                  className="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-                                />
-                              </td>
-                            </tr>
-                          ))}
+                          {Array.from({ length: selectedCheckIn.totalPeople }, (_, index) => {
+                            let name = ''
+                            if (index === 0) {
+                              name = selectedCheckIn.displayName
+                            } else {
+                              const guestIndex = index - 1
+                              if (selectedCheckIn.additionalGuests && selectedCheckIn.additionalGuests[guestIndex]) {
+                                name = selectedCheckIn.additionalGuests[guestIndex]
+                              } else {
+                                name = `Người ${index + 1}`
+                              }
+                            }
+                            
+                            return (
+                              <tr key={index} className="bg-white">
+                                <td className="border border-gray-300 px-4 py-2 text-gray-700">
+                                  {index + 1}
+                                </td>
+                                <td className="border border-gray-300 px-4 py-2 text-gray-700">
+                                  {name}
+                                </td>
+                                <td className="border border-gray-300 px-4 py-2">
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedPeople.includes(index)}
+                                    onChange={() => handleTogglePerson(index)}
+                                    className="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                                  />
+                                </td>
+                              </tr>
+                            )
+                          })}
                         </tbody>
                       </table>
                     </div>
@@ -336,7 +361,7 @@ export const GuestCheckout: FC = () => {
                   </div>
 
                   {/* Checkout theo số lượng đã chọn */}
-                  {selectedCheckIn.totalPeople > 1 && selectedPeople.length > 0 && (
+                  {selectedCheckIn.totalPeople >= 1 && selectedPeople.length > 0 && (
                     <div className="flex justify-center">
                       <button
                         onClick={handleCheckoutByQuantity}
