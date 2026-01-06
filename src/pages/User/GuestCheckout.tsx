@@ -92,17 +92,17 @@ export const GuestCheckout: FC = () => {
   const formatTime = (isoString: string) => {
     if (!isoString) return ''
     const date = new Date(isoString)
-    const time = date.toLocaleTimeString('vi-VN', { 
-      hour: '2-digit', 
-      minute: '2-digit', 
-      hour12: false, 
-      timeZone: 'UTC' 
+    const time = date.toLocaleTimeString('vi-VN', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+      timeZone: 'UTC'
     })
-    const day = date.toLocaleDateString('vi-VN', { 
-      day: '2-digit', 
-      month: '2-digit', 
-      year: 'numeric', 
-      timeZone: 'UTC' 
+    const day = date.toLocaleDateString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      timeZone: 'UTC'
     })
     return `${time}h - ${day}`
   }
@@ -110,7 +110,7 @@ export const GuestCheckout: FC = () => {
   // Xử lý checkout tất cả
   const handleCheckoutAll = async () => {
     if (!selectedCheckIn) return
-    
+
     const confirm = window.confirm(t.guestCheckout.confirmCheckout)
     if (!confirm) return
 
@@ -133,48 +133,38 @@ export const GuestCheckout: FC = () => {
   }
 
   // Xử lý checkout theo số lượng đã chọn
-  const handleCheckoutByQuantity = async () => {
-    if (!selectedCheckIn || selectedPeople.length === 0) {
-      alert('Vui lòng chọn ít nhất một người để checkout')
-      return
-    }
-
-    const confirm = window.confirm(
-      `${t.guestCheckout.confirmCheckout}\n${t.guestCheckout.selectQuantity}: ${selectedPeople.length} người`
-    )
-    if (!confirm) return
-
-    try {
-      setIsCheckingOut(true)
-      
-      // Lấy danh sách tên khách cần checkout
-      const guestsToCheckout = selectedPeople.map(index => {
-        if (index === 0) return selectedCheckIn.displayName
-        
-        const guestIndex = index - 1
-        if (selectedCheckIn.additionalGuests && selectedCheckIn.additionalGuests[guestIndex]) {
-          return selectedCheckIn.additionalGuests[guestIndex]
-        }
-        return `Người ${index + 1}`
-      })
-
-      // Gọi API checkout một phần
-      await partialCheckout(selectedCheckIn.id, guestsToCheckout)
-
-      alert(t.guestCheckout.checkoutSuccess)
-      // Reset
-      setSelectedCheckIn(null)
-      setSelectedPeople([])
-      setInputValue('')
-      // Load lại danh sách check-ins
-      await loadAllCheckIns()
-    } catch (error: any) {
-      console.error('Lỗi checkout:', error)
-      alert(error.message || t.guestCheckout.checkoutFailed)
-    } finally {
-      setIsCheckingOut(false)
-    }
+const handleCheckoutByQuantity = async () => {
+  if (!selectedCheckIn || selectedPeople.length === 0) {
+    alert('Vui lòng chọn ít nhất một người để checkout')
+    return
   }
+
+  const confirm = window.confirm(
+    `${t.guestCheckout.confirmCheckout}\n${t.guestCheckout.selectQuantity}: ${selectedPeople.length} người`
+  )
+  if (!confirm) return
+
+  try {
+    setIsCheckingOut(true)
+
+    const guestsToCheckout = selectedPeople
+      .map(i => selectedCheckIn.additionalGuests?.[i])
+      .filter((name): name is string => typeof name === 'string')
+    await partialCheckout(selectedCheckIn.id, guestsToCheckout)
+
+    alert(t.guestCheckout.checkoutSuccess)
+    setSelectedCheckIn(null)
+    setSelectedPeople([])
+    setInputValue('')
+    await loadAllCheckIns()
+  } catch (error: any) {
+    console.error('Lỗi checkout:', error)
+    alert(error.message || t.guestCheckout.checkoutFailed)
+  } finally {
+    setIsCheckingOut(false)
+  }
+}
+
 
 
   return (
@@ -197,11 +187,16 @@ export const GuestCheckout: FC = () => {
             <h2 className="text-xl font-semibold text-gray-800 mb-4">
               {t.guestCheckout.searchPhone}
             </h2>
-            
+
             <div className="mb-4">
               <Select
                 options={filteredOptions}
-                onInputChange={setInputValue}
+                filterOption={() => true} // ✅ QUAN TRỌNG NHẤT
+                onInputChange={(value, actionMeta) => {
+                  if (actionMeta.action === 'input-change') {
+                    setInputValue(value)
+                  }
+                }}
                 onChange={handleSelectChange}
                 placeholder={t.guestCheckout.searchPlaceholder}
                 isSearchable
@@ -209,14 +204,9 @@ export const GuestCheckout: FC = () => {
                 noOptionsMessage={() => t.guestCheckout.noResults}
                 className="react-select-container"
                 classNamePrefix="react-select"
-                styles={{
-                  control: (base) => ({
-                    ...base,
-                    minHeight: '48px',
-                    fontSize: '16px',
-                  }),
-                }}
               />
+
+
             </div>
 
             {selectedCheckIn && (
@@ -284,7 +274,7 @@ export const GuestCheckout: FC = () => {
                         <thead>
                           <tr className="bg-gray-100">
                             <th className="border border-gray-300 px-4 py-2 text-left font-semibold text-gray-700">
-                              STT
+                              STT1
                             </th>
                             <th className="border border-gray-300 px-4 py-2 text-left font-semibold text-gray-700">
                               Họ Và Tên
@@ -295,39 +285,27 @@ export const GuestCheckout: FC = () => {
                           </tr>
                         </thead>
                         <tbody>
-                          {Array.from({ length: selectedCheckIn.totalPeople }, (_, index) => {
-                            let name = ''
-                            if (index === 0) {
-                              name = selectedCheckIn.displayName
-                            } else {
-                              const guestIndex = index - 1
-                              if (selectedCheckIn.additionalGuests && selectedCheckIn.additionalGuests[guestIndex]) {
-                                name = selectedCheckIn.additionalGuests[guestIndex]
-                              } else {
-                                name = `Người ${index + 1}`
-                              }
-                            }
-                            
-                            return (
-                              <tr key={index} className="bg-white">
-                                <td className="border border-gray-300 px-4 py-2 text-gray-700">
-                                  {index + 1}
-                                </td>
-                                <td className="border border-gray-300 px-4 py-2 text-gray-700">
-                                  {name}
-                                </td>
-                                <td className="border border-gray-300 px-4 py-2">
-                                  <input
-                                    type="checkbox"
-                                    checked={selectedPeople.includes(index)}
-                                    onChange={() => handleTogglePerson(index)}
-                                    className="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-                                  />
-                                </td>
-                              </tr>
-                            )
-                          })}
+                          {(selectedCheckIn.additionalGuests ?? []).map((name, i) => (
+                            <tr key={i} className="bg-white">
+                              <td className="border border-gray-300 px-4 py-2 text-gray-700">
+                                {i + 1}
+                              </td>
+                              <td className="border border-gray-300 px-4 py-2 text-gray-700">
+                                {name}
+                              </td>
+                              <td className="border border-gray-300 px-4 py-2">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedPeople.includes(i)}
+                                  onChange={() => handleTogglePerson(i)}
+                                  className="w-5 h-5 text-indigo-600 border-gray-300 rounded"
+                                />
+                              </td>
+                            </tr>
+                          ))}
                         </tbody>
+
+
                       </table>
                     </div>
                   </div>
