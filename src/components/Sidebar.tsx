@@ -56,7 +56,7 @@ const Sidebar: FC<SidebarProps> = ({ open, onClose }) => {
         {navItem('/admin/settings', t.sidebar.systemConfig, FaUserFriends)}
       </nav>
 
-      <div className="mt-6 text-xs text-gray-300 mt-auto ">
+      <div className=" text-xs text-gray-300 mt-auto ">
         © 2025 Utility Track CMS
       </div>
     </aside>

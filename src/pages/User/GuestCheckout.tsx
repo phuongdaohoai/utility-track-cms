@@ -218,7 +218,7 @@ export const GuestCheckout: FC = () => {
                 }}
               />
             </div>
-{/*  */}
+
             {selectedCheckIn && (
               <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
                 <p className="text-sm text-gray-600 mb-2">{t.guestCheckout.selectGuest}</p>

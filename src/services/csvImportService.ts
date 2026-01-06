@@ -1,6 +1,6 @@
 import { CSVRow, ValidationError, ImportRequest, ImportResponse } from '../types';
 import { CSV_CONFIG } from '../components/CSVImport/csvConfig';
-import { API_BASE_URL } from '../utils/url';
+
 import { api } from '../utils/api';
 export const csvImportService = {
   async parseCSV(file: File, type: 'residents' | 'staff'): Promise<{ data: CSVRow[]; errors: ValidationError[] }> {
