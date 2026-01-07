@@ -15,10 +15,8 @@ export interface CheckInItem {
   serviceName: string;
   checkInTime: string;
   method: string | null;
-  additionalGuests?: string[]; // Thêm trường này
   representative?: string;
   phoneNumber?: string;
-  phone?: string;
   quantity?: number;
   members?: CheckInMember[];
   additionalGuests?: string[] | string;
@@ -39,11 +37,7 @@ const getCurrentCheckIns = async (page = 1, pageSize = 10, search = "", type?: "
   const response = await api.get('/check-in/current-check-ins', {
     params
   });
-  
-  if (!response.ok) throw new Error("Lỗi tải dữ liệu");
-  const result = await response.json();
-  console.log("API Response:", result); // Debug log
-  return result; 
+  return response; 
 };
 
 // 2. Checkout (Mới thêm)
@@ -51,13 +45,7 @@ const checkout = async (checkinId: number) => {
   const response = await api.post(`/check-in/current-check-outs/${checkinId}`, {
     checkinId: checkinId
   });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.message || "Lỗi khi thực hiện checkout");
-  }
-
-  return response.json();
+  return response;
 };
 
 // 3. Checkout kèm số lượng
@@ -66,11 +54,7 @@ const checkoutWithQuantity = async (checkinId: number, quantity: number) => {
     checkinId,
     quantity
   });
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.message || "Lỗi khi thực hiện checkout");
-  }
-  return response.json();
+  return response;
 };
 
 // 4. Checkout theo danh sách khách (không checkout đại diện)
@@ -84,12 +68,7 @@ const partialCheckoutByGuests = async (
       guestsToCheckout,
     }
   );
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.message || "Lỗi khi thực hiện checkout một phần");
-  }
-  return response.json();
+  return response;
 };
 
 const checkInService = {

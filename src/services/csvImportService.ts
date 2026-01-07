@@ -97,11 +97,8 @@ export const csvImportService = {
  
     const response = await api.post(`/${endpoint}/import`, payload);
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `Import thất bại: ${response.statusText}`);
-    }
-    return response.json();
+   
+    return response;
   },
   simplifyString(str: string): string {
     return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '').toLowerCase();
