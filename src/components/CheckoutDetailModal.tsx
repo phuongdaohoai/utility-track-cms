@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { CheckInItem } from "../services/checkInService";
+import { useLocale } from "../i18n/LocaleContext";
 
 type MemberState = {
   id: string;
@@ -45,7 +46,7 @@ const buildMembers = (item?: CheckInItem): MemberState[] => {
   const guests: string[] = Array.isArray(item.additionalGuests)
     ? item.additionalGuests
     : typeof item.additionalGuests === "string"
-      ? item.additionalGuests.split(",").map((s) => s.trim()).filter(Boolean)
+      ? (item.additionalGuests as string).split(",").map((s: string) => s.trim()).filter(Boolean)
       : [];
 
   const guestMembers = guests.map((name, idx) => ({
@@ -65,6 +66,7 @@ const CheckoutDetailModal: React.FC<CheckoutDetailModalProps> = ({
   onCheckoutAll,
   loading = false,
 }) => {
+  const { t } = useLocale()
   const [members, setMembers] = useState<MemberState[]>([]);
   const [localLoading, setLocalLoading] = useState(false);
 
@@ -96,7 +98,7 @@ const CheckoutDetailModal: React.FC<CheckoutDetailModalProps> = ({
 
   const handleSave = async () => {
     if (checkedCount === 0) {
-      alert("Vui lòng chọn ít nhất 1 khách để checkout.");
+      alert(t.checkoutDetail.selectAtLeastOneGuest);
       return;
     }
     const guestsToCheckout = selectableMembers
@@ -129,9 +131,9 @@ const CheckoutDetailModal: React.FC<CheckoutDetailModalProps> = ({
       <div className="w-full max-w-5xl rounded-lg bg-white shadow-xl max-h-[90vh] overflow-hidden">
         <div className="flex items-center justify-between border-b px-6 py-4">
           <div>
-            <p className="text-sm text-gray-500">Checkout</p>
+            <p className="text-sm text-gray-500">{t.checkoutDetail.title}</p>
             <p className="text-xl font-semibold text-gray-800">
-              {item.displayName || item.representative || "Thông tin checkout"}
+              {item.displayName || item.representative || t.checkoutDetail.checkoutInfo}
             </p>
           </div>
           <button
@@ -146,7 +148,7 @@ const CheckoutDetailModal: React.FC<CheckoutDetailModalProps> = ({
         <div className="space-y-4 px-6 py-5 max-h-[78vh] overflow-y-auto">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
-              Đại Diện
+              {t.checkoutDetail.representative}
               <input
                 disabled
                 value={item.representative || item.displayName || "--"}
@@ -154,7 +156,7 @@ const CheckoutDetailModal: React.FC<CheckoutDetailModalProps> = ({
               />
             </label>
             <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
-              Số Điện Thoại
+              {t.checkoutDetail.phone}
               <input
                 disabled
                 value={item.phoneNumber || item.phone || "--"}
@@ -162,7 +164,7 @@ const CheckoutDetailModal: React.FC<CheckoutDetailModalProps> = ({
               />
             </label>
             <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
-              Dịch Vụ
+              {t.checkoutDetail.service}
               <input
                 disabled
                 value={item.serviceName}
@@ -170,15 +172,15 @@ const CheckoutDetailModal: React.FC<CheckoutDetailModalProps> = ({
               />
             </label>
             <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
-              Phương Thức Checkin
+              {t.checkoutDetail.checkinMethod}
               <input
                 disabled
-                value={item.method || "Thủ Công"}
+                value={item.method || t.checkoutDetail.manual}
                 className="w-full rounded border border-gray-200 bg-gray-50 px-3 py-2 text-gray-800"
               />
             </label>
             <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
-              Thời Gian Vào
+              {t.checkoutDetail.checkInTime}
               <input
                 disabled
                 value={formatDateTime(item.checkInTime)}
@@ -191,10 +193,10 @@ const CheckoutDetailModal: React.FC<CheckoutDetailModalProps> = ({
             <div className="mb-2 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-gray-700">
-                  Khách có thể checkout
+                  {t.checkoutDetail.selectableGuests}
                 </span>
                 <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">
-                  {checkedCount}/{selectableMembers.length} đã chọn
+                  {checkedCount}/{selectableMembers.length} {t.checkoutDetail.selected}
                 </span>
               </div>
             </div>
@@ -204,13 +206,13 @@ const CheckoutDetailModal: React.FC<CheckoutDetailModalProps> = ({
                 <thead className="sticky top-0 bg-gray-50 text-left text-sm font-semibold text-gray-700">
                   <tr>
                     <th className="w-20 border-b border-gray-200 px-4 py-3">
-                      STT
+                      {t.checkoutDetail.stt}
                     </th>
                     <th className="border-b border-gray-200 px-4 py-3">
-                      Họ Và Tên
+                      {t.checkoutDetail.fullName}
                     </th>
                     <th className="w-64 border-b border-gray-200 px-4 py-3">
-                      Hoạt Động
+                      {t.checkoutDetail.action}
                     </th>
                   </tr>
                 </thead>
@@ -236,7 +238,7 @@ const CheckoutDetailModal: React.FC<CheckoutDetailModalProps> = ({
                             onClick={() => toggleMember(m.id, true)}
                             disabled={m.checked || m.isRepresentative || disabled}
                           >
-                            Checkout
+                            {t.checkoutDetail.checkout}
                           </button>
                           <button
                             className={`rounded px-3 py-2 text-sm font-semibold transition ${
@@ -247,7 +249,7 @@ const CheckoutDetailModal: React.FC<CheckoutDetailModalProps> = ({
                             onClick={() => toggleMember(m.id, false)}
                             disabled={!m.checked || m.isRepresentative || disabled}
                           >
-                            Hoàn tác
+                            {t.checkoutDetail.undo}
                           </button>
                         </div>
                       </td>
@@ -259,7 +261,7 @@ const CheckoutDetailModal: React.FC<CheckoutDetailModalProps> = ({
                         className="px-4 py-6 text-center text-sm text-gray-500"
                         colSpan={3}
                       >
-                        Không có dữ liệu thành viên.
+                        {t.checkoutDetail.noMemberData}
                       </td>
                     </tr>
                   )}
@@ -274,21 +276,21 @@ const CheckoutDetailModal: React.FC<CheckoutDetailModalProps> = ({
               disabled={disabled}
               className="rounded-lg bg-gray-500 px-6 py-3 text-base font-semibold text-white hover:bg-gray-600 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Quay lại
+              {t.checkoutDetail.back}
             </button>
             <button
               onClick={handleSave}
               disabled={disabled || checkedCount === 0}
               className="rounded-lg bg-emerald-600 px-6 py-3 text-base font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {localLoading && checkedCount > 0 ? "Đang lưu..." : "Lưu"}
+              {localLoading && checkedCount > 0 ? t.checkoutDetail.saving : t.checkoutDetail.save}
             </button>
             <button
               onClick={handleCheckoutAll}
               disabled={disabled}
               className="rounded-lg bg-blue-800 px-8 py-3 text-base font-semibold text-white hover:bg-blue-900 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {localLoading ? "Đang checkout..." : "Checkout All"}
+              {localLoading ? t.checkoutDetail.checkingOut : t.checkoutDetail.checkoutAll}
             </button>
           </div>
         </div>

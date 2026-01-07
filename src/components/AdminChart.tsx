@@ -10,6 +10,7 @@ import {
   ResponsiveContainer,
   CartesianGrid,
 } from "recharts";
+import { useLocale } from "../i18n/LocaleContext";
 
 /* ================= FORMAT TIME ================= */
 
@@ -75,6 +76,7 @@ export default function AdminChart({
   onChangeFromDate,
   onChangeToDate,
 }: Props) {
+  const { t } = useLocale()
   const handleGroupByChange = (e: ChangeEvent<HTMLSelectElement>) => {
     const newGroupBy = e.target.value as GroupBy;
     onChangeGroupBy(newGroupBy);
@@ -133,11 +135,11 @@ export default function AdminChart({
     cursor-pointer
   "
         >
-          <option value="day">Tùy chọn thời gian</option>
-          <option value="month">Tháng</option>
-          <option value="quarter">Quý</option>
-          <option value="halfYear">Nửa năm</option>
-          <option value="year">Năm</option>
+          <option value="day">{t.adminChart.timeRange}</option>
+          <option value="month">{t.adminChart.month}</option>
+          <option value="quarter">{t.adminChart.quarter}</option>
+          <option value="halfYear">{t.adminChart.halfYear}</option>
+          <option value="year">{t.adminChart.year}</option>
         </select>
 
 
@@ -169,16 +171,16 @@ export default function AdminChart({
           <div className="flex h-full items-center justify-center text-gray-500">
             <div className="text-center">
               <p className="text-lg font-medium mb-2">
-                Vui lòng chọn đủ cả 2 ngày
+                {t.adminChart.selectBothDates}
               </p>
               <p className="text-sm text-gray-400">
-                Chọn ngày bắt đầu và ngày kết thúc để xem dữ liệu
+                {t.adminChart.selectDatesDescription}
               </p>
             </div>
           </div>
         ) : data.length === 0 ? (
           <div className="flex h-full items-center justify-center text-gray-400">
-            Không có dữ liệu
+            {t.adminChart.noData}
           </div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
