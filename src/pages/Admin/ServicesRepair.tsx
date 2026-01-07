@@ -5,6 +5,8 @@ import {
   updateService,
   deleteService,
 } from "../../api/services.api";
+// 1. Import Hook đa ngôn ngữ
+import { useLocale } from "../../i18n/LocaleContext";
 
 /* ================= TYPES ================= */
 export interface Service {
@@ -19,6 +21,8 @@ export interface Service {
 
 /* ================= MAIN ================= */
 const ServicesRepairPage: React.FC = () => {
+  // 2. Sử dụng hook
+  const { t } = useLocale();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
@@ -54,24 +58,26 @@ const ServicesRepairPage: React.FC = () => {
 
     // Gọi API thật
     getServiceById(Number(id))
-      .then(res => {
-        setForm(res.data.data);
+      .then((res) => {
+        // Tuỳ cấu trúc response của bạn, nếu api.ts đã trả về data thì bỏ .data
+        // Ở đây giữ nguyên logic cũ của bạn là res.data.data
+        setForm(res.data?.data || res.data); 
       })
-      .catch(err => {
+      .catch((err) => {
         console.error("Lỗi tải chi tiết service:", err);
-        alert("Không tải được dữ liệu dịch vụ");
+        alert(err.message || t.services.usingMockData); // Fallback message
       })
       .finally(() => setLoading(false));
-  }, [id, location.state]);
+  }, [id, location.state, t]);
 
-  if (loading || !form) return <div>Đang tải dữ liệu...</div>;
+  if (loading || !form) return <div>{t.common.loadingData}</div>;
 
   /* ================= ACTIONS ================= */
 
   const handleSave = async () => {
     try {
       if (id === "new") {
-        alert("Backend chưa có API tạo mới dịch vụ");
+        alert("Backend chưa có API tạo mới dịch vụ (Mock)");
         return;
       }
 
@@ -84,24 +90,25 @@ const ServicesRepairPage: React.FC = () => {
         version: form.version, // ⭐ BẮT BUỘC
       });
 
-      alert("Cập nhật dịch vụ thành công");
+      alert(t.common.saveSuccess); // "Đã lưu"
       navigate("/admin/services");
-    } catch (err) {
+    } catch (err: any) {
       console.error("Update failed:", err);
-      alert("Cập nhật dịch vụ thất bại");
+      // Hiển thị lỗi từ BE (đã dịch) hoặc lỗi mặc định
+      alert(err.message || t.common.saveFailed);
     }
   };
 
   const handleDelete = async () => {
-    if (!window.confirm("Bạn có chắc muốn xóa dịch vụ này không?")) return;
+    if (!window.confirm(t.services.confirmDelete)) return;
 
     try {
       await deleteService(form.id);
-      alert("Xóa dịch vụ thành công");
+      alert(t.services.deleteSuccess);
       navigate("/admin/services");
-    } catch (err) {
+    } catch (err: any) {
       console.error("Delete failed:", err);
-      alert("Xóa dịch vụ thất bại");
+      alert(err.message || t.services.deleteFailed);
     }
   };
 
@@ -110,52 +117,54 @@ const ServicesRepairPage: React.FC = () => {
   return (
     <div style={pageStyle} className="mx-5 sm:mx-14 mt-7">
       <div style={cardStyle}>
-        <FormRow label="Tên Dịch Vụ">
+        <FormRow label={t.services.serviceNameLabel}>
           <input
             value={form.serviceName}
-            onChange={e =>
+            onChange={(e) =>
               setForm({ ...form, serviceName: e.target.value })
             }
             style={inputStyle}
+            placeholder={t.services.serviceNamePlaceholder}
           />
         </FormRow>
 
-        <FormRow label="Mô Tả">
+        <FormRow label={t.services.descriptionLabel}>
           <input
             value={form.description}
-            onChange={e =>
+            onChange={(e) =>
               setForm({ ...form, description: e.target.value })
             }
             style={inputStyle}
+            placeholder={t.services.descriptionPlaceholder}
           />
         </FormRow>
 
-        <FormRow label="Sức Chứa">
+        <FormRow label={t.services.capacityLabel}>
           <input
             type="number"
             value={form.capacity}
-            onChange={e =>
+            onChange={(e) =>
               setForm({ ...form, capacity: +e.target.value })
             }
             style={inputStyle}
           />
         </FormRow>
 
-        <FormRow label="Chi Phí">
+        <FormRow label={t.services.priceLabel}>
           <input
             type="number"
             value={form.price}
-            onChange={e =>
+            onChange={(e) =>
               setForm({ ...form, price: +e.target.value })
             }
             style={inputStyle}
           />
         </FormRow>
 
-        <FormRow label="Trạng Thái">
+        <FormRow label={t.services.statusLabel}>
           <select
             value={form.status}
-            onChange={e =>
+            onChange={(e) =>
               setForm({
                 ...form,
                 status: +e.target.value as 0 | 1,
@@ -163,19 +172,19 @@ const ServicesRepairPage: React.FC = () => {
             }
             style={inputStyle}
           >
-            <option value={1}>Hoạt Động</option>
-            <option value={0}>Không Hoạt Động</option>
+            <option value={1}>{t.common.active}</option>
+            <option value={0}>{t.common.inactive}</option>
           </select>
         </FormRow>
 
         <div style={footerStyle}>
           {id !== "new" && (
             <button style={deleteBtn} onClick={handleDelete}>
-              Xóa
+              {t.common.delete}
             </button>
           )}
           <button style={saveBtn} onClick={handleSave}>
-            Lưu Thông Tin
+            {t.settings.saveInfo} {/* "Lưu thông tin" */}
           </button>
         </div>
       </div>
