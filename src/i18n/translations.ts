@@ -479,6 +479,19 @@ export const translations = {
       fileMaxSize: 'File tối đa 5MB',
       deleteSuccess: 'Xóa thành công!',
       deleteFailed: 'Xóa thất bại',
+    },
+    components: {
+      faceID: {
+      title: "Quét Face ID",
+      permissionRequired: "Vui lòng cấp quyền truy cập camera để tiếp tục",
+      permissionDenied: "Quyền truy cập camera đã bị từ chối",
+      cameraNotFound: "Không tìm thấy thiết bị camera",
+      cameraError: "Đã xảy ra lỗi khi mở camera",
+      noFaceDetected: "Không tìm thấy khuôn mặt nào. Vui lòng thử lại",
+      processingFaceError: "Lỗi khi xử lý dữ liệu khuôn mặt",
+      startingCamera: "Đang khởi động camera...",
+      faceGuide: "Vui lòng giữ khuôn mặt nằm trong khung tròn"
+    }
     }
 
   },
@@ -962,7 +975,21 @@ export const translations = {
       fileMaxSize: 'File maximum 5MB',
       deleteSuccess: 'Delete successful!',
       deleteFailed: 'Delete failed',
+    },
+    components: {
+
+    faceID: {
+      title: "Scan Face ID",
+      permissionRequired: "Camera permission is required to proceed",
+      permissionDenied: "Camera permission was denied",
+      cameraNotFound: "No camera device found",
+      cameraError: "An error occurred while opening the camera",
+      noFaceDetected: "No face detected. Please try again",
+      processingFaceError: "Error processing face data",
+      startingCamera: "Starting camera...",
+      faceGuide: "Please keep your face within the circle frame"
     }
+  }
 
   },
 } as const;
