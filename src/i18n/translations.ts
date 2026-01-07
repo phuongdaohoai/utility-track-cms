@@ -282,6 +282,7 @@ export const translations = {
       scanQRTitle: 'Quét QR Code',
       scanFaceIDTitle: 'Quét Face ID',
       errorResidentNotFound: 'Không tìm thấy cư dân.',
+      searchPlaceholder: "Tìm dịch vụ"
     },
     checkout: {
       searchPlaceholder: 'Tìm kiếm theo Cư Dân, Khách, Phòng...',
@@ -778,6 +779,7 @@ export const translations = {
       scanQRTitle: 'Scan QR Code',
       scanFaceIDTitle: 'Scan Face ID',
       errorResidentNotFound: 'Resident not found.',
+      searchPlaceholder: 'Search services'
     },
     checkout: {
       searchPlaceholder: 'Search by Resident, Guest, Room...',
