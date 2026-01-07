@@ -88,10 +88,13 @@ export const CheckInOutside: FC = () => {
     }
 
     // Lấy tên đại diện (người đầu tiên trong danh sách hoặc representative)
-    const guestName = people.length > 0 && people[0].name
-      ? people.map(p => p.name).filter(Boolean).join(', ')
-      : representative || t.checkInOutside.guestName
-
+    const guestName = [
+      representative,                     
+      ...(people || []).map(p => p.name)  
+    ]
+      .filter(Boolean)                    
+      .join(', ')                             
+      || t.checkInOutside.guestName;
     setLoading(true)
     setError(null)
     setSuccess(null)

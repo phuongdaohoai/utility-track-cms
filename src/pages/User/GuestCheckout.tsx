@@ -133,37 +133,37 @@ export const GuestCheckout: FC = () => {
   }
 
   // Xử lý checkout theo số lượng đã chọn
-const handleCheckoutByQuantity = async () => {
-  if (!selectedCheckIn || selectedPeople.length === 0) {
-    alert('Vui lòng chọn ít nhất một người để checkout')
-    return
+  const handleCheckoutByQuantity = async () => {
+    if (!selectedCheckIn || selectedPeople.length === 0) {
+      alert('Vui lòng chọn ít nhất một người để checkout')
+      return
+    }
+
+    const confirm = window.confirm(
+      `${t.guestCheckout.confirmCheckout}\n${t.guestCheckout.selectQuantity}: ${selectedPeople.length} người`
+    )
+    if (!confirm) return
+
+    try {
+      setIsCheckingOut(true)
+
+      const guestsToCheckout = selectedPeople
+        .map(i => selectedCheckIn.additionalGuests?.[i])
+        .filter((name): name is string => typeof name === 'string')
+      await partialCheckout(selectedCheckIn.id, guestsToCheckout)
+
+      alert(t.guestCheckout.checkoutSuccess)
+      setSelectedCheckIn(null)
+      setSelectedPeople([])
+      setInputValue('')
+      await loadAllCheckIns()
+    } catch (error: any) {
+      console.error('Lỗi checkout:', error)
+      alert(error.message || t.guestCheckout.checkoutFailed)
+    } finally {
+      setIsCheckingOut(false)
+    }
   }
-
-  const confirm = window.confirm(
-    `${t.guestCheckout.confirmCheckout}\n${t.guestCheckout.selectQuantity}: ${selectedPeople.length} người`
-  )
-  if (!confirm) return
-
-  try {
-    setIsCheckingOut(true)
-
-    const guestsToCheckout = selectedPeople
-      .map(i => selectedCheckIn.additionalGuests?.[i])
-      .filter((name): name is string => typeof name === 'string')
-    await partialCheckout(selectedCheckIn.id, guestsToCheckout)
-
-    alert(t.guestCheckout.checkoutSuccess)
-    setSelectedCheckIn(null)
-    setSelectedPeople([])
-    setInputValue('')
-    await loadAllCheckIns()
-  } catch (error: any) {
-    console.error('Lỗi checkout:', error)
-    alert(error.message || t.guestCheckout.checkoutFailed)
-  } finally {
-    setIsCheckingOut(false)
-  }
-}
 
 
 
@@ -285,7 +285,10 @@ const handleCheckoutByQuantity = async () => {
                           </tr>
                         </thead>
                         <tbody>
-                          {(selectedCheckIn.additionalGuests ?? []).map((name, i) => (
+                          {(Array.isArray(selectedCheckIn.additionalGuests)
+                            ? selectedCheckIn.additionalGuests
+                            : []
+                          ).map((name, i) => (
                             <tr key={i} className="bg-white">
                               <td className="border border-gray-300 px-4 py-2 text-gray-700">
                                 {i + 1}
