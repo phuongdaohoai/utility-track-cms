@@ -12,14 +12,15 @@ const formatDateTime = (value?: string) => {
 
   const d = new Date(value);
 
-  const hours = d.getHours();
-  const minutes = d.getMinutes().toString().padStart(2, "0");
-  const day = d.getDate();
-  const month = d.getMonth() + 1;
-  const year = d.getFullYear();
+  const hours = d.getUTCHours();
+  const minutes = d.getUTCMinutes().toString().padStart(2, "0");
+  const day = d.getUTCDate();
+  const month = d.getUTCMonth() + 1;
+  const year = d.getUTCFullYear();
 
   return `${hours}h${minutes} - ${day}/${month}/${year}`;
 };
+
 
 /* ================== TYPES ================== */
 interface UsageItem {

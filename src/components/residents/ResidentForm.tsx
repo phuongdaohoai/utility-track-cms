@@ -83,7 +83,15 @@ export const ResidentModal: FC<ResidentModalProps> = ({
     if (phoneNumber.length < 8) return `${phoneNumber.slice(0, 4)}-${phoneNumber.slice(4)}`;
     return `${phoneNumber.slice(0, 4)}-${phoneNumber.slice(4, 7)}-${phoneNumber.slice(7, 10)}`;
   };
-
+useEffect(() => {
+    if (isOpen && reduxError) {    
+      alert(reduxError);
+      if (isEditMode && (reduxError.includes("Không tìm thấy") || reduxError.includes("not found"))) {
+        onClose();
+      }
+      dispatch(resetResidentStatus());
+    }
+  }, [isOpen, reduxError, isEditMode, dispatch, onClose]);
   useEffect(() => {
     if (isOpen) {
       dispatch(resetResidentStatus());

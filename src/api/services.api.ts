@@ -1,5 +1,6 @@
-import axios from "axios";
+import axios, { AxiosError }  from "axios";
 import { API_BASE_URL } from "../utils/url";
+import { getTranslatableError } from '../utils/error-handler';
 
 const API_URL = `${API_BASE_URL}/services-used`;
 
@@ -19,7 +20,19 @@ api.interceptors.request.use((config) => {
 
   return config;
 });
-
+// Xử lý error response và dịch error code
+api.interceptors.response.use(
+  (response) => response,
+  (error: AxiosError<any>) => {
+    if (error.response) {
+      const responseData = error.response.data;
+      const status = error.response.status;
+      const translatedMessage = getTranslatableError(responseData, status);
+      return Promise.reject(new Error(translatedMessage));
+    }
+    return Promise.reject(error);
+  }
+);
 // ===== GET ALL =====
 export const getServices = (page = 1, pageSize = 10) =>
   api.get(`${API_URL}/getAll`, {

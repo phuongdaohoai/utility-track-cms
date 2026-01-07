@@ -441,53 +441,85 @@ export const UsersPage: FC = () => {
 
 
 
+        {/* PAGINATION LOGIC MỚI */}
         <div className="mt-4 flex items-center justify-center gap-1 text-sm">
-          <button
-            onClick={() => onPage(Math.max(1, page - 1))}
-            disabled={page === 1}
-            className="px-3 py-1 text-gray-600 hover:bg-gray-100 rounded disabled:opacity-50 disabled:cursor-not-allowed font-extrabold"
-          >
-            &lt;
-          </button>
+          {(() => {
+            const totalPages = Math.ceil(total / pageSize);
+            const maxVisibleButtons = 5;
+            
+            // Tính toán start và end để luôn hiện 5 nút (nếu đủ trang)
+            let startPage = Math.max(1, page - 2);
+            let endPage = Math.min(totalPages, startPage + maxVisibleButtons - 1);
 
-          {Array.from({ length: Math.min(5, Math.ceil(total / pageSize)) }).map((_, i) => {
-            const pageNum = i + 1;
+            // Điều chỉnh lại start nếu end đã chạm trần (để vẫn đủ 5 nút)
+            if (endPage - startPage + 1 < maxVisibleButtons) {
+              startPage = Math.max(1, endPage - maxVisibleButtons + 1);
+            }
+
             return (
-              <button
-                key={i}
-                onClick={() => onPage(pageNum)}
-                className={`px-3 py-1 rounded ${page === pageNum
-                  ? 'bg-indigo-600 text-white font-medium'
-                  : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-              >
-                {pageNum}
-              </button>
+              <>
+                <button
+                  onClick={() => onPage(Math.max(1, page - 1))}
+                  disabled={page === 1}
+                  className="px-3 py-1 text-gray-600 hover:bg-gray-100 rounded disabled:opacity-50 disabled:cursor-not-allowed font-extrabold"
+                >
+                  &lt;
+                </button>
+
+                {/* Nút trang đầu nếu bị ẩn */}
+                {startPage > 1 && (
+                  <>
+                    <button
+                      onClick={() => onPage(1)}
+                      className="px-3 py-1 text-gray-700 hover:bg-gray-100 rounded"
+                    >
+                      1
+                    </button>
+                    {startPage > 2 && <span className="px-2 text-gray-500">...</span>}
+                  </>
+                )}
+
+                {/* Các trang ở giữa */}
+                {Array.from({ length: endPage - startPage + 1 }).map((_, i) => {
+                  const pageNum = startPage + i;
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => onPage(pageNum)}
+                      className={`px-3 py-1 rounded ${
+                        page === pageNum
+                          ? 'bg-indigo-600 text-white font-medium'
+                          : 'text-gray-700 hover:bg-gray-100'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+
+                {/* Nút trang cuối nếu bị ẩn */}
+                {endPage < totalPages && (
+                  <>
+                    {endPage < totalPages - 1 && <span className="px-2 text-gray-500">...</span>}
+                    <button
+                      onClick={() => onPage(totalPages)}
+                      className="px-3 py-1 text-gray-700 hover:bg-gray-100 rounded"
+                    >
+                      {totalPages}
+                    </button>
+                  </>
+                )}
+
+                <button
+                  onClick={() => onPage(Math.min(totalPages, page + 1))}
+                  disabled={page === totalPages || totalPages === 0}
+                  className="px-3 py-1 text-gray-600 hover:bg-gray-100 rounded disabled:opacity-50 disabled:cursor-not-allowed font-extrabold"
+                >
+                  &gt;
+                </button>
+              </>
             );
-          })}
-
-          {Math.ceil(total / pageSize) > 5 && (
-            <>
-              <span className="px-2 text-gray-500">...</span>
-              <button
-                onClick={() => onPage(Math.ceil(total / pageSize))}
-                className={`px-3 py-1 rounded ${page === Math.ceil(total / pageSize)
-                  ? 'bg-indigo-600 text-white font-medium'
-                  : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-              >
-                {Math.ceil(total / pageSize)}
-              </button>
-            </>
-          )}
-
-          <button
-            onClick={() => onPage(Math.min(Math.ceil(total / pageSize), page + 1))}
-            disabled={page === Math.ceil(total / pageSize)}
-            className="px-3 py-1 text-gray-600 hover:bg-gray-100 rounded disabled:opacity-50 disabled:cursor-not-allowed font-extrabold"
-          >
-            &gt;
-          </button>
+          })()}
         </div>
       </div>
     </div>

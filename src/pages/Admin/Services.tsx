@@ -13,6 +13,11 @@ const ServicesPage: React.FC = () => {
   const services = useAppSelector(state => state.services.services);
 
   const [loading, setLoading] = useState(true);
+  const ITEMS_PER_PAGE = 10;
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
+
   const [showAddModal, setShowAddModal] = useState(false);
   const [newService, setNewService] = useState({
     serviceName: '',
@@ -30,12 +35,17 @@ const ServicesPage: React.FC = () => {
   /* ===== LOAD API ===== */
   const loadServices = () => {
     setLoading(true);
-    getServices(1, 10)
+    getServices(currentPage, ITEMS_PER_PAGE)
       .then(res => {
-        console.log("API Response:", res.data);
-        const data = res.data.data?.items || res.data.items || [];
+        const data = res.data.data?.items || [];
+        const totalItem = res.data.data?.totalItem || 0;
+        const total = Math.ceil(totalItem / ITEMS_PER_PAGE);
+
         dispatch(setServices(data));
+        setTotalPages(total);
       })
+
+
       .catch(err => {
         console.error("Lỗi tải services:", err);
         // Mock data for testing
@@ -65,7 +75,8 @@ const ServicesPage: React.FC = () => {
 
   useEffect(() => {
     loadServices();
-  }, []);
+  }, [currentPage]);
+
 
   /* ===== DELETE ===== */
   const handleDelete = async (serviceId: number) => {
@@ -102,6 +113,12 @@ const ServicesPage: React.FC = () => {
   });
 
   if (loading) return <div>{t.common.loadingData}</div>;
+
+  const goToPage = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
 
   return (
     <div style={{ fontFamily: "Arial, sans-serif" }}>
@@ -324,6 +341,58 @@ const ServicesPage: React.FC = () => {
           </tbody>
         </table>
       </div>
+      {/* ===== PAGINATION ===== */}
+      <div style={{ marginTop: 16, display: "flex", justifyContent: "center" }}>
+        <div className="flex items-center gap-1 text-sm">
+          <button
+            onClick={() => goToPage(Math.max(1, currentPage - 1))}
+            disabled={currentPage === 1}
+            className="px-3 py-1 text-gray-600 hover:bg-gray-100 rounded disabled:opacity-50 font-extrabold"
+          >
+            &lt;
+          </button>
+
+          {Array.from({ length: Math.min(5, totalPages) }).map((_, i) => {
+            const pageNum = i + 1;
+            return (
+              <button
+                key={pageNum}
+                onClick={() => goToPage(pageNum)}
+                className={`px-3 py-1 rounded ${currentPage === pageNum
+                  ? "bg-indigo-600 text-white font-medium"
+                  : "text-gray-700 hover:bg-gray-100"
+                  }`}
+              >
+                {pageNum}
+              </button>
+            );
+          })}
+
+          {totalPages > 5 && (
+            <>
+              <span className="px-2 text-gray-500">...</span>
+              <button
+                onClick={() => goToPage(totalPages)}
+                className={`px-3 py-1 rounded ${currentPage === totalPages
+                  ? "bg-indigo-600 text-white font-medium"
+                  : "text-gray-700 hover:bg-gray-100"
+                  }`}
+              >
+                {totalPages}
+              </button>
+            </>
+          )}
+
+          <button
+            onClick={() => goToPage(Math.min(totalPages, currentPage + 1))}
+            disabled={currentPage === totalPages}
+            className="px-3 py-1 text-gray-600 hover:bg-gray-100 rounded disabled:opacity-50 font-extrabold"
+          >
+            &gt;
+          </button>
+        </div>
+      </div>
+
     </div>
   );
 };
@@ -440,7 +509,7 @@ const addButtonStyle: React.CSSProperties = {
 const tableWrapperStyle: React.CSSProperties = {
   border: "1px solid #e5e7eb",
   borderRadius: 8,
-  maxHeight: 354,
+  maxHeight: 420,
   overflowY: "auto",
 };
 
