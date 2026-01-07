@@ -63,34 +63,10 @@ export const createGuestCheckIn = async (data: CreateCheckInDto): Promise<CheckI
     url: response.url,
   })
   
-  if (!response.ok) {
-    let errorMessage = 'Lỗi khi check-in'
-    let errorData: any = null
-    
-    try {
-      errorData = await response.json()
-      errorMessage = errorData.message || errorData.error || errorMessage
-      console.error('❌ [DEBUG] Error Response:', errorData)
-    } catch {
-      // Nếu không parse được JSON, dùng status text
-      console.error('❌ [DEBUG] Cannot parse error response as JSON')
-      if (response.status === 404) {
-        errorMessage = `Endpoint không tồn tại: ${fullUrl}. Vui lòng kiểm tra lại cấu hình API.`
-      } else if (response.status === 401) {
-        errorMessage = 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.'
-      } else if (response.status === 403) {
-        errorMessage = 'Bạn không có quyền thực hiện check-in.'
-      } else {
-        errorMessage = `Lỗi server (${response.status}): ${response.statusText}`
-      }
-    }
-    
-    throw new Error(errorMessage)
-  }
   
-  const result = await response.json()
-  console.log('✅ [DEBUG] Success Response:', result)
-  return result.data || result
+  
+ 
+  return response.data || response
 }
 
 /**
@@ -100,13 +76,7 @@ export const createGuestCheckIn = async (data: CreateCheckInDto): Promise<CheckI
 export const residentCheckInOrOut = async (data: ResidentCheckInDto): Promise<CheckInResponse> => {
   const response = await api.post('/check-in/resident-check-in', data)
   
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}))
-    throw new Error(error.message || 'Lỗi khi check-in/check-out')
-  }
-  
-  const result = await response.json()
-  return result.data || result
+  return response.data || response
 }
 
 /**
@@ -126,13 +96,8 @@ export const getCurrentCheckIns = async (params?: {
     }
   })
   
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}))
-    throw new Error(error.message || 'Lỗi khi lấy danh sách check-in')
-  }
-  
-  const result = await response.json()
-  return result.data || result
+
+  return response.data || response
 }
 
 /**
@@ -141,15 +106,8 @@ export const getCurrentCheckIns = async (params?: {
  */
 export const getAllCheckIns = async () => {
   const response = await api.get('/check-in/get-all-check-ins')
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}))
-    throw new Error(error.message || 'Lỗi khi lấy danh sách check-in')
-  }
-
-  const result = await response.json()
   // API trả về { success: true, message: "Success", data: [...] }
-  return result.data || []
+  return response.data || []
 }
 
 /**
@@ -161,13 +119,7 @@ export const checkoutById = async (checkinId: number) => {
     checkinId: checkinId
   })
   
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}))
-    throw new Error(error.message || 'Lỗi khi check-out')
-  }
-  
-  const result = await response.json()
-  return result.data || result
+  return response.data || response
 }
 
 /**
@@ -179,14 +131,7 @@ export const partialCheckout = async (checkinId: number, guestsToCheckout: strin
   const response = await api.post(`/check-in/partial-check-out/${checkinId}`, {
     guestsToCheckout
   })
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}))
-    throw new Error(error.message || 'Lỗi khi check-out một phần')
-  }
-
-  const result = await response.json()
-  return result.data || result
+  return response.data || response
 }
 
 /**
@@ -195,13 +140,7 @@ export const partialCheckout = async (checkinId: number, guestsToCheckout: strin
  */
 export const findResident = async (data: { qrCode?: string; faceDescriptor?: number[] }) => {
   const response = await api.post('/check-in/find-resident', data)
-  
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}))
-    throw new Error(error.message || 'Lỗi khi tìm cư dân')
-  }
-  
-  const result = await response.json()
-  return result.data || result
+
+  return response.data || response
 }
 

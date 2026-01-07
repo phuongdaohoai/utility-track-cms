@@ -145,9 +145,7 @@ const Checkout: React.FC = () => {
 
   const formatTime = (isoString: string) => {
     if (!isoString) return "";
-    console.log(isoString);
     const date = new Date(isoString);
-    console.log("date", date);
     const time = date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' });
     const day = date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' });
     return `${time}h - ${day}`;

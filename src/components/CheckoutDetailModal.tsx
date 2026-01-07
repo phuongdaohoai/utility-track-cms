@@ -72,6 +72,7 @@ const CheckoutDetailModal: React.FC<CheckoutDetailModalProps> = ({
 
   useEffect(() => {
     setMembers(buildMembers(item));
+    console.log("item", item)
   }, [item]);
 
   const selectableMembers = useMemo(

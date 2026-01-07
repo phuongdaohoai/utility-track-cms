@@ -154,7 +154,7 @@ export const FaceIDScanner: React.FC<FaceIDScannerProps> = ({
       <div className="bg-white rounded-lg p-6 w-full max-w-2xl mx-4">
         {/* Header */}
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold">{title}</h2>
+          <h2 className="text-xl font-bold">{headerTitle}</h2>
           <button onClick={handleClose} className="text-2xl text-gray-500">
             ×
           </button>
