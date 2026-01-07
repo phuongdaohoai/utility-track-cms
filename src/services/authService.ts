@@ -1,7 +1,8 @@
 // services/authService.ts
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 
 import { API_BASE_URL } from '../utils/url';
+import { getTranslatableError } from '../utils/error-handler';
 
 export interface LoginCredentials {
   identifier?: string; // keep compatibility with previous code (email or phone)
@@ -42,6 +43,20 @@ const api = axios.create({
   baseURL: API_BASE_URL,
   headers: { 'Content-Type': 'application/json' },
 });
+
+// Xử lý error response và dịch error code
+api.interceptors.response.use(
+  (response) => response,
+  (error: AxiosError<any>) => {
+    if (error.response) {
+      const responseData = error.response.data;
+      const status = error.response.status;
+      const translatedMessage = getTranslatableError(responseData, status);
+      return Promise.reject(new Error(translatedMessage));
+    }
+    return Promise.reject(error);
+  }
+);
 
 
 const login = async (credentials: LoginCredentials): Promise<AuthResponse> => {

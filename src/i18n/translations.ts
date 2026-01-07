@@ -811,6 +811,16 @@ export const translations = {
       checkoutAll: 'Checkout All',
       selectAtLeastOneGuest: 'Please select at least 1 guest to checkout.',
     },
+    adminChart: {
+      timeRange: 'Time Range',
+      month: 'Month',
+      quarter: 'Quarter',
+      halfYear: 'Half Year',
+      year: 'Year',
+      selectBothDates: 'Please select both dates',
+      selectDatesDescription: 'Select start date and end date to view data',
+      noData: 'No data available',
+    },
     csvImport: {
       importCSV: 'Import CSV',
       previewTitle: 'Preview {type} List',

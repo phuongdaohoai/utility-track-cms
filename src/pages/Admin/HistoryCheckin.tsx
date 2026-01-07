@@ -93,11 +93,9 @@ const UsageHistory: React.FC = () => {
         const res = await api.get(
           `/history_checkin?searchName=${searchText}&page=${currentPage}&limit=${ITEMS_PER_PAGE}`
         );
-        if (!res.ok) {
-          throw new Error(t.common.loadingData);
-        }
+     
 
-        const json = await res.json();
+        const json = await res;
         console.log("json", json.data.data);
         setData(json.data.data);
         setTotalPages(json.data.meta.totalPages);
@@ -113,7 +111,7 @@ const UsageHistory: React.FC = () => {
   const openDetail = async (id: number) => {
     try {
       const res = await api.get(`/history_checkin/${id}`);
-      const json = await res.json();
+      const json = await res;
 
       if (json.success) {
         setSelectedUser(json.data);
