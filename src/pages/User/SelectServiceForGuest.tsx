@@ -1,6 +1,7 @@
 import { useState, useEffect, type FC } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getServices } from '../../api/services.api'
+import { useLocale } from '../../i18n/LocaleContext'
 
 interface Service {
   id: number
@@ -9,6 +10,7 @@ interface Service {
 }
 
 export const SelectServiceForGuest: FC = () => {
+  const { t } = useLocale()
   const navigate = useNavigate()
   const [services, setServices] = useState<Service[]>([])
   const [loading, setLoading] = useState(false)
@@ -32,7 +34,7 @@ export const SelectServiceForGuest: FC = () => {
         setServices(activeServices)
       } catch (err: any) {
         console.error('Lỗi khi tải danh sách dịch vụ:', err)
-        setError('Không thể tải danh sách dịch vụ.')
+        setError(t.selectServiceForGuest.error)
       } finally {
         setLoading(false)
       }
@@ -59,10 +61,10 @@ export const SelectServiceForGuest: FC = () => {
             onClick={() => navigate('/mainmenu')}
             className="text-blue-600 hover:text-blue-800 flex items-center gap-2 mb-4"
           >
-            ← Quay lại
+            ← {t.selectServiceForGuest.back}
           </button>
-          <h1 className="text-3xl font-bold text-gray-800">Chọn Dịch Vụ Check-in</h1>
-          <p className="text-gray-500 mt-2">Chọn dịch vụ để check-in cho khách ngoài</p>
+          <h1 className="text-3xl font-bold text-gray-800">{t.selectServiceForGuest.title}</h1>
+          <p className="text-gray-500 mt-2">{t.selectServiceForGuest.description}</p>
         </div>
 
         {error && (
@@ -73,11 +75,11 @@ export const SelectServiceForGuest: FC = () => {
 
         {loading ? (
           <div className="text-center py-12">
-            <p className="text-gray-500">Đang tải danh sách dịch vụ...</p>
+            <p className="text-gray-500">{t.selectServiceForGuest.loading}</p>
           </div>
         ) : services.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-gray-500">Không có dịch vụ nào.</p>
+            <p className="text-gray-500">{t.selectServiceForGuest.noServices}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -90,7 +92,7 @@ export const SelectServiceForGuest: FC = () => {
                 <h3 className="text-xl font-semibold text-gray-800 mb-2">
                   {service.serviceName}
                 </h3>
-                <p className="text-gray-500 text-sm">Nhấn để chọn dịch vụ này</p>
+                <p className="text-gray-500 text-sm">{t.selectServiceForGuest.selectService}</p>
               </button>
             ))}
           </div>

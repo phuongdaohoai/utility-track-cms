@@ -11,6 +11,7 @@ import {
 } from '../../store/residentsSlice';
 import { API_BASE_URL } from '../../utils/url';
 import { QRCodeSVG } from 'qrcode.react';
+import { useLocale } from '../../i18n/LocaleContext';
 // 1. Interface
 interface Apartment {
   id: number;
@@ -32,6 +33,7 @@ export const ResidentModal: FC<ResidentModalProps> = ({
   residentId,
   onSuccess
 }) => {
+  const { t } = useLocale()
   const dispatch = useAppDispatch();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -175,7 +177,7 @@ export const ResidentModal: FC<ResidentModalProps> = ({
     if (!residentId) return;
 
     // Xác nhận trước khi reset (tuỳ chọn)
-    if (!window.confirm("Bạn có chắc chắn muốn làm mới mã QR của cư dân này? Mã cũ sẽ không còn hiệu lực.")) {
+    if (!window.confirm(t.residentForm.confirmResetQR)) {
       return;
     }
 
@@ -186,15 +188,15 @@ export const ResidentModal: FC<ResidentModalProps> = ({
 
       if (newQrCode) {
         setFormData(prev => ({ ...prev, qrCode: newQrCode }));
-        alert("Đã làm mới mã QR thành công!");
+        alert(t.residentForm.resetQRSuccess);
       } else {
         dispatch(fetchResidentById(residentId));
-        alert("Đã reset. Đang tải lại dữ liệu...");
+        alert(t.residentForm.resetQRReload);
       }
 
     } catch (error) {
       console.error("Lỗi reset QR:", error);
-      alert("Không thể làm mới mã QR. Vui lòng thử lại.");
+      alert(t.residentForm.resetQRError);
     } finally {
       setIsResettingQr(false);
     }
@@ -204,7 +206,7 @@ export const ResidentModal: FC<ResidentModalProps> = ({
     if (!file) return;
 
     if (file.size > 5 * 1024 * 1024) {
-      alert('File tối đa 5MB');
+      alert(t.residentForm.fileMaxSize);
       return;
     }
 
@@ -227,7 +229,7 @@ export const ResidentModal: FC<ResidentModalProps> = ({
 
     } catch (error) {
       console.error(error);
-      alert('Lỗi khi tải ảnh lên. Vui lòng thử lại.');
+      alert(t.residentForm.uploadError);
     } finally {
       setIsUploadingAvatar(false); // Tắt trạng thái loading
       // Reset input để có thể chọn lại cùng 1 file nếu muốn
@@ -239,14 +241,14 @@ export const ResidentModal: FC<ResidentModalProps> = ({
 
   const handleDelete = async () => {
     if (!residentId) return;
-    if (window.confirm("Bạn có chắc chắn muốn xóa cư dân này?")) {
+    if (window.confirm(t.residentForm.confirmDelete)) {
       try {
         await dispatch(deleteResident(residentId)).unwrap();
         dispatch(resetResidentStatus());
         if (onSuccess) onSuccess();
         onClose();
       } catch (err) {
-        alert("Xóa thất bại");
+        alert(t.residentForm.deleteFailed);
       }
     }
   };
@@ -255,31 +257,31 @@ export const ResidentModal: FC<ResidentModalProps> = ({
     const errors: Record<string, string> = {};
     const cleanPhone = formData.phone.replace(/\D/g, '');
 
-    if (!formData.fullName.trim()) errors.fullName = 'Họ tên là bắt buộc';
+    if (!formData.fullName.trim()) errors.fullName = t.residentForm.errorFullNameRequired;
 
-    if (!cleanPhone) errors.phone = 'SĐT là bắt buộc';
-    else if (!/^(0|\+84)(\d{9})$/.test(cleanPhone)) errors.phone = 'SĐT không hợp lệ (10 số)';
+    if (!cleanPhone) errors.phone = t.residentForm.errorPhoneRequired;
+    else if (!/^(0|\+84)(\d{9})$/.test(cleanPhone)) errors.phone = t.residentForm.errorPhoneInvalid;
 
-    if (!formData.email.trim()) errors.email = 'Email là bắt buộc';
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) errors.email = 'Email không hợp lệ';
+    if (!formData.email.trim()) errors.email = t.residentForm.errorEmailRequired;
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) errors.email = t.residentForm.errorEmailInvalid;
 
     if (!formData.citizenCard.trim()) {
-      errors.citizenCard = 'CCCD là bắt buộc';
+      errors.citizenCard = t.residentForm.errorCitizenCardRequired;
     } else if (!/^\d+$/.test(formData.citizenCard)) {
-      errors.citizenCard = 'CCCD chỉ được chứa chữ số';
+      errors.citizenCard = t.residentForm.errorCitizenCardNumbers;
     } else if (formData.citizenCard.length !== 12) {
-      errors.citizenCard = 'CCCD phải đúng 12 số';
+      errors.citizenCard = t.residentForm.errorCitizenCardLength;
     }
 
     if (!formData.birthday) {
-      errors.birthday = 'Ngày sinh là bắt buộc';
+      errors.birthday = t.residentForm.errorBirthdayRequired;
     } else {
       const birthday = new Date(formData.birthday);
       const today = new Date();
       birthday.setHours(0, 0, 0, 0);
       today.setHours(0, 0, 0, 0);
       if (birthday > today) {
-        errors.birthday = 'Ngày sinh không được lớn hơn ngày hiện tại';
+        errors.birthday = t.residentForm.errorBirthdayFuture;
       }
     }
 
@@ -330,10 +332,10 @@ export const ResidentModal: FC<ResidentModalProps> = ({
         <div className="flex items-center justify-between p-6 border-b sticky top-0 bg-white z-10">
           <div>
             <h2 className="text-xl font-bold text-[#333570]">
-              {isEditMode ? 'Chỉnh sửa cư dân' : 'Thêm Mới Cư Dân'}
+              {isEditMode ? t.residentForm.editResident : t.residentForm.addResident}
             </h2>
             <p className="text-sm text-gray-500">
-              {isEditMode ? 'Cập nhật thông tin chi tiết' : 'Nhập thông tin cư dân mới'}
+              {isEditMode ? t.residentForm.updateInfo : t.residentForm.enterNewInfo}
             </p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
@@ -342,7 +344,7 @@ export const ResidentModal: FC<ResidentModalProps> = ({
         </div>
 
         {isEditMode && loading && !currentResident ? (
-          <div className="p-10 text-center text-gray-500">Đang tải dữ liệu...</div>
+          <div className="p-10 text-center text-gray-500">{t.residentForm.loading}</div>
         ) : (
           <form onSubmit={handleSubmit} className="p-8 flex-1">
 
@@ -350,7 +352,7 @@ export const ResidentModal: FC<ResidentModalProps> = ({
               <div className="mb-6 p-4 bg-green-50 text-green-700 rounded-lg flex items-center gap-3 border border-green-200 animate-fade-in">
                 <CheckCircle2 className="w-6 h-6" />
                 <span className="font-bold text-lg">
-                  {isEditMode ? 'Cập nhật thành công!' : 'Tạo mới thành công!'}
+                  {isEditMode ? t.residentForm.updateSuccess : t.residentForm.createSuccess}
                 </span>
               </div>
             )}
@@ -358,7 +360,7 @@ export const ResidentModal: FC<ResidentModalProps> = ({
               <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-lg flex items-center gap-3 border border-red-200">
                 <AlertCircle className="w-5 h-5" />
                 <span className="font-medium">
-                  {reduxError || "Có lỗi xảy ra, vui lòng thử lại."}
+                  {reduxError || t.residentForm.error}
                 </span>
               </div>
             )}
@@ -386,7 +388,7 @@ export const ResidentModal: FC<ResidentModalProps> = ({
                 </div>
                 <input ref={fileInputRef} type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
                 <div className="text-center">
-                  <h3 className="font-semibold text-gray-900">{formData.fullName || "Tên Cư Dân"}</h3>
+                  <h3 className="font-semibold text-gray-900">{formData.fullName || t.residentForm.residentName}</h3>
                 </div>
               </div>
 
@@ -394,69 +396,69 @@ export const ResidentModal: FC<ResidentModalProps> = ({
               <div className="w-full md:w-3/4 grid grid-cols-1 md:grid-cols-2 gap-5">
 
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Họ tên <span className="text-red-500">*</span></label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t.residentForm.fullName} <span className="text-red-500">{t.residentForm.required}</span></label>
                   <input
                     name="fullName"
                     value={formData.fullName}
                     onChange={handleInputChange}
                     className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none ${formErrors.fullName ? 'border-red-500' : 'border-gray-300'}`}
-                    placeholder="Nguyễn Văn A"
+                    placeholder={t.residentForm.placeholderFullName}
                   />
                   {formErrors.fullName && <p className="text-xs text-red-500 mt-1">{formErrors.fullName}</p>}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Số điện thoại <span className="text-red-500">*</span></label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t.residentForm.phone} <span className="text-red-500">{t.residentForm.required}</span></label>
                   <input
                     name="phone"
                     value={formData.phone}
                     onChange={handlePhoneChange}
                     className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none ${formErrors.phone ? 'border-red-500' : 'border-gray-300'}`}
-                    placeholder="0000-000-000"
+                    placeholder={t.residentForm.placeholderPhone}
                   />
                   {formErrors.phone && <p className="text-xs text-red-500 mt-1">{formErrors.phone}</p>}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t.residentForm.email}</label>
                   <input
                     name="email"
                     value={formData.email}
                     onChange={handleInputChange}
                     className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none ${formErrors.email ? 'border-red-500' : 'border-gray-300'}`}
-                    placeholder="email@example.com"
+                    placeholder={t.residentForm.placeholderEmail}
                   />
                   {formErrors.email && <p className="text-xs text-red-500 mt-1">{formErrors.email}</p>}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">CCCD (12 số) <span className="text-red-500">*</span></label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t.residentForm.citizenCard} <span className="text-red-500">{t.residentForm.required}</span></label>
                   <input
                     name="citizenCard"
                     value={formData.citizenCard}
                     onChange={handleInputChange}
                     className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none ${formErrors.citizenCard ? 'border-red-500' : 'border-gray-300'}`}
-                    placeholder="001234567890"
+                    placeholder={t.residentForm.placeholderCitizenCard}
                   />
                   {formErrors.citizenCard && <p className="text-xs text-red-500 mt-1">{formErrors.citizenCard}</p>}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Giới tính</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t.residentForm.gender}</label>
                   <select
                     name="gender"
                     value={formData.gender}
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 outline-none"
                   >
-                    <option value="Nam">Nam</option>
-                    <option value="Nữ">Nữ</option>
-                    <option value="Khác">Khác</option>
+                    <option value="Nam">{t.residentForm.genderMale}</option>
+                    <option value="Nữ">{t.residentForm.genderFemale}</option>
+                    <option value="Khác">{t.residentForm.genderOther}</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Ngày sinh <span className="text-red-500">*</span></label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t.residentForm.birthday} <span className="text-red-500">{t.residentForm.required}</span></label>
                   <input
                     type="date"
                     name="birthday"
@@ -469,7 +471,7 @@ export const ResidentModal: FC<ResidentModalProps> = ({
 
                 {/* --- CUSTOM DROPDOWN CĂN HỘ (KHÔNG SEARCH) --- */}
                 <div className="relative">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Căn hộ</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t.residentForm.apartment}</label>
 
                   {/* Ô hiển thị giá trị */}
                   <div
@@ -481,7 +483,7 @@ export const ResidentModal: FC<ResidentModalProps> = ({
                         ? apartments.find(a => a.id === Number(formData.apartmentId))?.roomNumber
                           ? `${apartments.find(a => a.id === Number(formData.apartmentId))?.building} - ${apartments.find(a => a.id === Number(formData.apartmentId))?.roomNumber}`
                           : "Đã chọn (ID: " + formData.apartmentId + ")"
-                        : "-- Chọn căn hộ --"}
+                        : t.residentForm.selectApartment}
                     </span>
                     <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
                   </div>
@@ -506,7 +508,7 @@ export const ResidentModal: FC<ResidentModalProps> = ({
                             </li>
                           ))
                         ) : (
-                          <li className="px-4 py-2 text-sm text-gray-500 text-center">Đang tải danh sách...</li>
+                          <li className="px-4 py-2 text-sm text-gray-500 text-center">{t.residentForm.loadingApartments}</li>
                         )}
                       </ul>
                     </div>
@@ -520,22 +522,22 @@ export const ResidentModal: FC<ResidentModalProps> = ({
 
                 {isEditMode && (
                   <div className='md:col-span-2'>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Trạng thái</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t.residentForm.status}</label>
                     <select
                       name="status"
                       value={formData.status}
                       onChange={handleInputChange}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 outline-none"
                     >
-                      <option value={1}>Hoạt động</option>
-                      <option value={0}>khóa</option>
+                      <option value={1}>{t.residentForm.active}</option>
+                      <option value={0}>{t.residentForm.inactive}</option>
                     </select>
                   </div>
                 )}
 
               {isEditMode && (
                   <div className="md:col-span-2 mt-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Mã QR Truy cập</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{t.residentForm.qrCode}</label>
                     <div className="flex items-center gap-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
                       <div className="bg-white p-2 rounded shadow-sm border border-gray-100">
                         {formData.qrCode ? (
@@ -546,13 +548,13 @@ export const ResidentModal: FC<ResidentModalProps> = ({
                           />
                         ) : (
                           <div className="w-[100px] h-[100px] bg-gray-200 flex items-center justify-center text-xs text-gray-500 text-center">
-                            Chưa có mã
+                            {t.residentForm.noQR}
                           </div>
                         )}
                       </div>
                       <div className="flex-1">
                         <div className="mb-3">
-                          <p className="text-xs text-gray-500 mb-1">Chuỗi mã:</p>
+                          <p className="text-xs text-gray-500 mb-1">{t.residentForm.qrString}</p>
                           <code className="block bg-gray-200 px-2 py-1 rounded text-sm text-gray-700 break-all font-mono">
                             {formData.qrCode || "N/A"}
                           </code>
@@ -564,7 +566,7 @@ export const ResidentModal: FC<ResidentModalProps> = ({
                           className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-100 hover:text-indigo-600 transition-all text-sm font-medium shadow-sm disabled:opacity-50"
                         >
                           <RefreshCw className={`w-4 h-4 ${isResettingQr ? 'animate-spin' : ''}`} />
-                          {isResettingQr ? 'Đang tạo mới...' : 'Làm mới QR Code'}
+                          {isResettingQr ? t.residentForm.refreshingQR : t.residentForm.refreshQR}
                         </button>
                       </div>
                     </div>
@@ -580,7 +582,7 @@ export const ResidentModal: FC<ResidentModalProps> = ({
                   onClick={handleDelete}
                   className="px-4 py-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg font-medium transition-colors flex items-center gap-2"
                 >
-                  <Trash2 className="w-4 h-4" /> Xóa cư dân
+                  <Trash2 className="w-4 h-4" /> {t.residentForm.deleteResident}
                 </button>
               ) : (
                 <div></div>
@@ -592,7 +594,7 @@ export const ResidentModal: FC<ResidentModalProps> = ({
                   onClick={onClose}
                   className="px-5 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors"
                 >
-                  Hủy bỏ
+                  {t.residentForm.cancel}
                 </button>
                 <button
                   type="submit"
@@ -600,7 +602,7 @@ export const ResidentModal: FC<ResidentModalProps> = ({
                   className="px-6 py-2 bg-[#333570] text-white rounded-lg hover:bg-indigo-800 font-medium transition-colors disabled:opacity-70 flex items-center gap-2"
                 >
                   {isSubmitting && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}
-                  {isEditMode ? 'Lưu thay đổi' : 'Thêm mới'}
+                  {isEditMode ? t.residentForm.saveChanges : t.residentForm.addNew}
                 </button>
               </div>
             </div>

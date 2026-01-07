@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useLocale } from '../../i18n/LocaleContext';
 
 export interface TagInputProps {
   value: string[];
@@ -13,10 +14,12 @@ export const TagInput: React.FC<TagInputProps> = ({
   value,
   suggestions = [],
   onChange,
-  placeholder = 'Nhập và nhấn Enter...',
+  placeholder,
   disabled = false,
   onInputChange,
 }) => {
+  const { t } = useLocale()
+  const defaultPlaceholder = placeholder || t.filter.enterOrSelect;
   const [inputValue, setInputValue] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
@@ -149,7 +152,7 @@ export const TagInput: React.FC<TagInputProps> = ({
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           onFocus={() => setIsOpen(true)}
-          placeholder={value.length === 0 ? placeholder : ''}
+          placeholder={value.length === 0 ? defaultPlaceholder : ''}
           className="flex-1 min-w-[120px] outline-none border-none bg-transparent text-sm"
         />
       </div>

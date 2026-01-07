@@ -6,7 +6,7 @@ type MenuStep = 'initial' | 'showOptions'
 type Mode = 'checkin' | 'checkout'
 
 export const MainMenu: FC = () => {
-  const { t } = useLocale();
+  const { locale, setLocale, t } = useLocale()
   const [step, setStep] = useState<MenuStep>('initial')
   const [mode, setMode] = useState<Mode>('checkin')
   const navigate = useNavigate()
@@ -27,6 +27,33 @@ export const MainMenu: FC = () => {
 
   return (
     <div className="min-h-screen bg-white p-8 flex flex-col items-center justify-center gap-8">
+         <div className="absolute top-[5%] right-[5%] z-20 font-bold flex items-center gap-6 text-sm text-gray-500">
+          <button
+            type="button"
+            onClick={() => setLocale('vi')}
+            aria-pressed={locale === 'vi'}
+            className={`focus:outline-none ${
+              locale === 'vi'
+                ? 'underline decoration-2 underline-offset-4 text-indigo-700'
+                : 'text-gray-400 hover:text-indigo-600'
+            }`}
+          >
+            {t.language.vietnamese}
+          </button>
+          <span className="text-gray-300 select-none">|</span>
+          <button
+            type="button"
+            onClick={() => setLocale('en')}
+            aria-pressed={locale === 'en'}
+            className={`focus:outline-none ${
+              locale === 'en'
+                ? 'underline decoration-2 underline-offset-4 text-indigo-700'
+                : 'text-gray-400 hover:text-indigo-600'
+            }`}
+          >
+            {t.language.english}
+          </button>
+        </div>
       {step === 'initial' && (
         <div className="border border-gray-300 bg-white p-8 rounded-lg w-full max-w-4xl">
           <div className="flex justify-center gap-8">

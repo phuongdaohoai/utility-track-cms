@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import CheckoutDetailModal from "../../components/CheckoutDetailModal";
+import { useLocale } from '../../i18n/LocaleContext';
 
 interface DetailCheckoutState {
   visible: boolean;
@@ -9,6 +10,7 @@ interface DetailCheckoutState {
 import checkInService, { CheckInItem } from "../../services/checkInService";
 
 const Checkout: React.FC = () => {
+  const { t } = useLocale()
   // === STATE POPUP ===
   const [checkoutPopup, setCheckoutPopup] = useState<DetailCheckoutState>({
     visible: false,
@@ -88,19 +90,19 @@ const Checkout: React.FC = () => {
   // 2. Checkout ALL cho một lượt
   const handleCheckoutAll = async (id: number) => {
     const confirm = window.confirm(
-      "Bạn có chắc chắn muốn Checkout ALL cho lượt này?"
+      t.checkout.confirmCheckoutAll
     );
     if (!confirm) return;
     setModalLoading(true);
     try {
       await checkInService.checkout(id);
-      alert("Checkout ALL thành công!");
+      alert(t.checkout.checkoutAllSuccess);
       const type = filterType === "all" ? undefined : filterType;
       fetchData(currentPage, filterQuery, type);
       closeCheckoutPopup();
     } catch (error: any) {
       console.error(error);
-      alert(error.message || "Có lỗi xảy ra khi checkout.");
+      alert(error.message || t.checkout.errorCheckout);
     } finally {
       setModalLoading(false);
     }
@@ -109,19 +111,19 @@ const Checkout: React.FC = () => {
   // 3. Checkout theo danh sách khách đã chọn (không checkout đại diện)
   const handleSavePartial = async (id: number, guests: string[]) => {
     if (!guests || guests.length === 0) {
-      alert("Vui lòng chọn ít nhất 1 khách để checkout.");
+      alert(t.checkout.selectGuests);
       return;
     }
     setModalLoading(true);
     try {
       await checkInService.partialCheckoutByGuests(id, guests);
-      alert("Đã lưu lượt checkout một phần!");
+      alert(t.checkout.partialCheckoutSuccess);
       const type = filterType === "all" ? undefined : filterType;
       await fetchData(currentPage, filterQuery, type);
       closeCheckoutPopup();
     } catch (error: any) {
       console.error(error);
-      alert(error.message || "Có lỗi xảy ra khi checkout.");
+      alert(error.message || t.checkout.errorCheckout);
     } finally {
       setModalLoading(false);
     }
@@ -191,7 +193,7 @@ const Checkout: React.FC = () => {
       <div className="flex items-center gap-4 mb-4 max-w-3xl">
         <div className="relative flex-1">
           <input
-            placeholder="Tìm kiếm theo Cư Dân, Khách, Phòng..."
+            placeholder={t.checkout.searchPlaceholder}
             className="w-full h-11 rounded-lg border border-gray-300 pl-10 pr-4 focus:outline-none focus:ring-1 focus:ring-indigo-500"
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
@@ -203,7 +205,7 @@ const Checkout: React.FC = () => {
           </svg>
         </div>
         <button onClick={handleSearch} className="h-11 px-8 rounded-lg bg-indigo-700 text-white font-semibold hover:bg-indigo-800 transition">
-          Tìm Kiếm
+          {t.checkout.search}
         </button>
       </div>
 
@@ -224,7 +226,7 @@ const Checkout: React.FC = () => {
             }`}
           >
             <span className="w-10 h-6 rounded bg-sky-500"></span>
-            <span className="font-medium">Cư dân</span>
+            <span className="font-medium">{t.checkout.resident}</span>
           </button>
           <button
             onClick={() => {
@@ -240,7 +242,7 @@ const Checkout: React.FC = () => {
             }`}
           >
             <span className="w-10 h-6 rounded bg-yellow-400"></span>
-            <span className="font-medium">Khách ngoài</span>
+            <span className="font-medium">{t.checkout.outsideGuest}</span>
           </button>
         </div>
       </div>
@@ -250,20 +252,20 @@ const Checkout: React.FC = () => {
         <table className="w-full">
           <thead>
             <tr className="border-b text-gray-600 text-left bg-gray-50">
-              <th className="px-6 py-4 font-bold text-indigo-700">Loại</th>
-              <th className="px-6 py-4 font-bold text-indigo-700">Cư dân/ Khách</th>
-              <th className="px-6 py-4 font-bold text-indigo-700">Dịch Vụ</th>
-              <th className="px-6 py-4 font-bold text-indigo-700">Thời Gian Vào</th>
-              <th className="px-6 py-4 font-bold text-indigo-700">Số Lượng</th>
-              <th className="px-6 py-4 font-bold text-indigo-700">Hành Động</th>
+              <th className="px-6 py-4 font-bold text-indigo-700">{t.checkout.type}</th>
+              <th className="px-6 py-4 font-bold text-indigo-700">{t.checkout.residentOrGuest}</th>
+              <th className="px-6 py-4 font-bold text-indigo-700">{t.checkout.service}</th>
+              <th className="px-6 py-4 font-bold text-indigo-700">{t.checkout.checkInTime}</th>
+              <th className="px-6 py-4 font-bold text-indigo-700">{t.checkout.quantity}</th>
+              <th className="px-6 py-4 font-bold text-indigo-700">{t.checkout.action}</th>
             </tr>
           </thead>
 
           <tbody>
             {loading ? (
-                <tr><td colSpan={6} className="text-center py-8 text-gray-500">Đang tải dữ liệu...</td></tr>
+                <tr><td colSpan={6} className="text-center py-8 text-gray-500">{t.checkout.loading}</td></tr>
             ) : data.length === 0 ? (
-                <tr><td colSpan={6} className="text-center py-8 text-gray-500">Không có dữ liệu check-in nào.</td></tr>
+                <tr><td colSpan={6} className="text-center py-8 text-gray-500">{t.checkout.noData}</td></tr>
             ) : (
                 data.map((item) => {
                     const guest = isGuest(item.room);
@@ -281,7 +283,7 @@ const Checkout: React.FC = () => {
                                     />
                                     <div>
                                         <div className="font-bold text-gray-800">{item.displayName}</div>
-                                        <div className="text-xs text-gray-500">{guest ? "Khách vãng lai" : item.room}</div>
+                                        <div className="text-xs text-gray-500">{guest ? t.checkout.guestName : item.room}</div>
                                     </div>
                                 </div>
                             </td>
@@ -293,7 +295,7 @@ const Checkout: React.FC = () => {
                                 onClick={() => openCheckoutPopup(item)}
                                 className="px-3 py-1.5 rounded bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition shadow-sm"
                               >
-                                Checkout
+                                {t.checkout.checkout}
                               </button>
                             </td>
                         </tr>

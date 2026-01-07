@@ -4,6 +4,7 @@ import { getServices } from '../../api/services.api'
 import { findResident } from '../../api/checkin.api'
 import { QRScanner } from '../../components/QRScanner'
 import { FaceIDScanner } from '../../components/FaceIDScanner'
+import { useLocale } from '../../i18n/LocaleContext'
 
 interface Service {
   id: number
@@ -15,6 +16,7 @@ type ScanMode = 'qr' | 'face' | null
 type Mode = 'checkin' | 'checkout'
 
 export const ScreenCheckIn: FC = () => {
+  const { t } = useLocale()
   const navigate = useNavigate()
   const location = useLocation()
   const mode: Mode = location.state?.mode || 'checkin'
@@ -36,7 +38,7 @@ export const ScreenCheckIn: FC = () => {
           : []
         setServices(activeServices)
       } catch {
-        setError('Không thể tải danh sách dịch vụ.')
+        setError(t.screenCheckIn.errorLoadServices)
       }
     }
 
@@ -71,7 +73,7 @@ export const ScreenCheckIn: FC = () => {
         },
       })
     } catch (err: any) {
-      setError(err.message || 'Không tìm thấy cư dân.')
+      setError(err.message || t.screenCheckIn.errorResidentNotFound)
       setLoading(false)
     }
   }
@@ -98,7 +100,7 @@ export const ScreenCheckIn: FC = () => {
         },
       })
     } catch (err: any) {
-      setError(err.message || 'Không tìm thấy cư dân.')
+      setError(err.message || t.screenCheckIn.errorResidentNotFound)
       setLoading(false)
     }
   }
@@ -111,10 +113,10 @@ export const ScreenCheckIn: FC = () => {
             onClick={() => navigate('/mainmenu')}
             className="text-blue-600 hover:text-blue-800 flex items-center gap-2 mb-4"
           >
-            ← Quay lại
+            ← {t.screenCheckIn.back}
           </button>
           <h1 className="text-3xl font-bold mb-6">
-            {mode === 'checkout' ? 'Chọn Dịch Vụ Check-out' : 'Chọn Dịch Vụ Check-in'}
+            {mode === 'checkout' ? t.screenCheckIn.selectServiceCheckout : t.screenCheckIn.selectServiceCheckin}
           </h1>
 
           {error && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">{error}</div>}
@@ -127,7 +129,7 @@ export const ScreenCheckIn: FC = () => {
                 className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg text-left"
               >
                 <h3 className="text-xl font-semibold">{service.serviceName}</h3>
-                <p className="text-gray-500 text-sm">Nhấn để chọn dịch vụ này</p>
+                <p className="text-gray-500 text-sm">{t.screenCheckIn.selectService}</p>
               </button>
             ))}
           </div>
@@ -144,13 +146,13 @@ export const ScreenCheckIn: FC = () => {
             onClick={() => setSelectedService(null)}
             className="mb-4 text-blue-600"
           >
-            ← Quay lại
+            ← {t.screenCheckIn.back}
           </button>
 
           <h1 className="text-3xl font-bold mb-6">
             {mode === 'checkout'
-              ? `Check-out: ${selectedService.serviceName}`
-              : `Check-in: ${selectedService.serviceName}`}
+              ? t.screenCheckIn.checkoutTitle.replace('{serviceName}', selectedService.serviceName)
+              : t.screenCheckIn.checkinTitle.replace('{serviceName}', selectedService.serviceName)}
           </h1>
 
           {error && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">{error}</div>}
@@ -161,7 +163,7 @@ export const ScreenCheckIn: FC = () => {
               disabled={loading}
               className="bg-blue-600 text-white p-8 rounded-lg"
             >
-              QR Code
+              {t.screenCheckIn.qrCode}
             </button>
 
             <button
@@ -169,7 +171,7 @@ export const ScreenCheckIn: FC = () => {
               disabled={loading}
               className="bg-green-600 text-white p-8 rounded-lg"
             >
-              Face ID
+              {t.screenCheckIn.faceID}
             </button>
           </div>
         </div>
@@ -183,7 +185,7 @@ export const ScreenCheckIn: FC = () => {
         <QRScanner
           onScan={handleQRScan}
           onClose={() => setScanMode(null)}
-          title="Quét QR Code"
+          title={t.screenCheckIn.scanQRTitle}
         />
       )}
 
@@ -191,7 +193,7 @@ export const ScreenCheckIn: FC = () => {
         <FaceIDScanner
           onScan={handleFaceIDScan}
           onClose={() => setScanMode(null)}
-          title="Quét Face ID"
+          title={t.screenCheckIn.scanFaceIDTitle}
         />
       )}
     </>

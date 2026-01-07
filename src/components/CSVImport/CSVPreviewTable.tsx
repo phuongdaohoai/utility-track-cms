@@ -2,14 +2,16 @@
 import { FC } from 'react';
 import { useCSVImport } from '../../store/hooks';
 import { CSV_CONFIG } from './csvConfig'; // Import config
+import { useLocale } from '../../i18n/LocaleContext';
 
 export const CSVPreviewTable: FC = () => {
+  const { t } = useLocale()
   const { data, errors, importType } = useCSVImport();
 
   // Lấy cột hiển thị từ config
   const displayColumns = CSV_CONFIG[importType];
 
-  if (data.length === 0) return <div className="text-center py-12 text-gray-500">Chưa có dữ liệu</div>;
+  if (data.length === 0) return <div className="text-center py-12 text-gray-500">{t.csvImport.noData}</div>;
 
   return (
     <div className="p-6 min-h-screen">

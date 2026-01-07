@@ -3,10 +3,12 @@ import { FC, useRef, ChangeEvent } from 'react';
 import { X, Upload, AlertCircle, CheckCircle, FileX } from 'lucide-react';
 import { useCSVImport } from '../../store/hooks';
 import { CSVPreviewTable } from './CSVPreviewTable';
+import { useLocale } from '../../i18n/LocaleContext';
 interface CSVImportModalProps {
   onSuccess?: () => void; // Hàm callback tùy chọn
 }
 export const CSVImportModal: FC<CSVImportModalProps> = ({ onSuccess }) => {
+  const { t } = useLocale()
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
@@ -61,7 +63,7 @@ export const CSVImportModal: FC<CSVImportModalProps> = ({ onSuccess }) => {
     // }
 
     if (data.length === 0) {
-      alert('Không có dữ liệu để import');
+      alert(t.csvImport.noDataToImport);
       return;
     }
     const result = await importCSVData(importType, data);
@@ -74,7 +76,7 @@ export const CSVImportModal: FC<CSVImportModalProps> = ({ onSuccess }) => {
 
   const handleClose = () => {
 
-    if (data.length > 0 && !isHeaderError && !window.confirm('Dữ liệu chưa được lưu. Bạn có chắc chắn muốn đóng?')) {
+    if (data.length > 0 && !isHeaderError && !window.confirm(t.csvImport.unsavedData)) {
       return;
     }
     closeModal();
@@ -97,7 +99,7 @@ export const CSVImportModal: FC<CSVImportModalProps> = ({ onSuccess }) => {
         <div className="flex items-center justify-between p-6 border-b">
           <div>
             <h2 className="text-xl font-semibold text-gray-800">
-              Xem trước danh sách {importType === 'staff' ? 'nhân sự' : 'cư dân'}
+              {importType === 'staff' ? t.csvImport.previewTitleStaff : t.csvImport.previewTitleResidents}
             </h2>
             {/* Show Success message */}
             {uploadStatus === 'success' && (
@@ -130,7 +132,7 @@ export const CSVImportModal: FC<CSVImportModalProps> = ({ onSuccess }) => {
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex flex-col items-center justify-center text-center gap-3">
               <FileX className="w-12 h-12 text-red-500" />
               <div>
-                <h3 className="text-lg font-bold text-red-700">Cấu trúc file không hợp lệ!</h3>
+                <h3 className="text-lg font-bold text-red-700">{t.csvImport.invalidStructure}</h3>
                 <p className="text-red-600 mt-1">{headerErrorMessage}</p>
               </div>
               <button
@@ -140,7 +142,7 @@ export const CSVImportModal: FC<CSVImportModalProps> = ({ onSuccess }) => {
                 }}
                 className="mt-2 text-indigo-600 font-medium hover:underline flex items-center gap-1"
               >
-                <Upload className="w-4 h-4" /> Chọn file khác
+                <Upload className="w-4 h-4" /> {t.csvImport.selectOtherFile}
               </button>
             </div>
           )}
@@ -163,10 +165,10 @@ export const CSVImportModal: FC<CSVImportModalProps> = ({ onSuccess }) => {
                 />
                 <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="font-medium text-gray-700 mb-2">
-                  Kéo thả file CSV vào đây hoặc click để chọn
+                  {t.csvImport.dragDrop}
                 </h3>
                 <p className="text-sm text-gray-500">
-                  Hỗ trợ file CSV với định dạng UTF-8
+                  {t.csvImport.csvFormat}
                 </p>
               </div>
             </div>
@@ -177,7 +179,7 @@ export const CSVImportModal: FC<CSVImportModalProps> = ({ onSuccess }) => {
             <div className="flex items-center justify-center h-64">
               <div className="text-center">
                 <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600 mx-auto mb-3"></div>
-                <p className="text-gray-600">Đang xử lý file...</p>
+                <p className="text-gray-600">{t.csvImport.processing}</p>
               </div>
             </div>
           )}
@@ -193,11 +195,11 @@ export const CSVImportModal: FC<CSVImportModalProps> = ({ onSuccess }) => {
               {/* Only show counts if valid structure */}
               {!isHeaderError && data.length > 0 && (
                 <span>
-                  Đã tải lên {data.length} bản ghi •
+                  {t.csvImport.uploadedRecords.replace('{count}', data.length.toString())} •
                   {errors.length > 0 ? (
-                    <span className="text-red-600 ml-1"> {errors.length} lỗi cần sửa</span>
+                    <span className="text-red-600 ml-1"> {t.csvImport.errorsToFix.replace('{count}', errors.length.toString())}</span>
                   ) : (
-                    <span className="text-green-600 ml-1"> Không có lỗi</span>
+                    <span className="text-green-600 ml-1"> {t.csvImport.noErrors}</span>
                   )}
                 </span>
               )}
@@ -209,7 +211,7 @@ export const CSVImportModal: FC<CSVImportModalProps> = ({ onSuccess }) => {
                   onClick={handleClosesucess}
                   className="px-5 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors min-w-[100px]"
                 >
-                  Đóng
+                  {t.csvImport.close}
                 </button>
               ) : (
 
@@ -219,7 +221,7 @@ export const CSVImportModal: FC<CSVImportModalProps> = ({ onSuccess }) => {
                     className="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors min-w-[100px]"
                     disabled={isLoading || uploadStatus === 'uploading'}
                   >
-                    Hủy
+                    {t.csvImport.cancel}
                   </button>
                   <button
                     onClick={handleConfirm}
@@ -229,7 +231,7 @@ export const CSVImportModal: FC<CSVImportModalProps> = ({ onSuccess }) => {
                         : 'bg-indigo-600 text-white hover:bg-indigo-700'
                       }`}
                   >
-                    {uploadStatus === 'uploading' ? 'Đang import...' : 'Xác nhận'}
+                    {uploadStatus === 'uploading' ? t.csvImport.importing : t.csvImport.confirm}
                   </button>
                 </>
               )}
