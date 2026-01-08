@@ -7,7 +7,7 @@ interface ChartLegendProps {
 
 export default function ChartLegend({ items }: ChartLegendProps) {
   return (
-    <div className="max-h-32 overflow-y-auto border-t pt-3">
+    <div className="max-h-32 overflow-y-auto border-t pt-3 ms-14">
       <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-2 text-sm">
         {items.map(item => (
           <div
