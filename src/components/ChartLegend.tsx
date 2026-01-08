@@ -12,13 +12,16 @@ export default function ChartLegend({ items }: ChartLegendProps) {
         {items.map(item => (
           <div
             key={item.name}
-            className="flex items-center gap-2 whitespace-nowrap"
+            className="flex items-center gap-2 truncate"
+            title={item.name}
           >
             <span
-              className="h-3 w-3 rounded-sm"
+              className="h-3 w-3 rounded-sm flex-shrink-0"
               style={{ backgroundColor: item.color }}
             />
-            <span className="text-gray-700">{item.name}</span>
+            <span className="truncate text-gray-700">
+              {item.name}
+            </span>
           </div>
         ))}
       </div>

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import CheckoutDetailModal from "../../components/CheckoutDetailModal";
 import { useLocale } from '../../i18n/LocaleContext';
 
@@ -11,6 +12,7 @@ import checkInService, { CheckInItem } from "../../services/checkInService";
 
 const Checkout: React.FC = () => {
   const { t } = useLocale()
+  const navigate = useNavigate();
   // === STATE POPUP ===
   const [checkoutPopup, setCheckoutPopup] = useState<DetailCheckoutState>({
     visible: false,
@@ -24,10 +26,10 @@ const Checkout: React.FC = () => {
   const [totalPages, setTotalPages] = useState(0);
 
   const [currentPage, setCurrentPage] = useState(1);
-  const [searchText, setSearchText] = useState(""); 
-  const [filterQuery, setFilterQuery] = useState(""); 
+  const [searchText, setSearchText] = useState("");
+  const [filterQuery, setFilterQuery] = useState("");
   const [filterType, setFilterType] = useState<"resident" | "guest" | "all">("all");
-  
+
   // State lưu số lượng muốn checkout cho từng người
   const itemsPerPage = 10;
 
@@ -36,30 +38,31 @@ const Checkout: React.FC = () => {
     setLoading(true);
     try {
       const res = await checkInService.getCurrentCheckIns(page, itemsPerPage, search, type);
-      const responseData = res.data; 
+      const responseData = res.data;
 
       if (responseData && Array.isArray(responseData.items)) {
-          let filteredItems = responseData.items;
-          
-          // Filter ở client side nếu API không filter đúng
-          if (type) {
-            filteredItems = responseData.items.filter((item: CheckInItem) => {
-              const isItemGuest = isGuest(item.room);
-              if (type === "guest") {
-                return isItemGuest; // Chỉ lấy khách
-              } else if (type === "resident") {
-                return !isItemGuest; // Chỉ lấy cư dân
-              }
-              return true;
-            });
-          }
-          
-          setData(filteredItems);
-          // Tính lại totalPages dựa trên số lượng đã filter
-          setTotalPages(Math.ceil(filteredItems.length / itemsPerPage));
+        let filteredItems = responseData.items;
+
+        // Filter ở client side nếu API không filter đúng
+        if (type) {
+          filteredItems = responseData.items.filter((item: CheckInItem) => {
+            const isItemGuest = isGuest(item.room);
+            if (type === "guest") {
+              return isItemGuest; // Chỉ lấy khách
+            } else if (type === "resident") {
+              return !isItemGuest; // Chỉ lấy cư dân
+            }
+            return true;
+          });
+        }
+
+        setData(filteredItems);
+        const totalItems = responseData.totalItem || filteredItems.length;
+        setTotalPages(Math.ceil(totalItems / itemsPerPage));
+
       } else {
-          setData([]);
-          setTotalPages(0);
+        setData([]);
+        setTotalPages(0);
       }
     } catch (error) {
       console.error("Lỗi tải dữ liệu:", error);
@@ -73,10 +76,10 @@ const Checkout: React.FC = () => {
     const type = filterType === "all" ? undefined : filterType;
     console.log("Filter type:", filterType, "-> API type:", type); // Debug log
     fetchData(currentPage, filterQuery, type);
-  }, [currentPage, filterQuery, filterType]); 
+  }, [currentPage, filterQuery, filterType]);
 
   // ===== HANDLERS =====
-  
+
   // 1. Xử lý mở/đóng popup
   const openCheckoutPopup = async (item: CheckInItem) => {
     // Mở modal ngay với dữ liệu sẵn có để UI phản hồi nhanh
@@ -155,178 +158,181 @@ const Checkout: React.FC = () => {
     // ... (Giữ nguyên logic render pagination của bạn)
     const pages = [];
     if (totalPages <= 6) {
-        for (let i = 1; i <= totalPages; i++) pages.push(i);
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
     } else {
-        pages.push(1);
-        if (currentPage > 3) pages.push("...");
-        let start = Math.max(2, currentPage - 1);
-        let end = Math.min(totalPages - 1, currentPage + 1);
-        if (currentPage < 4) end = 5;
-        if (currentPage > totalPages - 3) start = totalPages - 4;
-        for (let i = start; i <= end; i++) pages.push(i);
-        if (currentPage < totalPages - 2) pages.push("...");
-        pages.push(totalPages);
+      pages.push(1);
+      if (currentPage > 3) pages.push("...");
+      let start = Math.max(2, currentPage - 1);
+      let end = Math.min(totalPages - 1, currentPage + 1);
+      if (currentPage < 4) end = 5;
+      if (currentPage > totalPages - 3) start = totalPages - 4;
+      for (let i = start; i <= end; i++) pages.push(i);
+      if (currentPage < totalPages - 2) pages.push("...");
+      pages.push(totalPages);
     }
     return pages.map((page, index) => {
-        if (page === "...") return <span key={`dots-${index}`} className="px-2 text-gray-500">...</span>;
-        return (
-            <button
-                key={page}
-                type="button"
-                onClick={() => handlePageChange(page as number)}
-                className={`px-3 py-1 rounded font-medium transition ${
-                    currentPage === page ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-700 hover:bg-gray-100'
-                }`}
-            >
-                {page}
-            </button>
-        );
+      if (page === "...") return <span key={`dots-${index}`} className="px-2 text-gray-500">...</span>;
+      return (
+        <button
+          key={page}
+          type="button"
+          onClick={() => handlePageChange(page as number)}
+          className={`px-3 py-1 rounded font-medium transition ${currentPage === page ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-700 hover:bg-gray-100'
+            }`}
+        >
+          {page}
+        </button>
+      );
     });
   };
 
   return (
     <>
-    <div className="min-h-screen bg-white px-10 py-6 text-sm">
-      {/* SEARCH */}
-      <div className="flex items-center gap-4 mb-4 max-w-3xl">
-        <div className="relative flex-1">
-          <input
-            placeholder={t.checkout.searchPlaceholder}
-            className="w-full h-11 rounded-lg border border-gray-300 pl-10 pr-4 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-          />
-          <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-            <circle cx="11" cy="11" r="8" />
-            <line x1="21" y1="21" x2="16.65" y2="16.65" />
-          </svg>
-        </div>
-        <button onClick={handleSearch} className="h-11 px-8 rounded-lg bg-indigo-700 text-white font-semibold hover:bg-indigo-800 transition">
-          {t.checkout.search}
+      <div className="min-h-screen bg-white px-10 py-6 text-sm">
+        <button
+          onClick={() => navigate('/mainmenu')}
+          className="text-blue-600 hover:text-blue-800 flex items-center gap-2 mb-4"
+        >
+          ← Quay lại
         </button>
-      </div>
-
-      {/* LEGEND & FILTER */}
-      <div className="w-fit p-3 mb-4 rounded-lg border border-gray-200 bg-[#fafafa]">
-        <div className="flex items-center gap-10">
-          <button
-            onClick={() => {
-              // Toggle: nếu đã chọn resident thì reset về all, nếu không thì chọn resident
-              const newType = filterType === "resident" ? "all" : "resident";
-              setFilterType(newType);
-              setCurrentPage(1);
-            }}
-            className={`flex items-center gap-3 transition cursor-pointer ${
-              filterType === "resident" 
-                ? "opacity-100 font-bold" 
-                : "opacity-70 hover:opacity-100"
-            }`}
-          >
-            <span className="w-10 h-6 rounded bg-sky-500"></span>
-            <span className="font-medium">{t.checkout.resident}</span>
-          </button>
-          <button
-            onClick={() => {
-              // Toggle: nếu đã chọn guest thì reset về all, nếu không thì chọn guest
-              const newType = filterType === "guest" ? "all" : "guest";
-              setFilterType(newType);
-              setCurrentPage(1);
-            }}
-            className={`flex items-center gap-3 transition cursor-pointer ${
-              filterType === "guest" 
-                ? "opacity-100 font-bold" 
-                : "opacity-70 hover:opacity-100"
-            }`}
-          >
-            <span className="w-10 h-6 rounded bg-yellow-400"></span>
-            <span className="font-medium">{t.checkout.outsideGuest}</span>
+        {/* SEARCH */}
+        <div className="flex items-center gap-4 mb-4 max-w-3xl">
+          <div className="relative flex-1">
+            <input
+              placeholder={t.checkout.searchPlaceholder}
+              className="w-full h-11 rounded-lg border border-gray-300 pl-10 pr-4 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+            />
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+          </div>
+          <button onClick={handleSearch} className="h-11 px-8 rounded-lg bg-indigo-700 text-white font-semibold hover:bg-indigo-800 transition">
+            {t.checkout.search}
           </button>
         </div>
-      </div>
 
-      {/* TABLE */}
-      <div className="border border-gray-200 rounded-lg overflow-hidden">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b text-gray-600 text-left bg-gray-50">
-              <th className="px-6 py-4 font-bold text-indigo-700">{t.checkout.type}</th>
-              <th className="px-6 py-4 font-bold text-indigo-700">{t.checkout.residentOrGuest}</th>
-              <th className="px-6 py-4 font-bold text-indigo-700">{t.checkout.service}</th>
-              <th className="px-6 py-4 font-bold text-indigo-700">{t.checkout.checkInTime}</th>
-              <th className="px-6 py-4 font-bold text-indigo-700">{t.checkout.quantity}</th>
-              <th className="px-6 py-4 font-bold text-indigo-700">{t.checkout.action}</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {loading ? (
-                <tr><td colSpan={6} className="text-center py-8 text-gray-500">{t.checkout.loading}</td></tr>
-            ) : data.length === 0 ? (
-                <tr><td colSpan={6} className="text-center py-8 text-gray-500">{t.checkout.noData}</td></tr>
-            ) : (
-                data.map((item) => {
-                    const guest = isGuest(item.room);
-                    return (
-                        <tr key={item.id} className="border-b hover:bg-gray-50 transition">
-                            <td className="px-4 py-4">
-                                <span className={`block w-10 h-6 rounded mx-auto ${guest ? 'bg-yellow-400' : 'bg-sky-500'}`}></span>
-                            </td>
-                            <td className="px-6 py-4">
-                                <div className="flex items-center gap-3">
-                                    <img
-                                        src={`https://i.pravatar.cc/40?img=${item.id % 70}`}
-                                        className="w-10 h-10 rounded object-cover border border-gray-200"
-                                        alt="Avatar"
-                                    />
-                                    <div>
-                                        <div className="font-bold text-gray-800">{item.displayName}</div>
-                                        <div className="text-xs text-gray-500">{guest ? t.checkout.guestName : item.room}</div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td className="px-6 py-4 font-medium text-gray-700">{item.serviceName}</td>
-                            <td className="px-6 py-4 text-gray-600">{formatTime(item.checkInTime)}</td>
-                            <td className="px-6 py-4 pl-10 font-semibold">{item.totalPeople}</td>
-                            <td className="px-6 py-4">
-                              <button
-                                onClick={() => openCheckoutPopup(item)}
-                                className="px-3 py-1.5 rounded bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition shadow-sm"
-                              >
-                                {t.checkout.checkout}
-                              </button>
-                            </td>
-                        </tr>
-                    );
-                })
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* PAGINATION */}
-      {totalPages > 1 && (
-        <div className="mt-6 flex items-center justify-center gap-2 select-none">
-            <button 
-                type="button"
-                onClick={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage === 1}
-                className="px-3 py-1 rounded text-gray-600 hover:bg-gray-100 font-bold disabled:opacity-30 disabled:cursor-not-allowed"
+        {/* LEGEND & FILTER */}
+        <div className="w-fit p-3 mb-4 rounded-lg border border-gray-200 bg-[#fafafa]">
+          <div className="flex items-center gap-10">
+            <button
+              onClick={() => {
+                // Toggle: nếu đã chọn resident thì reset về all, nếu không thì chọn resident
+                const newType = filterType === "resident" ? "all" : "resident";
+                setFilterType(newType);
+                setCurrentPage(1);
+              }}
+              className={`flex items-center gap-3 transition cursor-pointer ${filterType === "resident"
+                  ? "opacity-100 font-bold"
+                  : "opacity-70 hover:opacity-100"
+                }`}
             >
-            &lt;
+              <span className="w-10 h-6 rounded bg-sky-500"></span>
+              <span className="font-medium">{t.checkout.resident}</span>
+            </button>
+            <button
+              onClick={() => {
+                // Toggle: nếu đã chọn guest thì reset về all, nếu không thì chọn guest
+                const newType = filterType === "guest" ? "all" : "guest";
+                setFilterType(newType);
+                setCurrentPage(1);
+              }}
+              className={`flex items-center gap-3 transition cursor-pointer ${filterType === "guest"
+                  ? "opacity-100 font-bold"
+                  : "opacity-70 hover:opacity-100"
+                }`}
+            >
+              <span className="w-10 h-6 rounded bg-yellow-400"></span>
+              <span className="font-medium">{t.checkout.outsideGuest}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* TABLE */}
+        <div className="border border-gray-200 rounded-lg overflow-hidden">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b text-gray-600 text-left bg-gray-50">
+                <th className="px-6 py-4 font-bold text-indigo-700">{t.checkout.type}</th>
+                <th className="px-6 py-4 font-bold text-indigo-700">{t.checkout.residentOrGuest}</th>
+                <th className="px-6 py-4 font-bold text-indigo-700">{t.checkout.service}</th>
+                <th className="px-6 py-4 font-bold text-indigo-700">{t.checkout.checkInTime}</th>
+                <th className="px-6 py-4 font-bold text-indigo-700">{t.checkout.quantity}</th>
+                <th className="px-6 py-4 font-bold text-indigo-700">{t.checkout.action}</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {loading ? (
+                <tr><td colSpan={6} className="text-center py-8 text-gray-500">{t.checkout.loading}</td></tr>
+              ) : data.length === 0 ? (
+                <tr><td colSpan={6} className="text-center py-8 text-gray-500">{t.checkout.noData}</td></tr>
+              ) : (
+                data.map((item) => {
+                  const guest = isGuest(item.room);
+                  return (
+                    <tr key={item.id} className="border-b hover:bg-gray-50 transition">
+                      <td className="px-4 py-4">
+                        <span className={`block w-10 h-6 rounded mx-auto ${guest ? 'bg-yellow-400' : 'bg-sky-500'}`}></span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={`https://i.pravatar.cc/40?img=${item.id % 70}`}
+                            className="w-10 h-10 rounded object-cover border border-gray-200"
+                            alt="Avatar"
+                          />
+                          <div>
+                            <div className="font-bold text-gray-800">{item.displayName}</div>
+                            <div className="text-xs text-gray-500">{guest ? t.checkout.guestName : item.room}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 font-medium text-gray-700">{item.serviceName}</td>
+                      <td className="px-6 py-4 text-gray-600">{formatTime(item.checkInTime)}</td>
+                      <td className="px-6 py-4 pl-10 font-semibold">{item.totalPeople}</td>
+                      <td className="px-6 py-4">
+                        <button
+                          onClick={() => openCheckoutPopup(item)}
+                          className="px-3 py-1.5 rounded bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition shadow-sm"
+                        >
+                          {t.checkout.checkout}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* PAGINATION */}
+        {totalPages > 1 && (
+          <div className="mt-6 flex items-center justify-center gap-2 select-none">
+            <button
+              type="button"
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="px-3 py-1 rounded text-gray-600 hover:bg-gray-100 font-bold disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              &lt;
             </button>
             {renderPaginationButtons()}
-            <button 
-                type="button"
-                onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                className="px-3 py-1 rounded text-gray-600 hover:bg-gray-100 font-bold disabled:opacity-30 disabled:cursor-not-allowed"
+            <button
+              type="button"
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1 rounded text-gray-600 hover:bg-gray-100 font-bold disabled:opacity-30 disabled:cursor-not-allowed"
             >
-            &gt;
+              &gt;
             </button>
-        </div>
-      )}
-    </div>
+          </div>
+        )}
+      </div>
       {/* MODAL CHECKOUT DETAIL */}
       <CheckoutDetailModal
         visible={checkoutPopup.visible}
