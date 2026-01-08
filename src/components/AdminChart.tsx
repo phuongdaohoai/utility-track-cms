@@ -11,6 +11,8 @@ import {
   CartesianGrid,
 } from "recharts";
 import { useLocale } from "../i18n/LocaleContext";
+import CustomTooltip from "./Customtooltip"
+import ChartLegend from "./ChartLegend"
 
 /* ================= FORMAT TIME ================= */
 
@@ -110,6 +112,10 @@ export default function AdminChart({
       return keys;
     }, new Set<string>())
   );
+const legendItems = serviceKeys.map((key, index) => ({
+  name: String(key),
+  color: COLORS[index % COLORS.length],
+}))
 
   return (
     <div className="space-y-4 rounded-lg bg-white p-4 shadow">
@@ -166,49 +172,39 @@ export default function AdminChart({
 
       {/* ===== CHART ===== */}
       <div className="h-72">
-        {/* Kiểm tra nếu groupBy là "day" và thiếu fromDate hoặc toDate */}
-        {groupBy === "day" && (!fromDate || !toDate) ? (
-          <div className="flex h-full items-center justify-center text-gray-500">
-            <div className="text-center">
-              <p className="text-lg font-medium mb-2">
-                {t.adminChart.selectBothDates}
-              </p>
-              <p className="text-sm text-gray-400">
-                {t.adminChart.selectDatesDescription}
-              </p>
-            </div>
-          </div>
-        ) : data.length === 0 ? (
-          <div className="flex h-full items-center justify-center text-gray-400">
-            {t.adminChart.noData}
-          </div>
-        ) : (
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data} barSize={14} barGap={4}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis
-                dataKey="Period"
-                tickFormatter={(value) => formatPeriod(value, groupBy)}
-              />
-              <YAxis />
-              <Tooltip
-                labelFormatter={(value) => formatPeriod(value as string, groupBy)}
-              />
-              <Legend />
+  <ResponsiveContainer width="100%" height="100%">
+    <BarChart data={data} barSize={14} barGap={4}>
+      <CartesianGrid strokeDasharray="3 3" vertical={false} />
+      <XAxis
+        dataKey="Period"
+        tickFormatter={(value) => formatPeriod(value, groupBy)}
+      />
+      <YAxis />
 
-              {serviceKeys.map((key, index) => (
-                <Bar
-                  key={String(key)}
-                  dataKey={String(key)}
-                  name={String(key)}
-                  fill={COLORS[index % COLORS.length]}
-                  radius={[4, 4, 0, 0]}
-                />
-              ))}
-            </BarChart>
-          </ResponsiveContainer>
-        )}
-      </div>
+      <Tooltip
+        content={
+          <CustomTooltip
+            groupBy={groupBy}
+            formatPeriod={formatPeriod}
+          />
+        }
+      />
+
+      {serviceKeys.map((key, index) => (
+        <Bar
+          key={String(key)}
+          dataKey={String(key)}
+          fill={COLORS[index % COLORS.length]}
+          radius={[4, 4, 0, 0]}
+        />
+      ))}
+    </BarChart>
+  </ResponsiveContainer>
+</div>
+
+{/* LEGEND NGOÀI CHART */}
+<ChartLegend items={legendItems} />
+
     </div>
   );
 }
