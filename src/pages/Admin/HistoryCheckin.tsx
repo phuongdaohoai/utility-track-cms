@@ -48,7 +48,7 @@ interface HistoryDetail {
   id: number;
   usageTime: string;
   item: {
-    displayName: string;
+    displayName: string; // Tên đại diện (chủ đặt)
     remainingNames: string[];
     totalGuests: number;
     checkInTime?: string;
@@ -79,25 +79,6 @@ const UsageHistory: React.FC = () => {
   const [selectedUser, setSelectedUser] = useState<HistoryDetail | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-
-  /* ================== FILTERED DATA ================== */
-  const filteredData = useMemo(() => {
-    if (filterType === 'all') return allData;
-    if (filterType === 'resident') return allData.filter(item => !!item.resident);
-    if (filterType === 'guest') return allData.filter(item => !item.resident);
-    return allData;
-  }, [allData, filterType]);
-
-  /* ================== PAGINATION DATA ================== */
-  const totalPages = useMemo(() => {
-    return Math.ceil(filteredData.length / ITEMS_PER_PAGE);
-  }, [filteredData]);
-
-  const paginatedData = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    const endIndex = startIndex + ITEMS_PER_PAGE;
-    return filteredData.slice(startIndex, endIndex);
-  }, [filteredData, currentPage]);
 
   /* ================== FETCH LIST ================== */
   useEffect(() => {
@@ -148,6 +129,41 @@ const UsageHistory: React.FC = () => {
     }
   };
 
+  /* ================== GET DISPLAY NAME ================== */
+  // Hàm lấy tên đại diện để hiển thị
+  const getDisplayName = (item: UsageItem): string => {
+    // Nếu có resident, hiển thị tên resident
+    if (item.resident?.fullName) {
+      return item.resident.fullName;
+    }
+    
+    // Nếu không có resident (khách ngoài), hiển thị thông tin từ detail
+    // Trong thực tế, bạn có thể cần fetch detail trước hoặc lưu displayName trong UsageItem
+    // Ở đây tôi sẽ mặc định trả về "Guest" nếu chưa có detail
+    
+    // Tạm thời, nếu không có resident thì trả về "Khách"
+    return t.history.guest || "Guest";
+  };
+
+  /* ================== FILTERED DATA ================== */
+  const filteredData = useMemo(() => {
+    if (filterType === 'all') return allData;
+    if (filterType === 'resident') return allData.filter(item => !!item.resident);
+    if (filterType === 'guest') return allData.filter(item => !item.resident);
+    return allData;
+  }, [allData, filterType]);
+
+  /* ================== PAGINATION DATA ================== */
+  const totalPages = useMemo(() => {
+    return Math.ceil(filteredData.length / ITEMS_PER_PAGE);
+  }, [filteredData]);
+
+  const paginatedData = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return filteredData.slice(startIndex, endIndex);
+  }, [filteredData, currentPage]);
+
   /* ================== EXPORT EXCEL ================== */
   const exportToExcel = () => {
     if (filteredData.length === 0) {
@@ -157,7 +173,7 @@ const UsageHistory: React.FC = () => {
 
     const excelData = filteredData.map((item) => ({
       [t.history.type]: item.resident ? t.history.resident : t.history.guest,
-      [t.history.residentOrGuest]: item.resident?.fullName || "Guest",
+      [t.history.residentOrGuest]: getDisplayName(item),
       [t.history.service]: item.service?.serviceName,
       [t.history.system]: item.checkInOut?.method,
       [t.history.checkInTime]: formatDateTime(item.checkInOut?.checkInTime),
@@ -257,12 +273,11 @@ const UsageHistory: React.FC = () => {
         </button>
       </div>
 
-      {/* ===== FILTER BUTTONS - GIỐNG CHECKOUT ===== */}
+      {/* ===== FILTER BUTTONS ===== */}
       <div className="w-fit p-3 mb-4 rounded-lg border border-gray-200 bg-[#fafafa]">
         <div className="flex items-center gap-10">
           <button
             onClick={() => {
-              // Toggle: nếu đã chọn resident thì reset về all, nếu không thì chọn resident
               const newType = filterType === "resident" ? "all" : "resident";
               setFilterType(newType);
               setCurrentPage(1);
@@ -278,7 +293,6 @@ const UsageHistory: React.FC = () => {
           </button>
           <button
             onClick={() => {
-              // Toggle: nếu đã chọn guest thì reset về all, nếu không thì chọn guest
               const newType = filterType === "guest" ? "all" : "guest";
               setFilterType(newType);
               setCurrentPage(1);
@@ -328,6 +342,8 @@ const UsageHistory: React.FC = () => {
             ) : (
               paginatedData.map((item) => {
                 const isResident = !!item.resident;
+                const displayName = getDisplayName(item);
+                
                 return (
                   <tr
                     key={item.id}
@@ -347,7 +363,8 @@ const UsageHistory: React.FC = () => {
                           style={avatarStyle}
                           alt=""
                         />
-                        {item.resident?.fullName  || "Guest"}
+                        {/* Hiển thị tên đại diện */}
+                        {displayName}
 
                         {item.quantity && item.quantity > 1 && (
                           <span style={{ color: "#6b7280", marginLeft: 4 }}>
