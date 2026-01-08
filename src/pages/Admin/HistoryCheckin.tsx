@@ -42,13 +42,20 @@ interface UsageItem {
   staff?: {
     fullName: string;
   };
+  // Thêm các trường có thể có từ API
+  displayName?: string; // Có thể API trả về displayName trực tiếp
+  item?: {
+    displayName: string;
+    remainingNames: string[];
+    totalGuests: number;
+  };
 }
 
 interface HistoryDetail {
   id: number;
   usageTime: string;
   item: {
-    displayName: string; // Tên đại diện (chủ đặt)
+    displayName: string;
     remainingNames: string[];
     totalGuests: number;
     checkInTime?: string;
@@ -80,6 +87,25 @@ const UsageHistory: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  /* ================== FILTERED DATA ================== */
+  const filteredData = useMemo(() => {
+    if (filterType === 'all') return allData;
+    if (filterType === 'resident') return allData.filter(item => !!item.resident);
+    if (filterType === 'guest') return allData.filter(item => !item.resident);
+    return allData;
+  }, [allData, filterType]);
+
+  /* ================== PAGINATION DATA ================== */
+  const totalPages = useMemo(() => {
+    return Math.ceil(filteredData.length / ITEMS_PER_PAGE);
+  }, [filteredData]);
+
+  const paginatedData = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return filteredData.slice(startIndex, endIndex);
+  }, [filteredData, currentPage]);
+
   /* ================== FETCH LIST ================== */
   useEffect(() => {
     const fetchData = async () => {
@@ -98,6 +124,8 @@ const UsageHistory: React.FC = () => {
 
         const responseData = res?.data || res;
 
+        console.log("API Response:", responseData); // Debug: xem cấu trúc data
+        
         if (responseData?.data) {
           setAllData(responseData.data);
           setCurrentPage(1);
@@ -130,39 +158,36 @@ const UsageHistory: React.FC = () => {
   };
 
   /* ================== GET DISPLAY NAME ================== */
-  // Hàm lấy tên đại diện để hiển thị
   const getDisplayName = (item: UsageItem): string => {
-    // Nếu có resident, hiển thị tên resident
+    console.log("Getting display name for item:", item); // Debug
+    
+    // 1. Ưu tiên lấy tên từ resident nếu có (cư dân)
     if (item.resident?.fullName) {
       return item.resident.fullName;
     }
     
-    // Nếu không có resident (khách ngoài), hiển thị thông tin từ detail
-    // Trong thực tế, bạn có thể cần fetch detail trước hoặc lưu displayName trong UsageItem
-    // Ở đây tôi sẽ mặc định trả về "Guest" nếu chưa có detail
+    // 2. Thử lấy từ trường displayName trực tiếp trên item
+    if (item.displayName) {
+      return item.displayName;
+    }
     
-    // Tạm thời, nếu không có resident thì trả về "Khách"
-    return t.history.guest || "Guest";
+    // 3. Thử lấy từ item.item?.displayName
+    if (item.item?.displayName) {
+      return item.item.displayName;
+    }
+    
+    // 4. Thử lấy từ additionalGuests hoặc thông tin khác
+    if (item.additionalGuests) {
+      // Nếu additionalGuests là string chứa danh sách tên
+      const guests = item.additionalGuests.split(',').map(g => g.trim());
+      if (guests.length > 0) {
+        return guests[0]; // Lấy tên đầu tiên
+      }
+    }
+    
+    // 5. Fallback: nếu không có thông tin, hiển thị "Khách" thay vì "Guest"
+    return t.history.guest || "Khách";
   };
-
-  /* ================== FILTERED DATA ================== */
-  const filteredData = useMemo(() => {
-    if (filterType === 'all') return allData;
-    if (filterType === 'resident') return allData.filter(item => !!item.resident);
-    if (filterType === 'guest') return allData.filter(item => !item.resident);
-    return allData;
-  }, [allData, filterType]);
-
-  /* ================== PAGINATION DATA ================== */
-  const totalPages = useMemo(() => {
-    return Math.ceil(filteredData.length / ITEMS_PER_PAGE);
-  }, [filteredData]);
-
-  const paginatedData = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    const endIndex = startIndex + ITEMS_PER_PAGE;
-    return filteredData.slice(startIndex, endIndex);
-  }, [filteredData, currentPage]);
 
   /* ================== EXPORT EXCEL ================== */
   const exportToExcel = () => {
@@ -363,7 +388,6 @@ const UsageHistory: React.FC = () => {
                           style={avatarStyle}
                           alt=""
                         />
-                        {/* Hiển thị tên đại diện */}
                         {displayName}
 
                         {item.quantity && item.quantity > 1 && (
