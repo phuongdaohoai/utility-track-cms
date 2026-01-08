@@ -165,6 +165,20 @@ export const GuestCheckout: FC = () => {
     }
   }
 
+  const guestList = [
+    {
+      name: selectedCheckIn?.displayName,
+      index: -1,
+      isRepresentative: true,
+    },
+    ...(Array.isArray(selectedCheckIn?.additionalGuests)
+      ? selectedCheckIn.additionalGuests.map((name, i) => ({
+        name,
+        index: i,
+        isRepresentative: false,
+      }))
+      : []),
+  ]
 
 
   return (
@@ -274,7 +288,7 @@ export const GuestCheckout: FC = () => {
                         <thead>
                           <tr className="bg-gray-100">
                             <th className="border border-gray-300 px-4 py-2 text-left font-semibold text-gray-700">
-                              STT1
+                              STT
                             </th>
                             <th className="border border-gray-300 px-4 py-2 text-left font-semibold text-gray-700">
                               Họ Và Tên
@@ -285,27 +299,47 @@ export const GuestCheckout: FC = () => {
                           </tr>
                         </thead>
                         <tbody>
-                          {(Array.isArray(selectedCheckIn.additionalGuests)
-                            ? selectedCheckIn.additionalGuests
-                            : []
-                          ).map((name, i) => (
-                            <tr key={i} className="bg-white">
+                          {guestList.map((guest, rowIndex) => (
+                            <tr key={rowIndex} className="bg-white">
                               <td className="border border-gray-300 px-4 py-2 text-gray-700">
-                                {i + 1}
+                                {rowIndex + 1}
                               </td>
+
                               <td className="border border-gray-300 px-4 py-2 text-gray-700">
-                                {name}
+                                {guest.name}
+                                {guest.isRepresentative && (
+                                  <span className="ml-2 text-xs text-blue-600 font-semibold">
+                                
+                                  </span>
+                                )}
                               </td>
-                              <td className="border border-gray-300 px-4 py-2">
+
+                              <td className="border border-gray-300 px-4 py-2 text-center">
                                 <input
                                   type="checkbox"
-                                  checked={selectedPeople.includes(i)}
-                                  onChange={() => handleTogglePerson(i)}
-                                  className="w-5 h-5 text-indigo-600 border-gray-300 rounded"
+                                  disabled={guest.isRepresentative}
+                                  checked={
+                                    !guest.isRepresentative &&
+                                    selectedPeople.includes(guest.index)
+                                  }
+                                  onChange={() => {
+                                    if (!guest.isRepresentative) {
+                                      handleTogglePerson(guest.index)
+                                    }
+                                  }}
+                                  className="
+          w-5 h-5
+          text-indigo-600
+          border-gray-300
+          rounded
+          disabled:opacity-40
+          disabled:cursor-not-allowed
+        "
                                 />
                               </td>
                             </tr>
                           ))}
+
                         </tbody>
 
 

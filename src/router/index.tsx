@@ -16,6 +16,7 @@ import ServicesPage from '../pages/Admin/Services'
 import ServicesRepairPage from '../pages/Admin/ServicesRepair'
 import SettingsPage from '../pages/Admin/Settings'
 import Checkout from '../pages/User/Checkout'
+import LoginCheckoutPage from '../pages/Login/Logincheckout'
 export const router = createBrowserRouter([
   {
     path: '/',
@@ -46,6 +47,11 @@ export const router = createBrowserRouter([
   {
     path: '/checkout',
     element: <Checkout />,
+   
+  },
+  {
+    path: '/logincheckout',
+    element: <LoginCheckoutPage />,
    
   },
   {

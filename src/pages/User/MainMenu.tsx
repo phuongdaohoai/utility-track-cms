@@ -102,7 +102,7 @@ export const MainMenu: FC = () => {
             </div>
 
             <button
-              onClick={() => navigate('/checkout')}
+              onClick={() => navigate('/logincheckout')}
               className="bg-yellow-400 text-black px-12 py-6 rounded-lg font-semibold text-lg hover:bg-yellow-500 shadow-md"
             >
               {t.mainMenu.manage}
