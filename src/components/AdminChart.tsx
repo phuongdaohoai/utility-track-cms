@@ -105,14 +105,14 @@ export default function AdminChart({
   }
 
   /* ===== COLLECT SERVICE KEYS ===== */
- const serviceKeys: string[] = Array.from(
-  data.reduce((set: Set<string>, item: Record<string, any>) => {
-    Object.keys(item).forEach((key: string) => {
-      if (key !== "Period") set.add(key)
-    })
-    return set
-  }, new Set<string>())
-)
+  const serviceKeys: string[] = Array.from(
+    data.reduce((set: Set<string>, item: Record<string, any>) => {
+      Object.keys(item).forEach((key: string) => {
+        if (key !== "Period") set.add(key)
+      })
+      return set
+    }, new Set<string>())
+  )
 
 
   /* ===== LEGEND ITEMS ===== */
@@ -159,36 +159,54 @@ export default function AdminChart({
 
       {/* ===== CHART ===== */}
       <div className="h-72">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} barSize={14} barGap={4}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} />
-            <XAxis
-              dataKey="Period"
-              tickFormatter={v => formatPeriod(v, groupBy)}
-            />
-            <YAxis />
-
-            <Tooltip
-              wrapperStyle={{ pointerEvents: "auto" }}
-              content={
-                <CustomTooltip
-                  groupBy={groupBy}
-                  formatPeriod={formatPeriod}
-                />
-              }
-            />
-
-            {serviceKeys.map(key => (
-              <Bar
-                key={key}
-                dataKey={key}
-                fill={getServiceColor(key)}
-                radius={[4, 4, 0, 0]}
+        {groupBy === "day" && (!fromDate || !toDate) ? (
+          <div className="flex h-full items-center justify-center text-gray-500">
+            <div className="text-center">
+              <p className="text-lg font-medium mb-2">
+                {t.adminChart.selectBothDates}
+              </p>
+              <p className="text-sm text-gray-400">
+                {t.adminChart.selectDatesDescription}
+              </p>
+            </div>
+          </div>
+        ) : data.length === 0 ? (
+          <div className="flex h-full items-center justify-center text-gray-400">
+            {t.adminChart.noData}
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data} barSize={14} barGap={4}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis
+                dataKey="Period"
+                tickFormatter={v => formatPeriod(v, groupBy)}
               />
-            ))}
-          </BarChart>
-        </ResponsiveContainer>
+              <YAxis />
+
+              <Tooltip
+                wrapperStyle={{ pointerEvents: "auto" }}
+                content={
+                  <CustomTooltip
+                    groupBy={groupBy}
+                    formatPeriod={formatPeriod}
+                  />
+                }
+              />
+
+              {serviceKeys.map(key => (
+                <Bar
+                  key={key}
+                  dataKey={key}
+                  fill={getServiceColor(key)}
+                  radius={[4, 4, 0, 0]}
+                />
+              ))}
+            </BarChart>
+          </ResponsiveContainer>
+        )}
       </div>
+
 
       {/* ===== LEGEND ===== */}
       <ChartLegend items={legendItems} />
