@@ -43,7 +43,6 @@ interface UsageItem {
   staff?: {
     fullName: string;
   };
-  // Thêm các trường có thể có từ API
   displayName?: string;
   item?: {
     displayName: string;
@@ -87,22 +86,21 @@ const UsageHistory: React.FC = () => {
   const [selectedUser, setSelectedUser] = useState<HistoryDetail | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [totalItems, setTotalItems] = useState(0); // Thêm state cho tổng số items
 
   /* ================== FETCH LIST ================== */
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        // Tạo params cho API
         const params: any = {
           searchName: searchText,
-          page: 1,
-          limit: 1000
+          page: currentPage, // Dùng currentPage cho API
+          limit: ITEMS_PER_PAGE // Dùng ITEMS_PER_PAGE thay vì 1000
         };
 
-        // Nếu filter không phải là 'all', thêm type vào params
         if (filterType !== 'all') {
-          params.type = filterType; // hoặc 'userType' tùy API
+          params.type = filterType;
         }
 
         const res: any = await api.get(
@@ -112,29 +110,37 @@ const UsageHistory: React.FC = () => {
 
         const responseData = res?.data || res;
 
-        console.log("API Response with filter:", filterType, responseData);
+        console.log("API Response:", responseData);
         
         if (responseData?.data) {
           setAllData(responseData.data);
-          setCurrentPage(1);
+          // Cập nhật tổng số items từ meta hoặc response
+          if (responseData.meta?.total) {
+            setTotalItems(responseData.meta.total);
+          } else if (Array.isArray(responseData.data)) {
+            // Nếu API không trả về total, ước tính dựa trên data
+            setTotalItems(responseData.data.length * 2); // Ước tính
+          }
         } else {
           setAllData([]);
+          setTotalItems(0);
         }
       } catch (err) {
         console.error("Fetch usage history error:", err);
         setAllData([]);
+        setTotalItems(0);
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [searchText, filterType]); // Thêm filterType vào dependency
+  }, [searchText, filterType, currentPage]); // Thêm currentPage vào dependency
 
   /* ================== FILTERED DATA ================== */
+  // Vì API đã filter rồi, nên chỉ cần filter thêm phía client nếu cần
   const filteredData = useMemo(() => {
-    // Nếu API đã filter theo type rồi, chỉ cần trả về allData
-    // Nhưng vẫn giữ filter client-side để đảm bảo
+    // Nếu API đã filter, chỉ cần đảm bảo một lần nữa
     if (filterType === 'all') return allData;
     if (filterType === 'resident') return allData.filter(item => !!item.resident);
     if (filterType === 'guest') return allData.filter(item => !item.resident);
@@ -143,14 +149,11 @@ const UsageHistory: React.FC = () => {
 
   /* ================== PAGINATION DATA ================== */
   const totalPages = useMemo(() => {
-    return Math.ceil(filteredData.length / ITEMS_PER_PAGE);
-  }, [filteredData]);
+    return Math.ceil(totalItems / ITEMS_PER_PAGE);
+  }, [totalItems]);
 
-  const paginatedData = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    const endIndex = startIndex + ITEMS_PER_PAGE;
-    return filteredData.slice(startIndex, endIndex);
-  }, [filteredData, currentPage]);
+  // Data hiện tại chính là filteredData (đã được API paginate)
+  const paginatedData = filteredData;
 
   /* ================== FETCH DETAIL ================== */
   const openDetail = async (id: number) => {
@@ -168,22 +171,18 @@ const UsageHistory: React.FC = () => {
 
   /* ================== GET DISPLAY NAME ================== */
   const getDisplayName = (item: UsageItem): string => {
-    // 1. Ưu tiên lấy tên từ resident nếu có (cư dân)
     if (item.resident?.fullName) {
       return item.resident.fullName;
     }
     
-    // 2. Thử lấy từ trường displayName trực tiếp trên item
     if (item.displayName) {
       return item.displayName;
     }
     
-    // 3. Thử lấy từ item.item?.displayName
     if (item.item?.displayName) {
       return item.item.displayName;
     }
     
-    // 4. Thử lấy từ additionalGuests hoặc thông tin khác
     if (item.additionalGuests) {
       const guests = item.additionalGuests.split(',').map(g => g.trim());
       if (guests.length > 0) {
@@ -191,39 +190,63 @@ const UsageHistory: React.FC = () => {
       }
     }
     
-    // 5. Fallback
     return t.history.guest || "Khách";
   };
 
   /* ================== EXPORT EXCEL ================== */
   const exportToExcel = () => {
-    if (filteredData.length === 0) {
-      alert("No data to export");
-      return;
-    }
+    // Để export tất cả data, cần fetch riêng
+    const fetchAllDataForExport = async () => {
+      try {
+        const params: any = {
+          searchName: searchText,
+          page: 1,
+          limit: 1000 // Lấy nhiều data để export
+        };
 
-    const excelData = filteredData.map((item) => ({
-      [t.history.type]: item.resident ? t.history.resident : t.history.guest,
-      [t.history.residentOrGuest]: getDisplayName(item),
-      [t.history.service]: item.service?.serviceName,
-      [t.history.system]: item.checkInOut?.method,
-      [t.history.checkInTime]: formatDateTime(item.checkInOut?.checkInTime),
-      [t.history.checkOutTime]: formatDateTime(item.checkInOut?.checkOutTime),
-      [t.history.quantity]: item.quantity ?? 1,
-      [t.history.fee]: item.service?.price,
-    }));
+        if (filterType !== 'all') {
+          params.type = filterType;
+        }
 
-    const ws = XLSX.utils.json_to_sheet(excelData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "UsageHistory");
+        const res: any = await api.get(`/history_checkin`, { params });
+        const responseData = res?.data || res;
+        
+        if (responseData?.data) {
+          const excelData = responseData.data.map((item: UsageItem) => ({
+            [t.history.type]: item.resident ? t.history.resident : t.history.guest,
+            [t.history.residentOrGuest]: getDisplayName(item),
+            [t.history.service]: item.service?.serviceName,
+            [t.history.system]: item.checkInOut?.method,
+            [t.history.checkInTime]: formatDateTime(item.checkInOut?.checkInTime),
+            [t.history.checkOutTime]: formatDateTime(item.checkInOut?.checkOutTime),
+            [t.history.quantity]: item.quantity ?? 1,
+            [t.history.fee]: item.service?.price,
+          }));
 
-    const buffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-    saveAs(new Blob([buffer]), `UsageHistory_${new Date().getTime()}.xlsx`);
+          const ws = XLSX.utils.json_to_sheet(excelData);
+          const wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, ws, "UsageHistory");
+
+          const buffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+          saveAs(new Blob([buffer]), `UsageHistory_${new Date().getTime()}.xlsx`);
+        } else {
+          alert("No data to export");
+        }
+      } catch (err) {
+        console.error("Export error:", err);
+        alert("Error exporting data");
+      }
+    };
+
+    fetchAllDataForExport();
   };
 
   /* ================== PAGINATION LOGIC ================== */
   const goToPage = (page: number) => {
-    if (page >= 1 && page <= totalPages) setCurrentPage(page);
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+      window.scrollTo(0, 0); // Scroll lên đầu trang
+    }
   };
 
   const renderPaginationButtons = () => {
@@ -585,4 +608,4 @@ const modalHeader: React.CSSProperties = {
   display: "flex", 
   justifyContent: "space-between", 
   alignItems: "center" 
-}; 
+};
