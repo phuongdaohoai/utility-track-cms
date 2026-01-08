@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import { api } from "../../utils/api";
@@ -10,7 +10,6 @@ const ITEMS_PER_PAGE = 10;
 const formatDateTime = (value?: string) => {
   if (!value) return "--";
   const d = new Date(value);
-  // Using toLocaleString handles timezone correctly
   return d.toLocaleString('vi-VN', {
     hour: '2-digit',
     minute: '2-digit',
@@ -74,58 +73,72 @@ const UsageHistory: React.FC = () => {
   const [inputText, setInputText] = useState("");
   const [searchText, setSearchText] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(0);
+  const [filterType, setFilterType] = useState<"resident" | "guest" | "all">("all");
 
-  const [data, setData] = useState<UsageItem[]>([]);
+  const [allData, setAllData] = useState<UsageItem[]>([]);
   const [selectedUser, setSelectedUser] = useState<HistoryDetail | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  /* ================== FILTERED DATA ================== */
+  const filteredData = useMemo(() => {
+    if (filterType === 'all') return allData;
+    if (filterType === 'resident') return allData.filter(item => !!item.resident);
+    if (filterType === 'guest') return allData.filter(item => !item.resident);
+    return allData;
+  }, [allData, filterType]);
+
+  /* ================== PAGINATION DATA ================== */
+  const totalPages = useMemo(() => {
+    return Math.ceil(filteredData.length / ITEMS_PER_PAGE);
+  }, [filteredData]);
+
+  const paginatedData = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return filteredData.slice(startIndex, endIndex);
+  }, [filteredData, currentPage]);
 
   /* ================== FETCH LIST ================== */
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        // NOTE: api.get returns the data object directly based on your previous api.ts
         const res: any = await api.get(
           `/history_checkin`,
           {
             params: {
               searchName: searchText,
-              page: currentPage,
-              limit: ITEMS_PER_PAGE
+              page: 1,
+              limit: 1000
             }
           }
         );
 
-        // Adjust this access path based on your exact API response structure
-        // Assuming response is: { success: true, data: { data: [...], meta: { totalPages: 5 } } }
         const responseData = res?.data || res;
 
         if (responseData?.data) {
-          setData(responseData.data);
-          setTotalPages(responseData.meta?.totalPages || 0);
+          setAllData(responseData.data);
+          setCurrentPage(1);
         } else {
-          setData([]);
-          setTotalPages(0);
+          setAllData([]);
         }
       } catch (err) {
         console.error("Fetch usage history error:", err);
-        setData([]);
+        setAllData([]);
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [searchText, currentPage]);
+  }, [searchText]);
 
   /* ================== FETCH DETAIL ================== */
   const openDetail = async (id: number) => {
     try {
       const res: any = await api.get(`/history_checkin/${id}`);
       
-      // Check for success flag or data existence
       if (res.success || res.data) {
         setSelectedUser(res.data);
         setIsModalOpen(true);
@@ -137,12 +150,12 @@ const UsageHistory: React.FC = () => {
 
   /* ================== EXPORT EXCEL ================== */
   const exportToExcel = () => {
-    if (data.length === 0) {
+    if (filteredData.length === 0) {
       alert("No data to export");
       return;
     }
 
-    const excelData = data.map((item) => ({
+    const excelData = filteredData.map((item) => ({
       [t.history.type]: item.resident ? t.history.resident : t.history.guest,
       [t.history.residentOrGuest]: item.resident?.fullName || "Guest",
       [t.history.service]: item.service?.serviceName,
@@ -161,7 +174,7 @@ const UsageHistory: React.FC = () => {
     saveAs(new Blob([buffer]), `UsageHistory_${new Date().getTime()}.xlsx`);
   };
 
-  /* ================== PAGINATION LOGIC (FIXED) ================== */
+  /* ================== PAGINATION LOGIC ================== */
   const goToPage = (page: number) => {
     if (page >= 1 && page <= totalPages) setCurrentPage(page);
   };
@@ -169,18 +182,15 @@ const UsageHistory: React.FC = () => {
   const renderPaginationButtons = () => {
     const maxVisibleButtons = 5;
     
-    // Calculate start and end page for the sliding window
     let startPage = Math.max(1, currentPage - 2);
     let endPage = Math.min(totalPages, startPage + maxVisibleButtons - 1);
 
-    // Adjust startPage if endPage hits the limit
     if (endPage - startPage + 1 < maxVisibleButtons) {
       startPage = Math.max(1, endPage - maxVisibleButtons + 1);
     }
 
     const pages = [];
 
-    // First page button
     if (startPage > 1) {
       pages.push(
         <button key={1} onClick={() => goToPage(1)} className="px-3 py-1 text-gray-700 hover:bg-gray-100 rounded">1</button>
@@ -188,7 +198,6 @@ const UsageHistory: React.FC = () => {
       if (startPage > 2) pages.push(<span key="dots-start" className="px-2 text-gray-500">...</span>);
     }
 
-    // Middle pages
     for (let i = startPage; i <= endPage; i++) {
       pages.push(
         <button
@@ -205,7 +214,6 @@ const UsageHistory: React.FC = () => {
       );
     }
 
-    // Last page button
     if (endPage < totalPages) {
       if (endPage < totalPages - 1) pages.push(<span key="dots-end" className="px-2 text-gray-500">...</span>);
       pages.push(
@@ -249,15 +257,41 @@ const UsageHistory: React.FC = () => {
         </button>
       </div>
 
-      {/* ===== LEGEND ===== */}
-      <div style={legendStyle}>
-        <div style={legendItem}>
-          <span style={{ ...legendDot, background: "#2D9CDB" }} />
-          <span>{t.history.resident}</span>
-        </div>
-        <div style={legendItem}>
-          <span style={{ ...legendDot, background: "#F2C94C" }} />
-          <span>{t.history.guest}</span>
+      {/* ===== FILTER BUTTONS - GIỐNG CHECKOUT ===== */}
+      <div className="w-fit p-3 mb-4 rounded-lg border border-gray-200 bg-[#fafafa]">
+        <div className="flex items-center gap-10">
+          <button
+            onClick={() => {
+              // Toggle: nếu đã chọn resident thì reset về all, nếu không thì chọn resident
+              const newType = filterType === "resident" ? "all" : "resident";
+              setFilterType(newType);
+              setCurrentPage(1);
+            }}
+            className={`flex items-center gap-3 transition cursor-pointer ${
+              filterType === "resident" 
+                ? "opacity-100 font-bold" 
+                : "opacity-70 hover:opacity-100"
+            }`}
+          >
+            <span className="w-10 h-6 rounded bg-sky-500"></span>
+            <span className="font-medium">{t.history.resident}</span>
+          </button>
+          <button
+            onClick={() => {
+              // Toggle: nếu đã chọn guest thì reset về all, nếu không thì chọn guest
+              const newType = filterType === "guest" ? "all" : "guest";
+              setFilterType(newType);
+              setCurrentPage(1);
+            }}
+            className={`flex items-center gap-3 transition cursor-pointer ${
+              filterType === "guest" 
+                ? "opacity-100 font-bold" 
+                : "opacity-70 hover:opacity-100"
+            }`}
+          >
+            <span className="w-10 h-6 rounded bg-yellow-400"></span>
+            <span className="font-medium">{t.history.guest}</span>
+          </button>
         </div>
       </div>
 
@@ -287,12 +321,12 @@ const UsageHistory: React.FC = () => {
               <tr>
                 <td colSpan={7} style={{ textAlign: "center", padding: 20 }}>{t.common.loadingData}</td>
               </tr>
-            ) : data.length === 0 ? (
+            ) : paginatedData.length === 0 ? (
               <tr>
                 <td colSpan={7} style={{ textAlign: "center", padding: 20 }}>{t.common.noResults}</td>
               </tr>
             ) : (
-              data.map((item) => {
+              paginatedData.map((item) => {
                 const isResident = !!item.resident;
                 return (
                   <tr
@@ -340,7 +374,7 @@ const UsageHistory: React.FC = () => {
         </table>
       </div>
 
-      {/* ===== PAGINATION (FIXED) ===== */}
+      {/* ===== PAGINATION ===== */}
       {totalPages > 1 && (
         <div style={{ marginTop: 16, display: "flex", justifyContent: "center" }}>
           <div className="flex items-center gap-1 text-sm">
@@ -427,21 +461,81 @@ const DetailModal: React.FC<DetailModalProps> = ({ user, onClose, t }) => {
 
 /* ================== STYLES ================== */
 const pageStyle: React.CSSProperties = { fontFamily: "Arial, sans-serif" };
-const topBarStyle: React.CSSProperties = { display: "flex", justifyContent: "space-between", marginBottom: 16 };
+const topBarStyle: React.CSSProperties = { 
+  display: "flex", 
+  justifyContent: "space-between", 
+  marginBottom: 16,
+  alignItems: "center" 
+};
 const searchWrapStyle: React.CSSProperties = { display: "flex", gap: 12 };
-const inputStyle: React.CSSProperties = { padding: "8px 12px", borderRadius: 6, border: "1px solid #e5e7eb", width: 240 };
-const primaryBtn: React.CSSProperties = { padding: "8px 20px", borderRadius: 6, border: "none", background: "#143CA6", color: "#fff", fontWeight: 600, cursor: 'pointer' };
-const tableWrapperStyle: React.CSSProperties = { border: "1px solid #e5e7eb", borderRadius: 8, maxHeight: 420, overflowY: "auto" };
+const inputStyle: React.CSSProperties = { 
+  padding: "8px 12px", 
+  borderRadius: 6, 
+  border: "1px solid #e5e7eb", 
+  width: 240 
+};
+const primaryBtn: React.CSSProperties = { 
+  padding: "8px 20px", 
+  borderRadius: 6, 
+  border: "none", 
+  background: "#143CA6", 
+  color: "#fff", 
+  fontWeight: 600, 
+  cursor: 'pointer' 
+};
+const tableWrapperStyle: React.CSSProperties = { 
+  border: "1px solid #e5e7eb", 
+  borderRadius: 8, 
+  maxHeight: 420, 
+  overflowY: "auto" 
+};
 const tableStyle: React.CSSProperties = { width: "100%", borderCollapse: "collapse" };
-const thStyle: React.CSSProperties = { padding: "12px 16px", fontWeight: 700, background: "#f9fafb", textAlign: "left" };
-const rowStyle: React.CSSProperties = { borderBottom: "1px solid #e5e7eb", cursor: "pointer" };
+const thStyle: React.CSSProperties = { 
+  padding: "12px 16px", 
+  fontWeight: 700, 
+  background: "#f9fafb", 
+  textAlign: "left" 
+};
+const rowStyle: React.CSSProperties = { 
+  borderBottom: "1px solid #e5e7eb", 
+  cursor: "pointer" 
+};
 const tdStyle: React.CSSProperties = { padding: "12px 16px" };
-const userCellStyle: React.CSSProperties = { display: "flex", alignItems: "center", gap: 10 };
-const colorBoxStyle: React.CSSProperties = { width: 12, height: 12, borderRadius: 4 };
-const avatarStyle: React.CSSProperties = { width: 36, height: 36, borderRadius: "50%", objectFit: "cover" };
-const overlayStyle: React.CSSProperties = { position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000 };
-const modalStyle: React.CSSProperties = { width: 500, background: "#fff", borderRadius: 8, boxShadow: "0 4px 6px rgba(0,0,0,0.1)" };
-const modalHeader: React.CSSProperties = { padding: "12px 16px", borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center" };
-const legendStyle: React.CSSProperties = { display: "flex", gap: 24, marginBottom: 12 };
-const legendItem: React.CSSProperties = { display: "flex", alignItems: "center", gap: 8 };
-const legendDot: React.CSSProperties = { width: 14, height: 14, borderRadius: 4 };
+const userCellStyle: React.CSSProperties = { 
+  display: "flex", 
+  alignItems: "center", 
+  gap: 10 
+};
+const colorBoxStyle: React.CSSProperties = { 
+  width: 12, 
+  height: 12, 
+  borderRadius: 4 
+};
+const avatarStyle: React.CSSProperties = { 
+  width: 36, 
+  height: 36, 
+  borderRadius: "50%", 
+  objectFit: "cover" 
+};
+const overlayStyle: React.CSSProperties = { 
+  position: "fixed", 
+  inset: 0, 
+  background: "rgba(0,0,0,0.4)", 
+  display: "flex", 
+  justifyContent: "center", 
+  alignItems: "center", 
+  zIndex: 1000 
+};
+const modalStyle: React.CSSProperties = { 
+  width: 500, 
+  background: "#fff", 
+  borderRadius: 8, 
+  boxShadow: "0 4px 6px rgba(0,0,0,0.1)" 
+};
+const modalHeader: React.CSSProperties = { 
+  padding: "12px 16px", 
+  borderBottom: "1px solid #e5e7eb", 
+  display: "flex", 
+  justifyContent: "space-between", 
+  alignItems: "center" 
+};
