@@ -17,7 +17,7 @@ const formatDateTime = (value?: string) => {
     month: '2-digit',
     year: 'numeric',
     hour12: false,
-     timeZone: 'UTC'
+    timeZone: 'UTC'
   });
 };
 
@@ -44,7 +44,7 @@ interface UsageItem {
     fullName: string;
   };
   // Thêm các trường có thể có từ API
-  displayName?: string; // Có thể API trả về displayName trực tiếp
+  displayName?: string;
   item?: {
     displayName: string;
     remainingNames: string[];
@@ -88,8 +88,53 @@ const UsageHistory: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  /* ================== FETCH LIST ================== */
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        // Tạo params cho API
+        const params: any = {
+          searchName: searchText,
+          page: 1,
+          limit: 1000
+        };
+
+        // Nếu filter không phải là 'all', thêm type vào params
+        if (filterType !== 'all') {
+          params.type = filterType; // hoặc 'userType' tùy API
+        }
+
+        const res: any = await api.get(
+          `/history_checkin`,
+          { params }
+        );
+
+        const responseData = res?.data || res;
+
+        console.log("API Response with filter:", filterType, responseData);
+        
+        if (responseData?.data) {
+          setAllData(responseData.data);
+          setCurrentPage(1);
+        } else {
+          setAllData([]);
+        }
+      } catch (err) {
+        console.error("Fetch usage history error:", err);
+        setAllData([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [searchText, filterType]); // Thêm filterType vào dependency
+
   /* ================== FILTERED DATA ================== */
   const filteredData = useMemo(() => {
+    // Nếu API đã filter theo type rồi, chỉ cần trả về allData
+    // Nhưng vẫn giữ filter client-side để đảm bảo
     if (filterType === 'all') return allData;
     if (filterType === 'resident') return allData.filter(item => !!item.resident);
     if (filterType === 'guest') return allData.filter(item => !item.resident);
@@ -107,43 +152,6 @@ const UsageHistory: React.FC = () => {
     return filteredData.slice(startIndex, endIndex);
   }, [filteredData, currentPage]);
 
-  /* ================== FETCH LIST ================== */
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const res: any = await api.get(
-          `/history_checkin`,
-          {
-            params: {
-              searchName: searchText,
-              page: 1,
-              limit: 1000
-            }
-          }
-        );
-
-        const responseData = res?.data || res;
-
-        console.log("API Response:", responseData); // Debug: xem cấu trúc data
-        
-        if (responseData?.data) {
-          setAllData(responseData.data);
-          setCurrentPage(1);
-        } else {
-          setAllData([]);
-        }
-      } catch (err) {
-        console.error("Fetch usage history error:", err);
-        setAllData([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [searchText]);
-
   /* ================== FETCH DETAIL ================== */
   const openDetail = async (id: number) => {
     try {
@@ -160,8 +168,6 @@ const UsageHistory: React.FC = () => {
 
   /* ================== GET DISPLAY NAME ================== */
   const getDisplayName = (item: UsageItem): string => {
-    console.log("Getting display name for item:", item); // Debug
-    
     // 1. Ưu tiên lấy tên từ resident nếu có (cư dân)
     if (item.resident?.fullName) {
       return item.resident.fullName;
@@ -179,14 +185,13 @@ const UsageHistory: React.FC = () => {
     
     // 4. Thử lấy từ additionalGuests hoặc thông tin khác
     if (item.additionalGuests) {
-      // Nếu additionalGuests là string chứa danh sách tên
       const guests = item.additionalGuests.split(',').map(g => g.trim());
       if (guests.length > 0) {
-        return guests[0]; // Lấy tên đầu tiên
+        return guests[0];
       }
     }
     
-    // 5. Fallback: nếu không có thông tin, hiển thị "Khách" thay vì "Guest"
+    // 5. Fallback
     return t.history.guest || "Khách";
   };
 
@@ -580,4 +585,4 @@ const modalHeader: React.CSSProperties = {
   display: "flex", 
   justifyContent: "space-between", 
   alignItems: "center" 
-};
+}; 
