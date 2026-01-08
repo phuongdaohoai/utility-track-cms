@@ -21,7 +21,7 @@ export const CheckInOutside: FC = () => {
 
   const [representative, setRepresentative] = useState<string>('')
   const [phone, setPhone] = useState<string>('')
-  const [people, setPeople] = useState<Person[]>([{ id: '1', name: '' }])
+  const [people, setPeople] = useState<Person[]>([])
   const [checkinTime, setCheckinTime] = useState<string>('')
   const [loading, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
@@ -57,9 +57,17 @@ export const CheckInOutside: FC = () => {
     return () => clearInterval(interval)
   }, [])
 
-  // Không cần tải danh sách dịch vụ nữa vì đã chọn từ trang trước
-
   const handleAddPerson = () => {
+    // Tìm row trống hiện tại (nếu có)
+    const emptyPersonIndex = people.findIndex(p => p.name.trim() === '')
+    
+    if (emptyPersonIndex !== -1) {
+      // Nếu có row trống mà chưa nhập tên, không làm gì cả
+      // Hoặc có thể focus vào input đó
+      return
+    }
+    
+    // Thêm row trống mới
     const newPerson: Person = {
       id: Date.now().toString(),
       name: '',
@@ -70,7 +78,7 @@ export const CheckInOutside: FC = () => {
   const handlePersonNameChange = (id: string, name: string) => {
     setPeople(people.map((p) => (p.id === id ? { ...p, name } : p)))
   }
-  // <-- Thêm hàm xóa ở đây
+
   const handleRemovePerson = (id: string) => {
     setPeople(people.filter((p) => p.id !== id))
   }
@@ -92,14 +100,18 @@ export const CheckInOutside: FC = () => {
       return
     }
 
+    // Lọc bỏ các dòng trống (chưa nhập tên)
+    const validPeople = people.filter(p => p.name.trim() !== '')
+    
     // Lấy tên đại diện (người đầu tiên trong danh sách hoặc representative)
     const guestName = [
       representative,
-      ...(people || []).map(p => p.name)
+      ...validPeople.map(p => p.name)
     ]
       .filter(Boolean)
       .join(', ')
       || t.checkInOutside.guestName;
+    
     setLoading(true)
     setError(null)
     setSuccess(null)
@@ -142,6 +154,13 @@ export const CheckInOutside: FC = () => {
     } finally {
       setLoading(false)
     }
+  }
+
+  // Tạo mảng hiển thị: bao gồm tất cả people + 1 row trống
+  const displayRows = [...people]
+  // Luôn đảm bảo có ít nhất 1 row trống (trừ khi đã có row trống)
+  if (people.length === 0 || people[people.length - 1]?.name.trim() !== '') {
+    displayRows.push({ id: 'empty-row', name: '' })
   }
 
   return (
@@ -212,66 +231,74 @@ export const CheckInOutside: FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {people.map((person, index) => (
-                      <tr key={person.id} className="bg-white">
-                        <td className="border border-gray-300 px-4 py-2 text-gray-700">
-                          {index + 1}
-                        </td>
-                        <td className="border border-gray-300 px-4 py-2">
-                          <input
-                            type="text"
-                            value={person.name}
-                            onChange={(e) => handlePersonNameChange(person.id, e.target.value)}
-                            placeholder={t.checkInOutside.placeholderName}
-                            className="w-full px-2 py-1 bg-white border-0 outline-none"
-                          />
-                        </td>
-                        <td className="border border-gray-300 px-4 py-2 flex gap-2">
-                          {/* Nút Thêm */}
-                          <button
-                            onClick={handleAddPerson}
-                            className="bg-blue-600 text-white px-3 py-1 rounded flex items-center gap-1 hover:bg-blue-700 transition-colors"
-                          >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              className="h-4 w-4"
-                              viewBox="0 0 20 20"
-                              fill="currentColor"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                            {t.checkInOutside.add}
-                          </button>
+                    {displayRows.map((person, index) => {
+                      const isLastRow = index === displayRows.length - 1
+                      const isEmptyRow = person.name.trim() === '' && person.id === 'empty-row'
+                      
+                      return (
+                        <tr key={person.id} className="bg-white">
+                          <td className="border border-gray-300 px-4 py-2 text-gray-700">
+                            {isEmptyRow ? '' : index + 1}
+                          </td>
+                          <td className="border border-gray-300 px-4 py-2">
+                            <input
+                              type="text"
+                              value={person.name}
+                              onChange={(e) => handlePersonNameChange(person.id, e.target.value)}
+                              placeholder={t.checkInOutside.placeholderName}
+                              className="w-full px-2 py-1 bg-white border-0 outline-none"
+                            />
+                          </td>
+                          <td className="border border-gray-300 px-4 py-2">
+                            <div className="flex gap-2">
+                              {/* Chỉ hiển thị nút Add ở dòng trống cuối cùng */}
+                              {isEmptyRow && (
+                                <button
+                                  onClick={handleAddPerson}
+                                  className="bg-blue-600 text-white px-3 py-1 rounded flex items-center gap-1 hover:bg-blue-700 transition-colors"
+                                >
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    className="h-4 w-4"
+                                    viewBox="0 0 20 20"
+                                    fill="currentColor"
+                                  >
+                                    <path
+                                      fillRule="evenodd"
+                                      d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                                      clipRule="evenodd"
+                                    />
+                                  </svg>
+                                  {t.checkInOutside.add}
+                                </button>
+                              )}
 
-                          {/* Nút Xóa */}
-                          {people.length > 1 && ( // Chỉ hiển thị nếu còn >1 người
-                            <button
-                              onClick={() => handleRemovePerson(person.id)}
-                              className="bg-red-600 text-white px-3 py-1 rounded flex items-center gap-1 hover:bg-red-700 transition-colors"
-                            >
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                className="h-4 w-4"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                                strokeWidth={2}
-                              >
-                                <circle cx="12" cy="12" r="10" className="stroke-current" />
-                                <line x1="8" y1="12" x2="16" y2="12" className="stroke-current" />
-                              </svg>
-                              {t.checkInOutside.remove}
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
+                              {/* Nút Xóa - chỉ hiển thị cho các dòng đã nhập tên */}
+                              {!isEmptyRow && person.name.trim() !== '' && (
+                                <button
+                                  onClick={() => handleRemovePerson(person.id)}
+                                  className="bg-red-600 text-white px-3 py-1 rounded flex items-center gap-1 hover:bg-red-700 transition-colors"
+                                >
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    className="h-4 w-4"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                    strokeWidth={2}
+                                  >
+                                    <circle cx="12" cy="12" r="10" className="stroke-current" />
+                                    <line x1="8" y1="12" x2="16" y2="12" className="stroke-current" />
+                                  </svg>
+                                  {t.checkInOutside.remove}
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
-
                 </table>
               </div>
             </div>
@@ -312,4 +339,3 @@ export const CheckInOutside: FC = () => {
 }
 
 export default CheckInOutside
-
