@@ -76,6 +76,11 @@ export const CheckInOutside: FC = () => {
   }
 
   const handleCheckin = async () => {
+    // BẮT BUỘC nhập người đại diện
+    if (!representative || representative.trim() === '') {
+      setError(t.checkInOutside.errorRepresentativeRequired)
+      return
+    }
     // Validation
     if (!phone || phone.trim() === '') {
       setError(t.checkInOutside.errorPhoneRequired)
@@ -89,11 +94,11 @@ export const CheckInOutside: FC = () => {
 
     // Lấy tên đại diện (người đầu tiên trong danh sách hoặc representative)
     const guestName = [
-      representative,                     
-      ...(people || []).map(p => p.name)  
+      representative,
+      ...(people || []).map(p => p.name)
     ]
-      .filter(Boolean)                    
-      .join(', ')                             
+      .filter(Boolean)
+      .join(', ')
       || t.checkInOutside.guestName;
     setLoading(true)
     setError(null)
