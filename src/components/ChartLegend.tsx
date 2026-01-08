@@ -7,18 +7,21 @@ interface ChartLegendProps {
 
 export default function ChartLegend({ items }: ChartLegendProps) {
   return (
-    <div className="max-h-24 overflow-y-auto border-t pt-2">
-      <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm">
-        {items.map((item) => (
+    <div className="max-h-32 overflow-y-auto border-t pt-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-2 text-sm">
+        {items.map(item => (
           <div
             key={item.name}
-            className="flex items-center gap-2 whitespace-nowrap"
+            className="flex items-center gap-2 truncate"
+            title={item.name}
           >
             <span
-              className="h-3 w-3 rounded-sm"
+              className="h-3 w-3 rounded-sm flex-shrink-0"
               style={{ backgroundColor: item.color }}
             />
-            <span className="text-gray-700">{item.name}</span>
+            <span className="truncate text-gray-700">
+              {item.name}
+            </span>
           </div>
         ))}
       </div>
