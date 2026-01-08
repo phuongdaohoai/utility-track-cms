@@ -1,15 +1,26 @@
 // components/CSVImport/CSVPreviewTable.tsx
 import { FC } from 'react';
 import { useCSVImport } from '../../store/hooks';
-import { CSV_CONFIG } from './csvConfig'; // Import config
+import { CSV_CONFIG, CsvColumnConfig } from './csvConfig'; // Import config
+import { useLocale } from '../../i18n/LocaleContext';
 
 export const CSVPreviewTable: FC = () => {
+  const { t } = useLocale()
   const { data, errors, importType } = useCSVImport();
 
   // Lấy cột hiển thị từ config
   const displayColumns = CSV_CONFIG[importType];
 
-  if (data.length === 0) return <div className="text-center py-12 text-gray-500">Chưa có dữ liệu</div>;
+  const getTranslatedLabel = (col: CsvColumnConfig) => {
+    if (col.labelKey) {
+      const parts = col.labelKey.split('.')
+      // resolve path like t.csv.staff.fullName
+      return parts.reduce((o: any, k: string) => (o ? o[k] : undefined), t) || col.label
+    }
+    return col.label
+  }
+
+  if (data.length === 0) return <div className="text-center py-12 text-gray-500">{t.csvImport.noData}</div>;
 
   return (
     <div className="p-6 min-h-screen">
@@ -20,7 +31,7 @@ export const CSVPreviewTable: FC = () => {
               <tr className="bg-white border-b border-gray-200">
                 {displayColumns.map((col) => (
                   <th key={col.key} className="px-4 py-3 text-left text-blue-700 font-bold whitespace-nowrap">
-                    {col.label} {col.required && <span className="text-red-500">*</span>}
+                    {getTranslatedLabel(col)} {col.required && <span className="text-red-500">*</span>}
                   </th>
                 ))}
               </tr>

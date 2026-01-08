@@ -1,62 +1,65 @@
 // src/utils/breadcrumb.ts
+import type { Locale } from '../i18n/translations'
+import { translations } from '../i18n/translations'
 
 export interface BreadcrumbItem {
   label: string
   path?: string
 }
 
-export const getBreadcrumb = (pathname: string): BreadcrumbItem[] => {
+export const getBreadcrumb = (pathname: string, locale: Locale = 'vi'): BreadcrumbItem[] => {
+  const t = translations[locale]
 
   // Dashboard
   if (pathname === '/admin') {
-    return [{ label: 'Dashboard tổng quan' }]
+    return [{ label: t.sidebar.dashboard }]
   }
 
   // USERS - danh sách
   if (pathname === '/admin/users') {
     return [
-      { label: 'Quản lý Cư dân' },
-      { label: 'Danh sách Cư dân' },
+      { label: t.sidebar.manageUsers },
+      { label: t.users.residentsList },
     ]
   }
 
   // USERS - chỉnh sửa
   if (pathname.startsWith('/admin/users/') && pathname.endsWith('/edit')) {
     return [
-      { label: 'Quản lý Cư dân' },
-      { label: 'Danh sách Cư dân', path: '/admin/users' },
-      { label: 'Chỉnh sửa thông tin' },
+      { label: t.sidebar.manageUsers },
+      { label: t.users.residentsList, path: '/admin/users' },
+      { label: t.common.edit },
     ]
   }
 
   // SERVICES - danh sách
   if (pathname === '/admin/services') {
     return [
-      { label: 'Quản lý Dịch vụ' },
-      { label: 'Danh sách Dịch vụ' },
+      { label: t.sidebar.manageServices },
+      { label: t.services.list },
     ]
   }
 
   // SERVICES - chi tiết / sửa chữa
   if (pathname.startsWith('/admin/services/')) {
     return [
-      { label: 'Quản lý Dịch vụ' },
-      { label: 'Danh sách Dịch vụ', path: '/admin/services' },
-      { label: 'Chi tiết dịch vụ' },
+      { label: t.sidebar.manageServices },
+      { label: t.services.list, path: '/admin/services' },
+      { label: t.services.detail },
     ]
   }
 
   // HISTORY
   if (pathname === '/admin/history') {
     return [
-      { label: 'Lịch sử Checkin' },
+      { label: t.sidebar.usageHistory },
     ]
   }
 
   // SETTINGS
   if (pathname === '/admin/settings') {
     return [
-      { label: 'Cấu hình hệ thống' },
+      { label: t.sidebar.systemConfig },
     ]
   }
 

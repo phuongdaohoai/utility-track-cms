@@ -41,12 +41,6 @@ export const getDashboardData = async (params: DashboardParams) => {
     `/dashboard/getDashboardData?${queryParams.toString()}`
   );
 
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.message || "Lỗi khi lấy dữ liệu dashboard");
-  }
 
-  const result = await response.json();
-  console.log("Dashboard Data:", result);
-  return result.data;
+  return response.data;
 };

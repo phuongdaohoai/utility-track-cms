@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState } from 'react'
+import { useLocale } from '../i18n/LocaleContext'
 import * as faceapi from 'face-api.js'
-import { loadFaceModels } from '../utils/faceApi'
+import { loadFaceModels } from '../utils/faceApi' 
 
 interface FaceIDScannerProps {
   onScan: (descriptor: number[]) => void
@@ -24,8 +25,10 @@ const requestCameraPermission = async (): Promise<boolean> => {
 export const FaceIDScanner: React.FC<FaceIDScannerProps> = ({
   onScan,
   onClose,
-  title = 'Quét Face ID',
+  title,
 }) => {
+  const { t } = useLocale()
+  const headerTitle = title || t.components.faceID.title
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
 
@@ -47,7 +50,7 @@ export const FaceIDScanner: React.FC<FaceIDScannerProps> = ({
       // 2️⃣ Xin quyền camera
       const granted = await requestCameraPermission()
       if (!granted) {
-        setError('Bạn cần cho phép truy cập camera')
+        setError(t.components.faceID.permissionRequired)
         setLoading(false)
         return
       }
@@ -69,11 +72,11 @@ export const FaceIDScanner: React.FC<FaceIDScannerProps> = ({
       console.error(err)
 
       if (err.name === 'NotAllowedError') {
-        setError('Bạn đã từ chối quyền camera')
+        setError(t.components.faceID.permissionDenied)
       } else if (err.name === 'NotFoundError') {
-        setError('Không tìm thấy camera')
+        setError(t.components.faceID.cameraNotFound)
       } else {
-        setError('Không thể truy cập camera')
+        setError(t.components.faceID.cameraError)
       }
 
       setLoading(false)
@@ -113,7 +116,7 @@ export const FaceIDScanner: React.FC<FaceIDScannerProps> = ({
       .withFaceDescriptor()
 
     if (!detection) {
-      setError('Không phát hiện khuôn mặt')
+      setError(t.components.faceID.noFaceDetected)
       setCapturing(false)
       return
     }
@@ -123,7 +126,7 @@ export const FaceIDScanner: React.FC<FaceIDScannerProps> = ({
     stopCamera()
     onScan(descriptor)
   } catch {
-    setError('Lỗi khi xử lý khuôn mặt')
+    setError(t.components.faceID.processingFaceError)
   } finally {
     setCapturing(false)
   }
@@ -151,7 +154,7 @@ export const FaceIDScanner: React.FC<FaceIDScannerProps> = ({
       <div className="bg-white rounded-lg p-6 w-full max-w-2xl mx-4">
         {/* Header */}
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold">{title}</h2>
+          <h2 className="text-xl font-bold">{headerTitle}</h2>
           <button onClick={handleClose} className="text-2xl text-gray-500">
             ×
           </button>
@@ -169,8 +172,8 @@ export const FaceIDScanner: React.FC<FaceIDScannerProps> = ({
           <div className="relative">
             {loading ? (
               <div className="h-64 flex items-center justify-center text-gray-500">
-                Đang khởi động camera...
-              </div>
+                {t.components.faceID.startingCamera}
+              </div> 
             ) : (
               <>
                 <video
@@ -187,8 +190,8 @@ export const FaceIDScanner: React.FC<FaceIDScannerProps> = ({
                 </div>
 
                 <div className="absolute bottom-2 left-0 right-0 text-center text-white bg-black bg-opacity-50 py-2 rounded">
-                  Đưa khuôn mặt vào khung
-                </div>
+                  {t.components.faceID.faceGuide}
+                </div> 
               </>
             )}
           </div>
@@ -200,8 +203,8 @@ export const FaceIDScanner: React.FC<FaceIDScannerProps> = ({
             onClick={handleClose}
             className="bg-gray-500 text-white px-6 py-2 rounded"
           >
-            Hủy
-          </button>
+            {t.common.cancel}
+          </button> 
 
           {!error && !loading && (
             <button
@@ -209,7 +212,7 @@ export const FaceIDScanner: React.FC<FaceIDScannerProps> = ({
               disabled={capturing}
               className="bg-blue-600 text-white px-6 py-2 rounded disabled:bg-gray-400"
             >
-              {capturing ? 'Đang xử lý...' : 'Chụp ảnh'}
+              {capturing ? t.common.processing : t.common.capture} 
             </button>
           )}
         </div>

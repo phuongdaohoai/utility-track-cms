@@ -1,28 +1,62 @@
 import React, { useEffect, useState } from "react";
+import CheckoutDetailModal from "../../components/CheckoutDetailModal";
+import { useLocale } from '../../i18n/LocaleContext';
+
+interface DetailCheckoutState {
+  visible: boolean;
+  person?: CheckInItem;
+  checkedOut: boolean;
+}
 import checkInService, { CheckInItem } from "../../services/checkInService";
 
 const Checkout: React.FC = () => {
+  const { t } = useLocale()
+  // === STATE POPUP ===
+  const [checkoutPopup, setCheckoutPopup] = useState<DetailCheckoutState>({
+    visible: false,
+    checkedOut: false,
+  });
+  const [modalLoading, setModalLoading] = useState(false);
+
   // ===== STATE =====
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<CheckInItem[]>([]);
   const [totalPages, setTotalPages] = useState(0);
-  
+
   const [currentPage, setCurrentPage] = useState(1);
   const [searchText, setSearchText] = useState(""); 
   const [filterQuery, setFilterQuery] = useState(""); 
+  const [filterType, setFilterType] = useState<"resident" | "guest" | "all">("all");
   
+  // State lưu số lượng muốn checkout cho từng người
   const itemsPerPage = 10;
 
   // ===== FETCH DATA =====
-  const fetchData = async (page: number, search: string) => {
+  const fetchData = async (page: number, search: string, type?: "resident" | "guest") => {
     setLoading(true);
     try {
-      const res = await checkInService.getCurrentCheckIns(page, itemsPerPage, search);
+      const res = await checkInService.getCurrentCheckIns(page, itemsPerPage, search, type);
       const responseData = res.data; 
 
       if (responseData && Array.isArray(responseData.items)) {
-          setData(responseData.items);
-          setTotalPages(Math.ceil(responseData.totalItem / itemsPerPage));
+          let filteredItems = responseData.items;
+          
+          // Filter ở client side nếu API không filter đúng
+          if (type) {
+            filteredItems = responseData.items.filter((item: CheckInItem) => {
+              const isItemGuest = isGuest(item.room);
+              if (type === "guest") {
+                return isItemGuest; // Chỉ lấy khách
+              } else if (type === "resident") {
+                return !isItemGuest; // Chỉ lấy cư dân
+              }
+              return true;
+            });
+          }
+          
+          setData(filteredItems);
+          // Tính lại totalPages dựa trên số lượng đã filter
+          setTotalPages(Math.ceil(filteredItems.length / itemsPerPage));
       } else {
           setData([]);
           setTotalPages(0);
@@ -36,29 +70,62 @@ const Checkout: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchData(currentPage, filterQuery);
-  }, [currentPage, filterQuery]); 
+    const type = filterType === "all" ? undefined : filterType;
+    console.log("Filter type:", filterType, "-> API type:", type); // Debug log
+    fetchData(currentPage, filterQuery, type);
+  }, [currentPage, filterQuery, filterType]); 
 
   // ===== HANDLERS =====
   
-  // 1. Xử lý Checkout (Mới thêm)
-  const handleCheckout = async (id: number) => {
-    // Xác nhận trước khi thực hiện
-    const confirm = window.confirm("Bạn có chắc chắn muốn Checkout cho lượt này?");
-    if (!confirm) return;
+  // 1. Xử lý mở/đóng popup
+  const openCheckoutPopup = async (item: CheckInItem) => {
+    // Mở modal ngay với dữ liệu sẵn có để UI phản hồi nhanh
+    setCheckoutPopup({ visible: true, person: item, checkedOut: false });
+  };
 
+  const closeCheckoutPopup = () => {
+    setCheckoutPopup({ visible: false, person: undefined, checkedOut: false });
+  };
+
+  // 2. Checkout ALL cho một lượt
+  const handleCheckoutAll = async (id: number) => {
+    const confirm = window.confirm(
+      t.checkout.confirmCheckoutAll
+    );
+    if (!confirm) return;
+    setModalLoading(true);
     try {
-      // Gọi API
       await checkInService.checkout(id);
-      
-      // Thông báo thành công
-      alert("Checkout thành công!");
-      
-      // Load lại dữ liệu để cập nhật danh sách
-      fetchData(currentPage, filterQuery);
+      alert(t.checkout.checkoutAllSuccess);
+      const type = filterType === "all" ? undefined : filterType;
+      fetchData(currentPage, filterQuery, type);
+      closeCheckoutPopup();
     } catch (error: any) {
       console.error(error);
-      alert(error.message || "Có lỗi xảy ra khi checkout.");
+      alert(error.message || t.checkout.errorCheckout);
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  // 3. Checkout theo danh sách khách đã chọn (không checkout đại diện)
+  const handleSavePartial = async (id: number, guests: string[]) => {
+    if (!guests || guests.length === 0) {
+      alert(t.checkout.selectGuests);
+      return;
+    }
+    setModalLoading(true);
+    try {
+      await checkInService.partialCheckoutByGuests(id, guests);
+      alert(t.checkout.partialCheckoutSuccess);
+      const type = filterType === "all" ? undefined : filterType;
+      await fetchData(currentPage, filterQuery, type);
+      closeCheckoutPopup();
+    } catch (error: any) {
+      console.error(error);
+      alert(error.message || t.checkout.errorCheckout);
+    } finally {
+      setModalLoading(false);
     }
   };
 
@@ -79,8 +146,8 @@ const Checkout: React.FC = () => {
   const formatTime = (isoString: string) => {
     if (!isoString) return "";
     const date = new Date(isoString);
-    const time = date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false });
-    const day = date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const time = date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' });
+    const day = date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' });
     return `${time}h - ${day}`;
   };
 
@@ -118,12 +185,13 @@ const Checkout: React.FC = () => {
   };
 
   return (
+    <>
     <div className="min-h-screen bg-white px-10 py-6 text-sm">
       {/* SEARCH */}
       <div className="flex items-center gap-4 mb-4 max-w-3xl">
         <div className="relative flex-1">
           <input
-            placeholder="Tìm kiếm theo Cư Dân, Khách, Phòng..."
+            placeholder={t.checkout.searchPlaceholder}
             className="w-full h-11 rounded-lg border border-gray-300 pl-10 pr-4 focus:outline-none focus:ring-1 focus:ring-indigo-500"
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
@@ -135,21 +203,45 @@ const Checkout: React.FC = () => {
           </svg>
         </div>
         <button onClick={handleSearch} className="h-11 px-8 rounded-lg bg-indigo-700 text-white font-semibold hover:bg-indigo-800 transition">
-          Tìm Kiếm
+          {t.checkout.search}
         </button>
       </div>
 
-      {/* LEGEND */}
+      {/* LEGEND & FILTER */}
       <div className="w-fit p-3 mb-4 rounded-lg border border-gray-200 bg-[#fafafa]">
         <div className="flex items-center gap-10">
-          <div className="flex items-center gap-3">
+          <button
+            onClick={() => {
+              // Toggle: nếu đã chọn resident thì reset về all, nếu không thì chọn resident
+              const newType = filterType === "resident" ? "all" : "resident";
+              setFilterType(newType);
+              setCurrentPage(1);
+            }}
+            className={`flex items-center gap-3 transition cursor-pointer ${
+              filterType === "resident" 
+                ? "opacity-100 font-bold" 
+                : "opacity-70 hover:opacity-100"
+            }`}
+          >
             <span className="w-10 h-6 rounded bg-sky-500"></span>
-            <span className="font-medium">Cư dân</span>
-          </div>
-          <div className="flex items-center gap-3">
+            <span className="font-medium">{t.checkout.resident}</span>
+          </button>
+          <button
+            onClick={() => {
+              // Toggle: nếu đã chọn guest thì reset về all, nếu không thì chọn guest
+              const newType = filterType === "guest" ? "all" : "guest";
+              setFilterType(newType);
+              setCurrentPage(1);
+            }}
+            className={`flex items-center gap-3 transition cursor-pointer ${
+              filterType === "guest" 
+                ? "opacity-100 font-bold" 
+                : "opacity-70 hover:opacity-100"
+            }`}
+          >
             <span className="w-10 h-6 rounded bg-yellow-400"></span>
-            <span className="font-medium">Khách ngoài</span>
-          </div>
+            <span className="font-medium">{t.checkout.outsideGuest}</span>
+          </button>
         </div>
       </div>
 
@@ -158,20 +250,20 @@ const Checkout: React.FC = () => {
         <table className="w-full">
           <thead>
             <tr className="border-b text-gray-600 text-left bg-gray-50">
-              <th className="px-6 py-4 font-bold text-indigo-700">Loại</th>
-              <th className="px-6 py-4 font-bold text-indigo-700">Cư dân/ Khách</th>
-              <th className="px-6 py-4 font-bold text-indigo-700">Dịch Vụ</th>
-              <th className="px-6 py-4 font-bold text-indigo-700">Thời Gian Vào</th>
-              <th className="px-6 py-4 font-bold text-indigo-700">Số Lượng</th>
-              <th className="px-6 py-4 font-bold text-indigo-700">Hành Động</th>
+              <th className="px-6 py-4 font-bold text-indigo-700">{t.checkout.type}</th>
+              <th className="px-6 py-4 font-bold text-indigo-700">{t.checkout.residentOrGuest}</th>
+              <th className="px-6 py-4 font-bold text-indigo-700">{t.checkout.service}</th>
+              <th className="px-6 py-4 font-bold text-indigo-700">{t.checkout.checkInTime}</th>
+              <th className="px-6 py-4 font-bold text-indigo-700">{t.checkout.quantity}</th>
+              <th className="px-6 py-4 font-bold text-indigo-700">{t.checkout.action}</th>
             </tr>
           </thead>
 
           <tbody>
             {loading ? (
-                <tr><td colSpan={6} className="text-center py-8 text-gray-500">Đang tải dữ liệu...</td></tr>
+                <tr><td colSpan={6} className="text-center py-8 text-gray-500">{t.checkout.loading}</td></tr>
             ) : data.length === 0 ? (
-                <tr><td colSpan={6} className="text-center py-8 text-gray-500">Không có dữ liệu check-in nào.</td></tr>
+                <tr><td colSpan={6} className="text-center py-8 text-gray-500">{t.checkout.noData}</td></tr>
             ) : (
                 data.map((item) => {
                     const guest = isGuest(item.room);
@@ -189,7 +281,7 @@ const Checkout: React.FC = () => {
                                     />
                                     <div>
                                         <div className="font-bold text-gray-800">{item.displayName}</div>
-                                        <div className="text-xs text-gray-500">{guest ? "Khách vãng lai" : item.room}</div>
+                                        <div className="text-xs text-gray-500">{guest ? t.checkout.guestName : item.room}</div>
                                     </div>
                                 </div>
                             </td>
@@ -197,13 +289,12 @@ const Checkout: React.FC = () => {
                             <td className="px-6 py-4 text-gray-600">{formatTime(item.checkInTime)}</td>
                             <td className="px-6 py-4 pl-10 font-semibold">{item.totalPeople}</td>
                             <td className="px-6 py-4">
-                                <button 
-                                    // 🔥 SỰ KIỆN CLICK GỌI API CHECKOUT
-                                    onClick={() => handleCheckout(item.id)}
-                                    className="px-3 py-1.5 rounded bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition shadow-sm"
-                                >
-                                    Checkout All
-                                </button>
+                              <button
+                                onClick={() => openCheckoutPopup(item)}
+                                className="px-3 py-1.5 rounded bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition shadow-sm"
+                              >
+                                {t.checkout.checkout}
+                              </button>
                             </td>
                         </tr>
                     );
@@ -236,6 +327,16 @@ const Checkout: React.FC = () => {
         </div>
       )}
     </div>
+      {/* MODAL CHECKOUT DETAIL */}
+      <CheckoutDetailModal
+        visible={checkoutPopup.visible}
+        item={checkoutPopup.person}
+        onClose={closeCheckoutPopup}
+        onSavePartial={handleSavePartial}
+        onCheckoutAll={handleCheckoutAll}
+        loading={modalLoading}
+      />
+    </>
   );
 };
 

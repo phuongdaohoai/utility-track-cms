@@ -42,12 +42,7 @@ const fetchUsers = async (params: FetchUsersParams): Promise<FetchUsersResult> =
     // Sử dụng api.get thay cho fetch thủ công
     const response = await api.get(`${endpoint}?${queryParams.toString()}`);
 
-    if (!response.ok) {  
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `Lỗi khi lấy danh sách ${type}`);
-    }
-
-    const data = await response.json();
+    const data = await response;
     
     // Logic map data (giữ nguyên vì cấu trúc BE trả về staff/resident khác nhau)
     return {
@@ -75,10 +70,7 @@ const searchSuggestions = async (params: SearchSuggestionParams): Promise<{ item
 
   try {
     const response = await api.get(`${endpoint}?${queryParams.toString()}`);
-
-    if (!response.ok) return { items: [] }; // Lỗi thì trả về rỗng
-
-    const data = await response.json();
+    const data = await response;
 
     const items = type === 'staff' ? (data.data?.items || []) : (data.items || []);
     

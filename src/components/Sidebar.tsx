@@ -2,6 +2,7 @@ import type { FC } from 'react'
 import { NavLink } from 'react-router-dom'
 import { FaUserFriends, FaRegUser, FaReceipt, FaNewspaper } from 'react-icons/fa'
 import { IconType } from 'react-icons'
+import { useLocale } from '../i18n/LocaleContext'
 
 interface SidebarProps {
   open: boolean
@@ -9,6 +10,7 @@ interface SidebarProps {
 }
 
 const Sidebar: FC<SidebarProps> = ({ open, onClose }) => {
+  const { t } = useLocale();
   const navItem = (to: string, label: string, Icon: IconType) => (
     <NavLink
       to={to}
@@ -47,14 +49,14 @@ const Sidebar: FC<SidebarProps> = ({ open, onClose }) => {
       </div>
 
       <nav className="flex-1 space-y-2">
-        {navItem('/admin', 'Dashboard tổng quan', FaUserFriends)}
-        {navItem('/admin/users', 'Quản lý người dùng', FaReceipt)}
-        {navItem('/admin/services', 'Quản lý dịch vụ', FaNewspaper)}
-        {navItem('/admin/history', 'Lịch sử sử dụng', FaRegUser)}
-        {navItem('/admin/settings', 'Cấu hình hệ thống', FaUserFriends)}
+        {navItem('/admin', t.sidebar.dashboard, FaUserFriends)}
+        {navItem('/admin/users', t.sidebar.manageUsers, FaReceipt)}
+        {navItem('/admin/services', t.sidebar.manageServices, FaNewspaper)}
+        {navItem('/admin/history', t.sidebar.usageHistory, FaRegUser)}
+        {navItem('/admin/settings', t.sidebar.systemConfig, FaUserFriends)}
       </nav>
 
-      <div className="mt-6 text-xs text-gray-300 mt-auto ">
+      <div className=" text-xs text-gray-300 mt-auto ">
         © 2025 Utility Track CMS
       </div>
     </aside>

@@ -6,6 +6,7 @@ import CheckInApartment from '../pages/User/CheckInApartment'
 import ScreenCheckIn from '../pages/User/ScreenCheckIn'
 import GuestCheckInByQR from '../pages/User/GuestCheckInByQR'
 import SelectServiceForGuest from '../pages/User/SelectServiceForGuest'
+import GuestCheckout from '../pages/User/GuestCheckout'
 // Pages
 import LoginPage from '../pages/Login'
 import AdminPage from '../pages/Admin'
@@ -58,6 +59,10 @@ export const router = createBrowserRouter([
   {
     path: '/select-service-guest',
     element: <SelectServiceForGuest />,
+  },
+  {
+    path: '/guest-checkout',
+    element: <GuestCheckout />,
   },
   {
     path: '/admin',

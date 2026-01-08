@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 
 // --- Định nghĩa các Type ---
 import { TagInput } from './TagInput';
+import { useLocale } from '../../i18n/LocaleContext';
 
 export type FilterType = 'string' | 'number' | 'select' | 'date';
 
@@ -64,6 +65,7 @@ const OPERATORS: Record<FilterType, { value: string; label: string }[]> = {
 };
 
 export const FilterModal: React.FC<FilterModalProps> = ({ isOpen, onClose, initialFilters = [], onApply, availableFields, tagData = {}, onSearchChange, onQuickSearch }) => {
+  const { t } = useLocale()
   const [filters, setFilters] = useState<FilterCondition[]>([]);
   const [isAdding, setIsAdding] = useState(false);
    const [quickQuery, setQuickQuery] = useState('');
@@ -160,7 +162,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({ isOpen, onClose, initi
           value={filter.value}
           onChange={(e) => updateFilter(filter.id, 'value', e.target.value)}
         >
-          <option value="">-- Chọn --</option>
+          <option value="">{t.filter.select}</option>
           {config.options?.map((opt) => (
             <option key={opt.value} value={opt.value}>
               {opt.label}
@@ -178,7 +180,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({ isOpen, onClose, initi
           value={filter.values || []}
           suggestions={suggestions}
           onChange={(tags) => updateFilter(filter.id, 'values', tags)}
-          placeholder="Nhập hoặc chọn..."
+          placeholder={t.filter.enterOrSelect}
           onInputChange={(val) => {
             if (onSearchChange) onSearchChange(config.key, val);
           }}
@@ -189,7 +191,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({ isOpen, onClose, initi
       <div className="flex flex-col items-center gap-2 w-full">
         <input
           type="number"
-          placeholder="Nhập giá trị..."
+          placeholder={t.filter.enterValue}
           className="border border-gray-300 rounded px-2 py-1.5 text-sm w-full focus:outline-none focus:border-indigo-500"
           value={filter.value || ''}
           onChange={(e) => updateFilter(filter.id, 'value', e.target.value)}
@@ -221,12 +223,12 @@ export const FilterModal: React.FC<FilterModalProps> = ({ isOpen, onClose, initi
       <div className="fixed inset-y-0 right-0 z-50 w-[500px] bg-white shadow-2xl transform transition-transform duration-300 ease-in-out flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <h2 className="text-xl font-bold text-gray-800">Bộ lọc nâng cao</h2>
+          <h2 className="text-xl font-bold text-gray-800">{t.filter.advancedFilter}</h2>
           <button onClick={handleClearForm} className="text-sm text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
             </svg>
-            Clear all
+            {t.filter.clearAll}
           </button>
         </div>
 
@@ -236,7 +238,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({ isOpen, onClose, initi
           <div className="mb-4 relative">
             <input
               className="w-full border border-gray-300 rounded-md py-2 pl-3 pr-10 text-sm"
-              placeholder="Tìm kiếm nhanh..."
+              placeholder={t.filter.quickSearch}
               value={quickQuery}
               onChange={(e) => setQuickQuery(e.target.value)}
               onKeyDown={(e) => {
@@ -297,7 +299,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({ isOpen, onClose, initi
                 onClick={() => setIsAdding(true)}
                 className="flex items-center gap-2 text-indigo-600 font-medium hover:text-indigo-800 text-sm"
               >
-                <span className="text-lg">+</span> Thêm bộ lọc
+                <span className="text-lg">+</span> {t.filter.addFilter}
               </button>
             ) : (
               <select
@@ -309,7 +311,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({ isOpen, onClose, initi
                 onBlur={() => setIsAdding(false)}
                 defaultValue=""
               >
-                <option value="" disabled>Chọn trường lọc...</option>
+                <option value="" disabled>{t.filter.selectField}</option>
                 {availableFields// Ẩn các trường đã chọn (optional)
                   .map((f) => (
                     <option key={f.key} value={f.key}>{f.label}</option>
@@ -322,14 +324,14 @@ export const FilterModal: React.FC<FilterModalProps> = ({ isOpen, onClose, initi
         {/* Footer */}
         <div className="p-6 border-t border-gray-200 bg-white flex justify-between items-center">
           <button onClick={onClose} className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 text-sm font-medium">
-            Đóng
+            {t.filter.close}
           </button>
           <div className="flex gap-3">
             <button onClick={handleClearAll} className="text-indigo-600 hover:underline text-sm font-medium px-4">
-              Reset all
+              {t.filter.resetAll}
             </button>
             <button onClick={handleApply} className="px-6 py-2 bg-indigo-700 text-white rounded-md hover:bg-indigo-800 text-sm font-medium shadow-sm">
-              Áp dụng
+              {t.filter.apply}
             </button>
           </div>
         </div>

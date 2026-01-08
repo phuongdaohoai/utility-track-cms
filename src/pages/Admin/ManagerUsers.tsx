@@ -15,9 +15,11 @@ import { fetchRoles } from '../../store/roleSlice';
 import { transformFilters } from '../../utils/filterUtils';
 import { Plus } from "lucide-react";
 import { API_BASE_URL } from '../../utils/url';
+import { useLocale } from '../../i18n/LocaleContext';
 type TabType = 'residents' | 'staff'
 
 export const UsersPage: FC = () => {
+  const { t } = useLocale();
   const [tab, setTab] = useState<TabType>('staff')
   const [query, setQuery] = useState<string>('')
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
@@ -49,12 +51,12 @@ export const UsersPage: FC = () => {
     }
   }, [dispatch, tab, roles.length]);
   const residentFields: FilterConfig[] = useMemo(() => [
-    { key: 'fullName', label: 'Tên cư dân', type: 'string' },
-    { key: 'phone', label: 'Số điện thoại', type: 'string' },
-    { key: 'room', label: 'Phòng', type: 'string' },
-    { key: 'status', label: 'Trạng thái', type: 'select', options: [{ label: 'Hoạt động', value: 1 }, { label: 'Không hoạt động', value: 0 }] },
-    { key: 'joinDate', label: 'Ngày gia nhập', type: 'date' },
-  ], []);
+    { key: 'fullName', label: t.users.filterFields.residentName, type: 'string' },
+    { key: 'phone', label: t.users.filterFields.phone, type: 'string' },
+    { key: 'room', label: t.users.filterFields.room, type: 'string' },
+    { key: 'status', label: t.users.filterFields.status, type: 'select', options: [{ label: t.common.active, value: 1 }, { label: t.common.inactive, value: 0 }] },
+    { key: 'joinDate', label: t.users.filterFields.joinDate, type: 'date' },
+  ], [t]);
 
   const staffFields: FilterConfig[] = useMemo(() => {
     const roleOptions = roles.map((role: any) => ({
@@ -63,18 +65,18 @@ export const UsersPage: FC = () => {
     }));
 
     return [
-      { key: 'fullName', label: 'Tên nhân sự', type: 'string' },
-      { key: 'phone', label: 'Số điện thoại', type: 'string' },
+      { key: 'fullName', label: t.users.filterFields.staffName, type: 'string' },
+      { key: 'phone', label: t.users.filterFields.phone, type: 'string' },
       {
         key: 'roleId',
-        label: 'Chức vụ',
+        label: t.users.filterFields.role,
         type: 'select',
         options: roleOptions
       },
-      { key: 'status', label: 'Trạng thái', type: 'select', options: [{ label: 'Hoạt động', value: 1 }, { label: 'Không hoạt động', value: 0 }] },
-      { key: 'createdAt', label: 'Ngày tạo', type: 'date' },
+      { key: 'status', label: t.users.filterFields.status, type: 'select', options: [{ label: t.common.active, value: 1 }, { label: t.common.inactive, value: 0 }] },
+      { key: 'createdAt', label: t.users.filterFields.createdAt, type: 'date' },
     ];
-  }, [roles]);
+  }, [roles, t]);
 
   const currentFields = tab === 'residents' ? residentFields : staffFields;
 
@@ -96,8 +98,8 @@ export const UsersPage: FC = () => {
   const handleDelete = async (id: number) => {
     const isStaff = tab === 'staff';
     const confirmMessage = isStaff
-      ? "Bạn có chắc chắn muốn xóa nhân viên này không?"
-      : "Bạn có chắc chắn muốn xóa cư dân này không?";
+      ? t.users.confirmDeleteStaff
+      : t.users.confirmDeleteResident;
 
     if (window.confirm(confirmMessage)) {
       try {
@@ -106,10 +108,10 @@ export const UsersPage: FC = () => {
         } else {
           await dispatch(deleteResident(id)).unwrap();
         }
-        alert("Xóa thành công!");
+        alert(t.common.deleteSuccess);
         refreshList();
       } catch (err: any) {
-        alert("Xóa thất bại: " + (err || "Lỗi hệ thống"));
+        alert(t.common.deleteFailed + ": " + (err || t.common.deleteFailed));
       }
     }
   }
@@ -152,7 +154,7 @@ export const UsersPage: FC = () => {
 
   const handleDeleteSelected = async () => {
     if (selectedIds.length === 0) return
-    if (!window.confirm(`Xóa ${selectedIds.length} mục đã chọn?`)) return
+    if (!window.confirm(t.users.deleteSelectedItems.replace('{count}', selectedIds.length.toString()))) return
 
     try {
       await Promise.all(
@@ -163,10 +165,10 @@ export const UsersPage: FC = () => {
         })
       );
 
-      alert(`Đã xóa ${selectedIds.length} mục thành công!`);
+      alert(t.users.deleteSuccess.replace('{count}', selectedIds.length.toString()));
       refreshList();
     } catch (error) {
-      alert("Có lỗi xảy ra khi xóa một số mục.");
+      alert(t.users.deleteError);
       refreshList();
     }
   }
@@ -266,7 +268,7 @@ export const UsersPage: FC = () => {
               : 'text-gray-600 hover:text-gray-900 border-b border-b-[#cecfdd]'
               }`}
           >
-            Danh sách cư dân
+            {t.users.residentsList}
           </button>
           <button
             onClick={() => setTab('staff')}
@@ -275,7 +277,7 @@ export const UsersPage: FC = () => {
               : 'text-gray-600 hover:text-gray-900 border-b border-b-[#cecfdd]'
               }`}
           >
-            Danh sách nhân sự
+            {t.users.staffList}
           </button>
         </div>
 
@@ -287,7 +289,7 @@ export const UsersPage: FC = () => {
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   onKeyDown={handleKeyDownSearch}
-                  placeholder={tab === 'residents' ? 'Tìm kiếm theo Tên, SĐT' : 'Tìm kiếm theo Tên, SĐT'}
+                  placeholder={t.users.searchPlaceholder}
                   className="w-full max-w-md px-3 py-2 border border-[#cecfdd]
  rounded-md"
                 />
@@ -295,7 +297,7 @@ export const UsersPage: FC = () => {
                   onClick={() => dispatch(fetchUsers({ type: tab, query, page: 1, pageSize }))}
                   className="bg-indigo-700 text-white px-4 py-2 rounded"
                 >
-                  Tìm Kiếm
+                  {t.common.search}
                 </button>
 
                 <button
@@ -305,7 +307,7 @@ export const UsersPage: FC = () => {
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                   </svg>
-                  Bộ lọc
+                  {t.common.filter}
                   {activeFilters.length > 0 && (
                     <span className="bg-indigo-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                       {activeFilters.length}
@@ -323,7 +325,7 @@ export const UsersPage: FC = () => {
                   <button className="px-4 py-2 bg-indigo-700 text-white rounded hover:bg-indigo-800 transition-colors inline-flex items-center gap-2"
                     onClick={handleOpenCreate}
 
-                  ><Plus className="w-4 h-4" />Thêm cư dân</button>
+                  ><Plus className="w-4 h-4" />{t.users.addResident}</button>
                 </>
               )}
 
@@ -334,7 +336,7 @@ export const UsersPage: FC = () => {
                     className="px-4 py-2 bg-indigo-700 text-white rounded hover:bg-indigo-800 transition-colors inline-flex items-center gap-2"
                     onClick={handleOpenStaffCreate}
                   >
-                    <Plus className="w-4 h-4" />Thêm nhân sự
+                    <Plus className="w-4 h-4" />{t.users.addStaff}
                   </button>
                 </>
               )}
@@ -349,27 +351,27 @@ export const UsersPage: FC = () => {
               ? 'bg-gray-400 cursor-not-allowed'
               : 'bg-red-600 hover:bg-red-700'}`}
         >
-          Xóa đã chọn ({selectedIds.length})
+          {t.common.deleteSelected} ({selectedIds.length})
         </button>
         <div className="bg-white border rounded shadow-sm">
           <table className="w-full table-auto">
             <thead className="bg-gray-50">
               <tr>
                 <th className="p-4 w-[72px] h-[72px]"><input type="checkbox" checked={isAllSelected} onChange={handleSelectAll} /></th>
-                <th className="text-left p-4">{tab === 'residents' ? 'Tên Cư Dân' : 'Tên Nhân Sự'}</th>
-                <th className="text-left p-4">{tab === 'residents' ? 'Phòng' : 'Role'}</th>
-                <th className="text-left p-4">Số Điện Thoại</th>
-                <th className="text-left p-4">Trạng Thái</th>
-                <th className="text-left p-4">Thao Tác</th>
+                <th className="text-left p-4">{tab === 'residents' ? t.users.residentName : t.users.staffName}</th>
+                <th className="text-left p-4">{tab === 'residents' ? t.users.room : t.users.role}</th>
+                <th className="text-left p-4">{t.users.phone}</th>
+                <th className="text-left p-4">{t.common.status}</th>
+                <th className="text-left p-4">{t.common.actions}</th>
               </tr>
             </thead>
             <tbody>
               {status === 'loading' ? (
-                <tr><td colSpan={6} className="p-6 text-center text-gray-500">Đang tải...</td></tr>
+                <tr><td colSpan={6} className="p-6 text-center text-gray-500">{t.common.loading}</td></tr>
               ) : error ? (
                 <tr><td colSpan={6} className="p-6 text-center text-red-600">{error}</td></tr>
               ) : items.length === 0 ? (
-                <tr><td colSpan={6} className="p-6 text-center text-gray-500">Không tìm thấy kết quả</td></tr>
+                <tr><td colSpan={6} className="p-6 text-center text-gray-500">{t.common.noResults}</td></tr>
               ) : (
                 items.map((u) => (
                   <tr key={u.id} className="border-t">
@@ -402,7 +404,7 @@ export const UsersPage: FC = () => {
                     <td className="p-4">{formatPhoneDisplay(u.phone)}</td>
                     <td className="p-4">
                       <span className={`px-3 py-1 rounded-full text-sm ${Number(u.status) === 1 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                        {Number(u.status) === 1 ? 'Hoạt động' : 'Không hoạt động'}
+                        {Number(u.status) === 1 ? t.common.active : t.common.inactive}
                       </span>
                     </td>
                     <td className="p-4">
@@ -414,7 +416,7 @@ export const UsersPage: FC = () => {
                             else handleOpenStaffEdit(u.id);
                           }}
                           className="p-2 bg-white border rounded hover:bg-gray-50 transition-colors"
-                          title="Chỉnh sửa"
+                          title={t.common.edit}
                         >
                           {/* <Pencil className="w-4 h-4 text-indigo-500" /> */}
                           ✏️
@@ -423,7 +425,7 @@ export const UsersPage: FC = () => {
                         <button
                           onClick={() => handleDelete(u.id)}
                           className="p-2 bg-white border rounded hover:bg-red-50 hover:text-red-600 transition-colors"
-                          title={tab === 'residents' ? "Xóa cư dân" : "Xóa nhân viên"}
+                          title={tab === 'residents' ? t.users.deleteResident : t.users.deleteStaff}
                         >
                           {/* <Trash2 className="w-4 h-4 text-red-500" /> */}
                            🗑️
@@ -439,53 +441,85 @@ export const UsersPage: FC = () => {
 
 
 
+        {/* PAGINATION LOGIC MỚI */}
         <div className="mt-4 flex items-center justify-center gap-1 text-sm">
-          <button
-            onClick={() => onPage(Math.max(1, page - 1))}
-            disabled={page === 1}
-            className="px-3 py-1 text-gray-600 hover:bg-gray-100 rounded disabled:opacity-50 disabled:cursor-not-allowed font-extrabold"
-          >
-            &lt;
-          </button>
+          {(() => {
+            const totalPages = Math.ceil(total / pageSize);
+            const maxVisibleButtons = 5;
+            
+            // Tính toán start và end để luôn hiện 5 nút (nếu đủ trang)
+            let startPage = Math.max(1, page - 2);
+            let endPage = Math.min(totalPages, startPage + maxVisibleButtons - 1);
 
-          {Array.from({ length: Math.min(5, Math.ceil(total / pageSize)) }).map((_, i) => {
-            const pageNum = i + 1;
+            // Điều chỉnh lại start nếu end đã chạm trần (để vẫn đủ 5 nút)
+            if (endPage - startPage + 1 < maxVisibleButtons) {
+              startPage = Math.max(1, endPage - maxVisibleButtons + 1);
+            }
+
             return (
-              <button
-                key={i}
-                onClick={() => onPage(pageNum)}
-                className={`px-3 py-1 rounded ${page === pageNum
-                  ? 'bg-indigo-600 text-white font-medium'
-                  : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-              >
-                {pageNum}
-              </button>
+              <>
+                <button
+                  onClick={() => onPage(Math.max(1, page - 1))}
+                  disabled={page === 1}
+                  className="px-3 py-1 text-gray-600 hover:bg-gray-100 rounded disabled:opacity-50 disabled:cursor-not-allowed font-extrabold"
+                >
+                  &lt;
+                </button>
+
+                {/* Nút trang đầu nếu bị ẩn */}
+                {startPage > 1 && (
+                  <>
+                    <button
+                      onClick={() => onPage(1)}
+                      className="px-3 py-1 text-gray-700 hover:bg-gray-100 rounded"
+                    >
+                      1
+                    </button>
+                    {startPage > 2 && <span className="px-2 text-gray-500">...</span>}
+                  </>
+                )}
+
+                {/* Các trang ở giữa */}
+                {Array.from({ length: endPage - startPage + 1 }).map((_, i) => {
+                  const pageNum = startPage + i;
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => onPage(pageNum)}
+                      className={`px-3 py-1 rounded ${
+                        page === pageNum
+                          ? 'bg-indigo-600 text-white font-medium'
+                          : 'text-gray-700 hover:bg-gray-100'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+
+                {/* Nút trang cuối nếu bị ẩn */}
+                {endPage < totalPages && (
+                  <>
+                    {endPage < totalPages - 1 && <span className="px-2 text-gray-500">...</span>}
+                    <button
+                      onClick={() => onPage(totalPages)}
+                      className="px-3 py-1 text-gray-700 hover:bg-gray-100 rounded"
+                    >
+                      {totalPages}
+                    </button>
+                  </>
+                )}
+
+                <button
+                  onClick={() => onPage(Math.min(totalPages, page + 1))}
+                  disabled={page === totalPages || totalPages === 0}
+                  className="px-3 py-1 text-gray-600 hover:bg-gray-100 rounded disabled:opacity-50 disabled:cursor-not-allowed font-extrabold"
+                >
+                  &gt;
+                </button>
+              </>
             );
-          })}
-
-          {Math.ceil(total / pageSize) > 5 && (
-            <>
-              <span className="px-2 text-gray-500">...</span>
-              <button
-                onClick={() => onPage(Math.ceil(total / pageSize))}
-                className={`px-3 py-1 rounded ${page === Math.ceil(total / pageSize)
-                  ? 'bg-indigo-600 text-white font-medium'
-                  : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-              >
-                {Math.ceil(total / pageSize)}
-              </button>
-            </>
-          )}
-
-          <button
-            onClick={() => onPage(Math.min(Math.ceil(total / pageSize), page + 1))}
-            disabled={page === Math.ceil(total / pageSize)}
-            className="px-3 py-1 text-gray-600 hover:bg-gray-100 rounded disabled:opacity-50 disabled:cursor-not-allowed font-extrabold"
-          >
-            &gt;
-          </button>
+          })()}
         </div>
       </div>
     </div>

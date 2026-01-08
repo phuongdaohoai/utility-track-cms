@@ -1,6 +1,7 @@
 import { useState, useEffect, type FC } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { createGuestCheckIn, type CreateCheckInDto } from '../../api/checkin.api'
+import { useLocale } from '../../i18n/LocaleContext'
 
 interface Person {
   id: string
@@ -13,6 +14,7 @@ interface LocationState {
 }
 
 export const CheckInOutside: FC = () => {
+  const { t } = useLocale()
   const location = useLocation()
   const navigate = useNavigate()
   const state = location.state as LocationState | null
@@ -68,24 +70,31 @@ export const CheckInOutside: FC = () => {
   const handlePersonNameChange = (id: string, name: string) => {
     setPeople(people.map((p) => (p.id === id ? { ...p, name } : p)))
   }
+  // <-- Thêm hàm xóa ở đây
+  const handleRemovePerson = (id: string) => {
+    setPeople(people.filter((p) => p.id !== id))
+  }
 
   const handleCheckin = async () => {
     // Validation
     if (!phone || phone.trim() === '') {
-      setError('Vui lòng nhập số điện thoại')
+      setError(t.checkInOutside.errorPhoneRequired)
       return
     }
 
     if (!serviceId) {
-      setError('Không có dịch vụ được chọn. Vui lòng quay lại chọn dịch vụ.')
+      setError(t.checkInOutside.errorNoService)
       return
     }
 
     // Lấy tên đại diện (người đầu tiên trong danh sách hoặc representative)
-    const guestName = people.length > 0 && people[0].name
-      ? people.map(p => p.name).filter(Boolean).join(', ')
-      : representative || 'Khách vãng lai'
-
+    const guestName = [
+      representative,                     
+      ...(people || []).map(p => p.name)  
+    ]
+      .filter(Boolean)                    
+      .join(', ')                             
+      || t.checkInOutside.guestName;
     setLoading(true)
     setError(null)
     setSuccess(null)
@@ -98,15 +107,15 @@ export const CheckInOutside: FC = () => {
       }
 
       const result = await createGuestCheckIn(checkInData)
-      
+
       if (result.status === 'CHECK_IN') {
-        setSuccess(result.message || 'Check-in thành công!')
+        setSuccess(result.message || t.checkInOutside.successCheckin)
         // Reset form sau 2 giây và quay về trang chọn dịch vụ
         setTimeout(() => {
           navigate('/select-service-guest')
         }, 2000)
       } else if (result.status === 'CHECK_OUT') {
-        setSuccess(result.message || 'Check-out thành công!')
+        setSuccess(result.message || t.checkInOutside.successCheckout)
       }
     } catch (err: any) {
       console.error('Lỗi check-in:', err)
@@ -115,15 +124,15 @@ export const CheckInOutside: FC = () => {
         response: err?.response,
         status: err?.response?.status,
       })
-      
+
       // Hiển thị thông báo lỗi chi tiết hơn
-      let errorMessage = err?.message || 'Có lỗi xảy ra khi check-in. Vui lòng thử lại.'
-      
+      let errorMessage = err?.message || t.checkInOutside.errorCheckin
+
       // Nếu là lỗi network hoặc endpoint không tồn tại
       if (err?.message?.includes('Cannot POST') || err?.message?.includes('404')) {
-        errorMessage = 'Endpoint API không đúng. Vui lòng kiểm tra lại cấu hình backend.'
+        errorMessage = t.checkInOutside.errorEndpoint
       }
-      
+
       setError(errorMessage)
     } finally {
       setLoading(false)
@@ -138,62 +147,62 @@ export const CheckInOutside: FC = () => {
           <div className="space-y-4">
             {/* Đại Diện */}
             <div className="flex items-center">
-              <label className="w-48 text-gray-700 font-medium">Đại Diện</label>
+              <label className="w-48 text-gray-700 font-medium">{t.checkInOutside.representative}</label>
               <input
                 type="text"
                 value={representative}
                 onChange={(e) => setRepresentative(e.target.value)}
-                placeholder="Nguyễn A"
+                placeholder={t.checkInOutside.placeholderRepresentative}
                 className="flex-1 px-3 py-2 bg-gray-100 border border-gray-300 rounded"
               />
             </div>
 
             {/* Số Điện Thoại */}
             <div className="flex items-center">
-              <label className="w-48 text-gray-700 font-medium">Số Điện Thoại</label>
+              <label className="w-48 text-gray-700 font-medium">{t.checkInOutside.phone}</label>
               <input
                 type="text"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="090000000"
+                placeholder={t.checkInOutside.placeholderPhone}
                 className="flex-1 px-3 py-2 bg-gray-100 border border-gray-300 rounded"
               />
             </div>
 
             {/* Dịch Vụ (chỉ hiển thị, không cho chọn) */}
             <div className="flex items-center">
-              <label className="w-48 text-gray-700 font-medium">Dịch Vụ</label>
+              <label className="w-48 text-gray-700 font-medium">{t.checkInOutside.service}</label>
               <span className="flex-1 text-gray-700 font-semibold">{serviceName}</span>
             </div>
 
             {/* Phương Thức Checkin */}
             <div className="flex items-center">
-              <label className="w-48 text-gray-700 font-medium">Phương Thức Checkin</label>
-              <span className="flex-1 text-gray-700">Thủ Công</span>
+              <label className="w-48 text-gray-700 font-medium">{t.checkInOutside.checkinMethod}</label>
+              <span className="flex-1 text-gray-700">{t.checkInOutside.manual}</span>
             </div>
 
             {/* Thời Gian Vào */}
             <div className="flex items-center">
-              <label className="w-48 text-gray-700 font-medium">Thời Gian Vào</label>
+              <label className="w-48 text-gray-700 font-medium">{t.checkInOutside.checkinTime}</label>
               <span className="flex-1 text-gray-700">{checkinTime}</span>
             </div>
 
             {/* Số Lượng */}
             <div className="flex items-start">
-              <label className="w-48 text-gray-700 font-medium pt-2">Số Lượng</label>
+              <label className="w-48 text-gray-700 font-medium pt-2">{t.checkInOutside.quantity}</label>
               <div className="flex-1">
                 {/* Bảng */}
                 <table className="w-full border-collapse">
                   <thead>
                     <tr className="bg-gray-100">
                       <th className="border border-gray-300 px-4 py-2 text-left font-semibold text-gray-700">
-                        STT
+                        {t.checkInOutside.stt}
                       </th>
                       <th className="border border-gray-300 px-4 py-2 text-left font-semibold text-gray-700">
-                        Họ Và Tên
+                        {t.checkInOutside.fullName}
                       </th>
                       <th className="border border-gray-300 px-4 py-2 text-left font-semibold text-gray-700">
-                        Hoạt Động
+                        {t.checkInOutside.action}
                       </th>
                     </tr>
                   </thead>
@@ -208,18 +217,19 @@ export const CheckInOutside: FC = () => {
                             type="text"
                             value={person.name}
                             onChange={(e) => handlePersonNameChange(person.id, e.target.value)}
-                            placeholder="Nguyễn A"
+                            placeholder={t.checkInOutside.placeholderName}
                             className="w-full px-2 py-1 bg-white border-0 outline-none"
                           />
                         </td>
-                        <td className="border border-gray-300 px-4 py-2">
+                        <td className="border border-gray-300 px-4 py-2 flex gap-2">
+                          {/* Nút Thêm */}
                           <button
                             onClick={handleAddPerson}
-                            className="bg-blue-600 text-white px-4 py-2 rounded flex items-center gap-2 hover:bg-blue-700 transition-colors"
+                            className="bg-blue-600 text-white px-3 py-1 rounded flex items-center gap-1 hover:bg-blue-700 transition-colors"
                           >
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
-                              className="h-5 w-5"
+                              className="h-4 w-4"
                               viewBox="0 0 20 20"
                               fill="currentColor"
                             >
@@ -229,12 +239,34 @@ export const CheckInOutside: FC = () => {
                                 clipRule="evenodd"
                               />
                             </svg>
-                            Thêm
+                            {t.checkInOutside.add}
                           </button>
+
+                          {/* Nút Xóa */}
+                          {people.length > 1 && ( // Chỉ hiển thị nếu còn >1 người
+                            <button
+                              onClick={() => handleRemovePerson(person.id)}
+                              className="bg-red-600 text-white px-3 py-1 rounded flex items-center gap-1 hover:bg-red-700 transition-colors"
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-4 w-4"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                                strokeWidth={2}
+                              >
+                                <circle cx="12" cy="12" r="10" className="stroke-current" />
+                                <line x1="8" y1="12" x2="16" y2="12" className="stroke-current" />
+                              </svg>
+                              {t.checkInOutside.remove}
+                            </button>
+                          )}
                         </td>
                       </tr>
                     ))}
                   </tbody>
+
                 </table>
               </div>
             </div>
@@ -257,14 +289,14 @@ export const CheckInOutside: FC = () => {
                 onClick={() => navigate('/select-service-guest')}
                 className="bg-gray-500 text-white px-8 py-3 rounded-lg font-semibold text-lg hover:bg-gray-600 transition-colors"
               >
-                Quay lại
+                {t.checkInOutside.back}
               </button>
               <button
                 onClick={handleCheckin}
                 disabled={loading}
                 className="bg-blue-800 text-white px-16 py-3 rounded-lg font-semibold text-lg hover:bg-blue-900 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
               >
-                {loading ? 'Đang xử lý...' : 'Checkin'}
+                {loading ? t.checkInOutside.processing : t.checkInOutside.checkin}
               </button>
             </div>
           </div>

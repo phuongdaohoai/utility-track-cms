@@ -3,6 +3,7 @@ import { createGuestCheckIn, type CreateCheckInDto } from '../../api/checkin.api
 import { getServiceById } from '../../api/services.api'
 import { QRCodeDisplay } from '../../components/QRCodeDisplay'
 import { QRScanner } from '../../components/QRScanner'
+import { useLocale } from '../../i18n/LocaleContext'
 
 interface Person {
   id: string
@@ -16,6 +17,7 @@ interface ServiceInfo {
 }
 
 export const GuestCheckInByQR: FC = () => {
+  const { t } = useLocale()
   const [service, setService] = useState<ServiceInfo | null>(null)
   const [representative, setRepresentative] = useState<string>('')
   const [phone, setPhone] = useState<string>('')
@@ -71,7 +73,7 @@ export const GuestCheckInByQR: FC = () => {
       if (!serviceId) {
         // Nếu không parse được, có thể là qrToken - cần gọi API để tìm service
         // Tạm thời hiển thị lỗi
-        setError('Không thể xác định dịch vụ từ QR code. Vui lòng thử lại.')
+        setError(t.guestCheckInByQR.errorQRParse)
         return
       }
 
@@ -86,7 +88,7 @@ export const GuestCheckInByQR: FC = () => {
       })
     } catch (err: any) {
       console.error('Lỗi khi tải thông tin dịch vụ:', err)
-      setError('Không thể tải thông tin dịch vụ từ QR code.')
+      setError(t.guestCheckInByQR.errorLoadService)
     }
   }
 
@@ -104,18 +106,18 @@ export const GuestCheckInByQR: FC = () => {
 
   const handleCheckin = async () => {
     if (!service) {
-      setError('Vui lòng quét QR code dịch vụ trước')
+      setError(t.guestCheckInByQR.errorScanQR)
       return
     }
 
     if (!phone || phone.trim() === '') {
-      setError('Vui lòng nhập số điện thoại')
+      setError(t.guestCheckInByQR.errorPhoneRequired)
       return
     }
 
     const guestName = people.length > 0 && people[0].name
       ? people.map(p => p.name).filter(Boolean).join(', ')
-      : representative || 'Khách vãng lai'
+      : representative || t.guestCheckInByQR.guestName
 
     setLoading(true)
     setError(null)
@@ -131,7 +133,7 @@ export const GuestCheckInByQR: FC = () => {
       const result = await createGuestCheckIn(checkInData)
       
       if (result.status === 'CHECK_IN') {
-        setSuccess(result.message || 'Check-in thành công!')
+        setSuccess(result.message || t.guestCheckInByQR.successCheckin)
         setTimeout(() => {
           setRepresentative('')
           setPhone('')
@@ -139,11 +141,11 @@ export const GuestCheckInByQR: FC = () => {
           setService(null)
         }, 2000)
       } else if (result.status === 'CHECK_OUT') {
-        setSuccess(result.message || 'Check-out thành công!')
+        setSuccess(result.message || t.guestCheckInByQR.successCheckout)
       }
     } catch (err: any) {
       console.error('Lỗi check-in:', err)
-      setError(err.message || 'Có lỗi xảy ra khi check-in. Vui lòng thử lại.')
+      setError(err.message || t.guestCheckInByQR.errorCheckin)
     } finally {
       setLoading(false)
     }
@@ -156,14 +158,14 @@ export const GuestCheckInByQR: FC = () => {
         <div className="min-h-screen bg-gray-50 p-8 flex items-center justify-center">
           <div className="max-w-2xl w-full">
             <div className="bg-white p-8 rounded-lg shadow-md text-center">
-              <h1 className="text-3xl font-bold text-gray-800 mb-4">Check-in Khách Ngoài</h1>
-              <p className="text-gray-600 mb-6">Quét QR code của dịch vụ để bắt đầu check-in</p>
+              <h1 className="text-3xl font-bold text-gray-800 mb-4">{t.guestCheckInByQR.title}</h1>
+              <p className="text-gray-600 mb-6">{t.guestCheckInByQR.description}</p>
               
               <button
                 onClick={() => setShowQRScanner(true)}
                 className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold text-lg hover:bg-blue-700 transition-colors"
               >
-                Quét QR Code Dịch Vụ
+                {t.guestCheckInByQR.scanQRService}
               </button>
 
               {error && (
@@ -179,7 +181,7 @@ export const GuestCheckInByQR: FC = () => {
           <QRScanner
             onScan={handleServiceQRScan}
             onClose={() => setShowQRScanner(false)}
-            title="Quét QR Code Dịch Vụ"
+            title={t.guestCheckInByQR.scanQRTitle}
           />
         )}
       </>
@@ -205,61 +207,61 @@ export const GuestCheckInByQR: FC = () => {
 
             {/* Dịch Vụ (đã set sẵn từ QR) */}
             <div className="flex items-center">
-              <label className="w-48 text-gray-700 font-medium">Dịch Vụ</label>
+              <label className="w-48 text-gray-700 font-medium">{t.guestCheckInByQR.service}</label>
               <span className="flex-1 text-gray-700 font-semibold">{service.serviceName}</span>
             </div>
 
             {/* Đại Diện */}
             <div className="flex items-center">
-              <label className="w-48 text-gray-700 font-medium">Đại Diện</label>
+              <label className="w-48 text-gray-700 font-medium">{t.guestCheckInByQR.representative}</label>
               <input
                 type="text"
                 value={representative}
                 onChange={(e) => setRepresentative(e.target.value)}
-                placeholder="Nguyễn A"
+                placeholder={t.guestCheckInByQR.placeholderRepresentative}
                 className="flex-1 px-3 py-2 bg-gray-100 border border-gray-300 rounded"
               />
             </div>
 
             {/* Số Điện Thoại */}
             <div className="flex items-center">
-              <label className="w-48 text-gray-700 font-medium">Số Điện Thoại</label>
+              <label className="w-48 text-gray-700 font-medium">{t.guestCheckInByQR.phone}</label>
               <input
                 type="text"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="090000000"
+                placeholder={t.guestCheckInByQR.placeholderPhone}
                 className="flex-1 px-3 py-2 bg-gray-100 border border-gray-300 rounded"
               />
             </div>
 
             {/* Phương Thức Checkin */}
             <div className="flex items-center">
-              <label className="w-48 text-gray-700 font-medium">Phương Thức Checkin</label>
-              <span className="flex-1 text-gray-700">Thủ Công</span>
+              <label className="w-48 text-gray-700 font-medium">{t.guestCheckInByQR.checkinMethod}</label>
+              <span className="flex-1 text-gray-700">{t.guestCheckInByQR.manual}</span>
             </div>
 
             {/* Thời Gian Vào */}
             <div className="flex items-center">
-              <label className="w-48 text-gray-700 font-medium">Thời Gian Vào</label>
+              <label className="w-48 text-gray-700 font-medium">{t.guestCheckInByQR.checkinTime}</label>
               <span className="flex-1 text-gray-700">{checkinTime}</span>
             </div>
 
             {/* Số Lượng */}
             <div className="flex items-start">
-              <label className="w-48 text-gray-700 font-medium pt-2">Số Lượng</label>
+              <label className="w-48 text-gray-700 font-medium pt-2">{t.guestCheckInByQR.quantity}</label>
               <div className="flex-1">
                 <table className="w-full border-collapse">
                   <thead>
                     <tr className="bg-gray-100">
                       <th className="border border-gray-300 px-4 py-2 text-left font-semibold text-gray-700">
-                        STT
+                        {t.guestCheckInByQR.stt}
                       </th>
                       <th className="border border-gray-300 px-4 py-2 text-left font-semibold text-gray-700">
-                        Họ Và Tên
+                        {t.guestCheckInByQR.fullName}
                       </th>
                       <th className="border border-gray-300 px-4 py-2 text-left font-semibold text-gray-700">
-                        Hoạt Động
+                        {t.guestCheckInByQR.action}
                       </th>
                     </tr>
                   </thead>
@@ -274,7 +276,7 @@ export const GuestCheckInByQR: FC = () => {
                             type="text"
                             value={person.name}
                             onChange={(e) => handlePersonNameChange(person.id, e.target.value)}
-                            placeholder="Nguyễn A"
+                            placeholder={t.guestCheckInByQR.placeholderName}
                             className="w-full px-2 py-1 bg-white border-0 outline-none"
                           />
                         </td>
@@ -295,7 +297,7 @@ export const GuestCheckInByQR: FC = () => {
                                 clipRule="evenodd"
                               />
                             </svg>
-                            Thêm
+                            {t.guestCheckInByQR.add}
                           </button>
                         </td>
                       </tr>
@@ -323,14 +325,14 @@ export const GuestCheckInByQR: FC = () => {
                 onClick={() => setService(null)}
                 className="bg-gray-500 text-white px-8 py-3 rounded-lg font-semibold text-lg hover:bg-gray-600 transition-colors"
               >
-                Quét Lại
+                {t.guestCheckInByQR.scanAgain}
               </button>
               <button
                 onClick={handleCheckin}
                 disabled={loading}
                 className="bg-blue-800 text-white px-16 py-3 rounded-lg font-semibold text-lg hover:bg-blue-900 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
               >
-                {loading ? 'Đang xử lý...' : 'Checkin'}
+                {loading ? t.guestCheckInByQR.processing : t.guestCheckInByQR.checkin}
               </button>
             </div>
           </div>
