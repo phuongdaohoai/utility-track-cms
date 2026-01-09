@@ -288,6 +288,7 @@ export const translations = {
       searchPlaceholder: "Tìm dịch vụ"
     },
     checkout: {
+      method: "Phương thức",
       searchPlaceholder: 'Tìm kiếm theo Cư Dân, Khách, Phòng...',
       search: 'Tìm Kiếm',
       resident: 'Cư dân',
@@ -799,6 +800,7 @@ export const translations = {
       searchPlaceholder: 'Search services'
     },
     checkout: {
+      method: "Method",
       searchPlaceholder: 'Search by Resident, Guest, Room...',
       search: 'Search',
       resident: 'Resident',
