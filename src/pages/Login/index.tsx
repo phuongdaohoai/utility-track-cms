@@ -4,11 +4,14 @@ import { useAppDispatch, useAppSelector } from '../../store/hooks'
 import { login } from '../../store/authSlice'
 import { useNavigate } from 'react-router-dom'
 import { useLocale } from '../../i18n/LocaleContext'
+import { QRScanner } from '../../components/QRScanner'
+import authService from '../../services/authService'
 
 export const LoginPage: FC = () => {
   const [emailOrPhone, setEmailOrPhone] = useState<string>('')
   const [password, setPassword] = useState<string>('')
   const [showPassword, setShowPassword] = useState<boolean>(false)
+  const [showQRScanner, setShowQRScanner] = useState<boolean>(false)
   const { locale, setLocale, t } = useLocale()
   const navigate = useNavigate();
   const dispatch = useAppDispatch()
@@ -24,6 +27,17 @@ export const LoginPage: FC = () => {
       navigate('/admin');
     } catch (err) {
       console.error('Login failed', err)
+    }
+  }
+
+  const handleQrScan = async (qrData: string) => {
+    setShowQRScanner(false)
+    try {
+      const res = await (authService as any).loginByQr(qrData, locale)
+      dispatch({ type: 'auth/setAuth', payload: res })
+      navigate('/admin')
+    } catch (err) {
+      console.error('QR Login failed', err)
     }
   }
 
@@ -128,7 +142,7 @@ export const LoginPage: FC = () => {
                 </div> */}
               </div>
 
-              <div className="pt-2">
+              <div className="pt-2 space-y-3">
                 <Button
                   type="submit"
                   size="md"
@@ -137,6 +151,15 @@ export const LoginPage: FC = () => {
                 >
                   {authState.status === 'loading' ? t.login.submitting : t.login.submit}
                 </Button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowQRScanner(true)}
+                  className="w-full border border-dashed border-[#3a5a89] text-[#3a5a89] rounded-md py-2 text-sm font-semibold hover:bg-indigo-50 transition-colors"
+                >
+                  {t.login.loginWithQR}
+                </button>
+
                 {authState.error ? (
                   <p className="text-sm text-red-600 mt-2">{authState.error}</p>
                 ) : null}
@@ -145,6 +168,13 @@ export const LoginPage: FC = () => {
           </div>
         </div>
       </div>
+      {showQRScanner && (
+        <QRScanner
+          onScan={handleQrScan}
+          onClose={() => setShowQRScanner(false)}
+          title={t.login.qrScanTitle}
+        />
+      )}
     </div>
   )
 }

@@ -59,17 +59,8 @@ api.interceptors.response.use(
 );
 
 
-const login = async (credentials: LoginCredentials): Promise<AuthResponse> => {
-
-  const body = {
-    email: credentials.email ?? credentials.identifier,
-    password: credentials.password,
-    locale: credentials.locale || 'vi', // Gửi locale trong request
-  };
-
-
-  const res = await api.post('/auth/login', body);
-
+const processLoginResponse = async (responsePromise: Promise<any>, fallbackEmail?: string): Promise<AuthResponse> => {
+  const res = await responsePromise;
   const accessToken: string | undefined = res?.data?.accessToken;
 
   if (!accessToken) {
@@ -90,7 +81,7 @@ const login = async (credentials: LoginCredentials): Promise<AuthResponse> => {
   // build user object từ payload (quan trọng: mapping theo token của bạn)
   const user: User = {
     id: (payload.staffId ?? payload.sub) as number,
-    email: payload.email ?? body.email ?? "",
+    email: payload.email ?? fallbackEmail ?? "",
     name: payload.fullname ?? payload.email ?? 'Unknown',
     avatar: payload.avatar,
     role: payload.role,
@@ -104,6 +95,23 @@ const login = async (credentials: LoginCredentials): Promise<AuthResponse> => {
     user,
     token: accessToken,
   };
+};
+
+const login = async (credentials: LoginCredentials): Promise<AuthResponse> => {
+  const body = {
+    email: credentials.email ?? credentials.identifier,
+    password: credentials.password,
+    locale: credentials.locale || 'vi', // Gửi locale trong request
+  };
+
+  return processLoginResponse(api.post('/auth/login', body), body.email);
+};
+
+// Login bằng QR code: chỉ gửi qrCode (và locale) cho backend
+const loginByQr = async (qrCode: string, locale: 'vi' | 'en' = 'vi'): Promise<AuthResponse> => {
+  const body = { qrCode, locale };
+  // fallbackEmail không có trong flow này
+  return processLoginResponse(api.post('/auth/login', body));
 };
 export function parseJwt<T = any>(token: string): T {
   try {
@@ -129,4 +137,4 @@ export function parseJwt<T = any>(token: string): T {
 }
 
 
-export default { login };
+export default { login, loginByQr };

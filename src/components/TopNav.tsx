@@ -6,6 +6,8 @@ import { getBreadcrumb } from '../utils/breadcrumb';
 import { useAppSelector } from '../store/hooks';
 import { API_BASE_URL } from '../utils/url';
 import { useLocale } from '../i18n/LocaleContext';
+import { User } from '@/types';
+import { api } from '../utils/api';
 interface TopNavProps {
   onMenuClick?: () => void;
 }
@@ -34,8 +36,32 @@ const TopNav: FC<TopNavProps> = ({ onMenuClick }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleLogout = () => {
-    localStorage.clear();
+  const handleLogout = async () => {
+    const storedUserStr = localStorage.getItem("currentUser");
+    let parsedUser: User | null = null;
+    let userId: number = 0;
+
+    if (storedUserStr) {
+      try {
+        parsedUser = JSON.parse(storedUserStr);
+        userId = parsedUser?.id || 0;
+      } catch (e) {
+        console.error("Lỗi parse JSON từ localStorage", e);
+        localStorage.removeItem('currentUser');
+      }
+
+      // Gọi API checkout staff trước khi logout (nếu có userId hợp lệ)
+      if (userId) {
+        try {
+          await api.post('/check-in/staff-check-out', { id: userId });
+        } catch (err) {
+          console.error('Lỗi gọi API staff-check-out khi logout:', err);
+        }
+      }
+
+      localStorage.clear();
+    }
+
     navigate('/');
   };
 
