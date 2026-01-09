@@ -44,11 +44,7 @@ export const router = createBrowserRouter([
     element: <CheckInOutside />,
    
   },
-  {
-    path: '/checkout',
-    element: <Checkout />,
-   
-  },
+ 
   {
     path: '/logincheckout',
     element: <LoginCheckoutPage />,
@@ -109,7 +105,11 @@ export const router = createBrowserRouter([
         path: 'settings',
         element: <SettingsPage />,
       },
-     
+      {
+        path: 'checkout',
+        element: <Checkout />,
+       
+      },
     ],
   },
 ])

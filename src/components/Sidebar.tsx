@@ -1,6 +1,7 @@
 import type { FC } from 'react'
 import { NavLink } from 'react-router-dom'
 import { FaUserFriends, FaRegUser, FaReceipt, FaNewspaper } from 'react-icons/fa'
+import { LogOut } from 'lucide-react';
 import { IconType } from 'react-icons'
 import { useLocale } from '../i18n/LocaleContext'
 
@@ -54,6 +55,7 @@ const Sidebar: FC<SidebarProps> = ({ open, onClose }) => {
         {navItem('/admin/services', t.sidebar.manageServices, FaNewspaper)}
         {navItem('/admin/history', t.sidebar.usageHistory, FaRegUser)}
         {navItem('/admin/settings', t.sidebar.systemConfig, FaUserFriends)}
+        {navItem('/admin/checkout', "Checkout", LogOut)}
       </nav>
 
       <div className=" text-xs text-gray-300 mt-auto ">
