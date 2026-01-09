@@ -481,6 +481,15 @@ export const translations = {
       fileMaxSize: 'File tối đa 5MB',
       deleteSuccess: 'Xóa thành công!',
       deleteFailed: 'Xóa thất bại',
+      qrCode: 'Mã QR Truy cập',
+      qrString: 'Chuỗi QR Code:',
+      noQR: 'Chưa có QR Code',
+      refreshQR: 'Làm mới QR Code',
+      refreshingQR: 'Đang làm mới...',
+      confirmResetQR: 'Bạn có chắc chắn muốn làm mới mã QR của nhân viên này? Mã cũ sẽ không còn hiệu lực.',
+      resetQRSuccess: 'Đã làm mới mã QR thành công!',
+      resetQRReload: 'Đã reset. Đang tải lại dữ liệu...',
+      resetQRError: 'Không thể làm mới mã QR. Vui lòng thử lại.',
     },
     components: {
       faceID: {
@@ -979,6 +988,15 @@ export const translations = {
       fileMaxSize: 'File maximum 5MB',
       deleteSuccess: 'Delete successful!',
       deleteFailed: 'Delete failed',
+      qrCode: 'QR Access Code',
+      qrString: 'QR Code String:',
+      noQR: 'No QR Code',
+      refreshQR: 'Refresh QR Code',
+      refreshingQR: 'Refreshing...',
+      confirmResetQR: 'Are you sure you want to refresh this staff member\'s QR code? The old code will no longer be valid.',
+      resetQRSuccess: 'QR code refreshed successfully!',
+      resetQRReload: 'Reset. Reloading data...',
+      resetQRError: 'Unable to refresh QR code. Please try again.',
     },
     components: {
 

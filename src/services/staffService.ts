@@ -2,7 +2,8 @@
 import { api } from '../utils/api';
 
 export interface Staff {
-  staffId: number;
+  staffId?: number;
+  id?: number;
   fullName: string;
   phone: string;
   email: string;
@@ -12,8 +13,9 @@ export interface Staff {
   } | null;
   status: number; // 1: Active, 0: Inactive
   avatar?: string | File;
-  roleId: number;
+  roleId?: number;
   version: number;
+  qrCode?: string;
 }
 
 export interface UpdateStaffPayload {
@@ -68,12 +70,17 @@ const deleteStaff = async (id: number | string) => {
   return response;
 };
 
+const resetQrCode = async (staffId: number) => {
+  return api.put(`/staff/reset-qr-code/${staffId}`, {});
+};
+
 const staffService = {
   getById,
   create,
   update,
   delete: deleteStaff,
-  uploadAvatar
+  uploadAvatar,
+  resetQrCode
 };
 
 export default staffService;

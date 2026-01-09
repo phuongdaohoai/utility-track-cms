@@ -1,5 +1,5 @@
 import { FC, useState, useEffect, useRef, ChangeEvent } from 'react';
-import { X, Upload, User, Phone, Mail, Shield, CheckCircle2, AlertCircle, Trash2, Lock, Eye, EyeOff } from 'lucide-react';
+import { X, Upload, User, Phone, Mail, Shield, CheckCircle2, AlertCircle, Trash2, Lock, Eye, EyeOff, RefreshCw } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import {
   createStaff,
@@ -10,8 +10,9 @@ import {
   resetUpdateStatus
 } from '../../store/staffSlice';
 import { fetchRoles } from '../../store/roleSlice';
-
+import staffService from '../../services/staffService';
 import { API_BASE_URL } from '../../utils/url';
+import { QRCodeSVG } from 'qrcode.react';
 import { useLocale } from '../../i18n/LocaleContext';
 
 interface StaffModalProps {
@@ -50,6 +51,7 @@ export const StaffModal: FC<StaffModalProps> = ({
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [isResettingQr, setIsResettingQr] = useState(false);
 
   const [formData, setFormData] = useState({
     fullName: '',
@@ -60,6 +62,7 @@ export const StaffModal: FC<StaffModalProps> = ({
     version: 0,
     password: '',
     avatar: '',
+    qrCode: '',
   });
 
   const formatPhoneNumber = (value: string) => {
@@ -98,7 +101,7 @@ export const StaffModal: FC<StaffModalProps> = ({
       } else {
         setFormData({
           fullName: '', phone: '', email: '', roleId: '', status: 1,
-          version: 0, password: '', avatar: ''
+          version: 0, password: '', avatar: '', qrCode: ''
         });
       }
     }
@@ -116,6 +119,7 @@ export const StaffModal: FC<StaffModalProps> = ({
         version: currentStaff.version ?? 0,
         password: '',
         avatar: (typeof currentStaff.avatar === 'string') ? currentStaff.avatar : '',
+        qrCode: currentStaff.qrCode || '',
       });
 
       if (currentStaff.avatar && typeof currentStaff.avatar === 'string') {
@@ -182,6 +186,35 @@ export const StaffModal: FC<StaffModalProps> = ({
 
     setAvatarFile(file);
     setAvatarPreview(URL.createObjectURL(file));
+  };
+
+  const handleResetQrCode = async () => {
+    if (!staffId) return;
+
+    // Xác nhận trước khi reset
+    if (!window.confirm(t.staffModal.confirmResetQR)) {
+      return;
+    }
+
+    setIsResettingQr(true);
+    try {
+      const res = await staffService.resetQrCode(staffId);
+      const newQrCode = res.data?.qrCode || res.data;
+
+      if (newQrCode) {
+        setFormData(prev => ({ ...prev, qrCode: newQrCode }));
+        alert(t.staffModal.resetQRSuccess);
+      } else {
+        dispatch(fetchStaffById(staffId));
+        alert(t.staffModal.resetQRReload);
+      }
+
+    } catch (error) {
+      console.error("Lỗi reset QR:", error);
+      alert(t.staffModal.resetQRError);
+    } finally {
+      setIsResettingQr(false);
+    }
   };
 
   const handleDelete = async () => {
@@ -394,6 +427,44 @@ export const StaffModal: FC<StaffModalProps> = ({
                 </div>
               </div>
             </div>
+
+            {isEditMode && (
+              <div className="mt-6 pt-6 border-t border-gray-100">
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t.staffModal.qrCode}</label>
+                <div className="flex items-center gap-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                  <div className="bg-white p-2 rounded shadow-sm border border-gray-100">
+                    {formData.qrCode ? (
+                      <QRCodeSVG 
+                        value={formData.qrCode}
+                        size={100}
+                        level="M"
+                      />
+                    ) : (
+                      <div className="w-[100px] h-[100px] bg-gray-200 flex items-center justify-center text-xs text-gray-500 text-center">
+                        {t.staffModal.noQR}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <div className="mb-3">
+                      <p className="text-xs text-gray-500 mb-1">{t.staffModal.qrString}</p>
+                      <code className="block bg-gray-200 px-2 py-1 rounded text-sm text-gray-700 break-all font-mono">
+                        {formData.qrCode || "N/A"}
+                      </code>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleResetQrCode}
+                      disabled={isResettingQr}
+                      className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-100 hover:text-indigo-600 transition-all text-sm font-medium shadow-sm disabled:opacity-50"
+                    >
+                      <RefreshCw className={`w-4 h-4 ${isResettingQr ? 'animate-spin' : ''}`} />
+                      {isResettingQr ? t.staffModal.refreshingQR : t.staffModal.refreshQR}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="mt-10 pt-6 border-t border-gray-100 flex justify-between items-center">
               {isEditMode ? (
