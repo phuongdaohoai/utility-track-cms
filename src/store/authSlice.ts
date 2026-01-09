@@ -77,6 +77,16 @@ const authSlice = createSlice({
       localStorage.removeItem('accessToken');
       localStorage.removeItem('currentUser');
     },
+    setAuth(state, action: PayloadAction<AuthResponse>) {
+      state.user = action.payload.user;
+      state.token = action.payload.token;
+      state.permissions = action.payload.user.permissions || [];
+      state.status = 'succeeded';
+      state.error = null;
+
+      localStorage.setItem('accessToken', action.payload.token);
+      localStorage.setItem('currentUser', JSON.stringify(action.payload.user));
+    }
   },
   extraReducers: (builder) => {
     builder
@@ -100,12 +110,11 @@ const authSlice = createSlice({
       .addCase(login.rejected, (state, action: any) => {
         state.status = 'failed';
         state.error = action.payload || 'Login failed';
-      })
+      });
   },
 })
 
-export const { logout } = authSlice.actions
-
+export const { logout, setAuth } = authSlice.actions
 
 export const selectPermissions = (state: { auth: AuthState }) => state.auth.permissions;
 

@@ -22,6 +22,16 @@ export interface CheckInItem {
   additionalGuests?: string[] | string;
 }
 
+// Staff check-in item (không có room/serviceName)
+export interface StaffCheckInItem {
+  id: number;
+  displayName: string;
+  phone: string;
+  checkInTime: string;
+  checkOutTime: string | null;
+  method: string | null;
+}
+
 // 1. Get List
 const getCurrentCheckIns = async (page = 1, pageSize = 10, search = "", type?: "resident" | "guest") => {
   const params: any = { page, pageSize };
@@ -38,6 +48,19 @@ const getCurrentCheckIns = async (page = 1, pageSize = 10, search = "", type?: "
     params
   });
   return response; 
+};
+
+// Staff check-ins - chỉ để xem danh sách nhân viên đang check-in
+const getStaffCheckIns = async (page = 1, pageSize = 10, search = "") => {
+  const params: any = { page, pageSize };
+  if (search) {
+    params.search = search;
+  }
+
+  const response = await api.get('/check-in/get-all-check-ins-staff', {
+    params,
+  });
+  return response;
 };
 
 // 2. Checkout (Mới thêm)
@@ -73,6 +96,7 @@ const partialCheckoutByGuests = async (
 
 const checkInService = {
   getCurrentCheckIns,
+  getStaffCheckIns,
   checkout,
   checkoutWithQuantity, // legacy
   partialCheckoutByGuests,

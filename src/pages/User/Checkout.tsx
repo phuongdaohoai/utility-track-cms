@@ -2,13 +2,13 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import CheckoutDetailModal from "../../components/CheckoutDetailModal";
 import { useLocale } from '../../i18n/LocaleContext';
+import checkInService, { CheckInItem } from "../../services/checkInService";
 
 interface DetailCheckoutState {
   visible: boolean;
   person?: CheckInItem;
   checkedOut: boolean;
 }
-import checkInService, { CheckInItem } from "../../services/checkInService";
 
 const Checkout: React.FC = () => {
   const { t } = useLocale()
@@ -22,13 +22,14 @@ const Checkout: React.FC = () => {
 
   // ===== STATE =====
   const [loading, setLoading] = useState(false);
-  const [data, setData] = useState<CheckInItem[]>([]);
+  const [data, setData] = useState<any[]>([]);
   const [totalPages, setTotalPages] = useState(0);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [searchText, setSearchText] = useState("");
   const [filterQuery, setFilterQuery] = useState("");
   const [filterType, setFilterType] = useState<"resident" | "guest" | "all">("all");
+  const [isStaffView, setIsStaffView] = useState(false);
 
   // State lưu số lượng muốn checkout cho từng người
   const itemsPerPage = 10;
@@ -92,14 +93,53 @@ const Checkout: React.FC = () => {
 
     if (!accessToken || isTokenExpired(accessToken)) {
       localStorage.removeItem("accessToken")
-      navigate("/logincheckout", { replace: true })
+      navigate("/login", { replace: true })
     }
   }, [navigate])
+  // Lấy danh sách check-in của nhân sự (chỉ để xem, không checkout)
+  const fetchStaffData = async (page: number, search: string) => {
+    setLoading(true);
+    try {
+      const res = await (checkInService as any).getStaffCheckIns(page, itemsPerPage, search);
+      const responseData = res.data;
+
+      if (responseData && Array.isArray(responseData.items)) {
+        const items = responseData.items;
+        setData(items);
+        const totalItems = responseData.totalItem || items.length;
+        setTotalPages(Math.ceil(totalItems / itemsPerPage));
+      } else {
+        setData([]);
+        setTotalPages(0);
+      }
+    } catch (error) {
+      console.error("Lỗi tải dữ liệu nhân sự:", error);
+      setData([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+ 
+
+  // Kiểm tra token, nếu hết hạn thì chuyển về màn hình login checkout
   useEffect(() => {
-    const type = filterType === "all" ? undefined : filterType;
-    console.log("Filter type:", filterType, "-> API type:", type); // Debug log
-    fetchData(currentPage, filterQuery, type);
-  }, [currentPage, filterQuery, filterType]);
+    const accessToken = localStorage.getItem("accessToken");
+    if (!accessToken || isTokenExpired(accessToken)) {
+      localStorage.removeItem("accessToken");
+      navigate("/logincheckout", { replace: true });
+    }
+  }, [navigate]);
+
+  useEffect(() => {
+    if (isStaffView) {
+      // Chế độ xem nhân sự
+      fetchStaffData(currentPage, filterQuery);
+    } else {
+      const type = filterType === "all" ? undefined : filterType;
+      console.log("Filter type:", filterType, "-> API type:", type); // Debug log
+      fetchData(currentPage, filterQuery, type);
+    }
+  }, [currentPage, filterQuery, filterType, isStaffView]);
 
   // ===== HANDLERS =====
 
@@ -239,10 +279,15 @@ const Checkout: React.FC = () => {
         </div>
 
         {/* LEGEND & FILTER */}
-        <div className="w-fit p-3 mb-4 rounded-lg border border-gray-200 bg-[#fafafa]">
+        <div className="flex gap-4">
+          <div className="w-fit p-3 mb-2 rounded-lg border border-gray-200 bg-[#fafafa]">
           <div className="flex items-center gap-10">
             <button
               onClick={() => {
+                // Khi chọn lại cư dân thì thoát chế độ xem nhân sự
+                if (isStaffView) {
+                  setIsStaffView(false);
+                }
                 // Toggle: nếu đã chọn resident thì reset về all, nếu không thì chọn resident
                 const newType = filterType === "resident" ? "all" : "resident";
                 setFilterType(newType);
@@ -258,6 +303,10 @@ const Checkout: React.FC = () => {
             </button>
             <button
               onClick={() => {
+                // Khi chọn lại khách ngoài thì thoát chế độ xem nhân sự
+                if (isStaffView) {
+                  setIsStaffView(false);
+                }
                 // Toggle: nếu đã chọn guest thì reset về all, nếu không thì chọn guest
                 const newType = filterType === "guest" ? "all" : "guest";
                 setFilterType(newType);
@@ -272,20 +321,50 @@ const Checkout: React.FC = () => {
               <span className="font-medium">{t.checkout.outsideGuest}</span>
             </button>
           </div>
+          </div>
+
+          {/* NÚT XEM NHÂN SỰ CHECK-IN (ngoài filter cư dân/khách) */}
+          <div className="w-fit p-3 mb-2 rounded-lg border border-gray-200 bg-[#fafafa]">
+          <button
+            onClick={() => {
+              const next = !isStaffView;
+              setIsStaffView(next);
+              setCurrentPage(1);
+            }}
+            className={`flex items-center gap-3 transition cursor-pointer
+              ${isStaffView
+                ? " text-white border-indigo-600"
+                : "bg-white text-indigo-700 border-indigo-300 hover:bg-indigo-50"
+              }`}
+          >
+            <span className="w-10 h-6 rounded bg-purple-500"></span>
+            <span className="font-medium text-black">{t.checkout.staff}</span>
+          </button>
+        </div>
         </div>
 
         {/* TABLE */}
         <div className="border border-gray-200 rounded-lg overflow-hidden">
           <table className="w-full">
             <thead>
-              <tr className="border-b text-gray-600 text-left bg-gray-50">
-                <th className="px-6 py-4 font-bold text-indigo-700 w-10">{t.checkout.type}</th>
-                <th className="px-6 py-4 font-bold text-indigo-700">{t.checkout.residentOrGuest}</th>
-                <th className="px-6 py-4 font-bold text-indigo-700">{t.checkout.service}</th>
-                <th className="px-6 py-4 font-bold text-indigo-700">{t.checkout.checkInTime}</th>
-                <th className="px-6 py-4 font-bold text-indigo-700">{t.checkout.quantity}</th>
-                <th className="px-6 py-4 font-bold text-indigo-700">{t.checkout.action}</th>
-              </tr>
+              {isStaffView ? (
+                <tr className="border-b text-gray-600 text-left bg-gray-50">
+                  <th className="px-6 py-4 font-bold text-indigo-700 w-10">{t.checkout.type}</th>
+                  <th className="px-6 py-4 font-bold text-indigo-700">{t.checkout.residentOrGuest}</th>
+                  <th className="px-6 py-4 font-bold text-indigo-700">{t.checkout.service}</th>
+                  <th className="px-6 py-4 font-bold text-indigo-700">{t.checkout.checkInTime}</th>
+                  <th className="px-6 py-4 font-bold text-indigo-700">{t.checkout.checkOutTime}</th>
+                </tr>
+              ) : (
+                <tr className="border-b text-gray-600 text-left bg-gray-50">
+                  <th className="px-6 py-4 font-bold text-indigo-700 w-10">{t.checkout.type}</th>
+                  <th className="px-6 py-4 font-bold text-indigo-700">{t.checkout.residentOrGuest}</th>
+                  <th className="px-6 py-4 font-bold text-indigo-700">{t.checkout.service}</th>
+                  <th className="px-6 py-4 font-bold text-indigo-700">{t.checkout.checkInTime}</th>
+                  <th className="px-6 py-4 font-bold text-indigo-700">{t.checkout.quantity}</th>
+                  <th className="px-6 py-4 font-bold text-indigo-700">{t.checkout.action}</th>
+                </tr>
+              )}
             </thead>
 
             <tbody>
@@ -293,8 +372,37 @@ const Checkout: React.FC = () => {
                 <tr><td colSpan={6} className="text-center py-8 text-gray-500">{t.checkout.loading}</td></tr>
               ) : data.length === 0 ? (
                 <tr><td colSpan={6} className="text-center py-8 text-gray-500">{t.checkout.noData}</td></tr>
+              ) : isStaffView ? (
+                // View nhân sự: chỉ hiển thị danh sách, không cho checkout
+                data.map((item: any) => (
+                  <tr key={item.id} className="border-b hover:bg-gray-50 transition">
+                    <td className="px-4 py-4">
+                      <span className="block w-10 h-6 rounded mx-auto bg-purple-500"></span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-xs font-semibold text-indigo-700 border border-gray-200">
+                          {item.displayName?.charAt(0) || "S"}
+                        </div>
+                        <div>
+                          <div className="font-bold text-gray-800">{item.displayName}</div>
+                          <div className="text-xs text-gray-500">{item.phone}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 font-medium text-gray-700">
+                      {item.method || "-"}
+                    </td>
+                    <td className="px-6 py-4 text-gray-600">
+                      {formatTime(item.checkInTime)}
+                    </td>
+                    <td className="px-6 py-4 pl-10 font-semibold">
+                      {item.checkOutTime ? formatTime(item.checkOutTime) : '-'}
+                    </td>
+                  </tr>
+                ))
               ) : (
-                data.map((item) => {
+                data.map((item: CheckInItem) => {
                   const guest = isGuest(item.room);
                   return (
                     <tr key={item.id} className="border-b hover:bg-gray-50 transition">
