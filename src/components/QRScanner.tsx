@@ -123,7 +123,7 @@ export const QRScanner: React.FC<QRScannerProps> = ({ onScan, onClose, title = '
               muted
             />
             <canvas ref={canvasRef} className="hidden" />
-            
+
             {/* Overlay hướng dẫn */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div className="border-4 border-blue-500 rounded-lg w-64 h-64"></div>
