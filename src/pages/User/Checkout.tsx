@@ -342,8 +342,8 @@ const Checkout: React.FC = () => {
               {isStaffView ? (
                 <tr className="border-b text-gray-600 text-left bg-gray-50">
                   <th className="px-6 py-4 font-bold text-indigo-700 w-10">{t.checkout.type}</th>
-                  <th className="px-6 py-4 font-bold text-indigo-700">{t.checkout.residentOrGuest}</th>
-                  <th className="px-6 py-4 font-bold text-indigo-700">{t.checkout.service}</th>
+                  <th className="px-6 py-4 font-bold text-indigo-700">{t.checkout.staff}</th>
+                  <th className="px-6 py-4 font-bold text-indigo-700">{t.checkout.method}</th>
                   <th className="px-6 py-4 font-bold text-indigo-700">{t.checkout.checkInTime}</th>
                   <th className="px-6 py-4 font-bold text-indigo-700">{t.checkout.checkOutTime}</th>
                 </tr>
