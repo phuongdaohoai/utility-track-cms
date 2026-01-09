@@ -21,7 +21,8 @@ export const GuestCheckout: FC = () => {
   const [selectedCheckIn, setSelectedCheckIn] = useState<CheckInItem | null>(null)
   const [loading, setLoading] = useState(false)
   const [isCheckingOut, setIsCheckingOut] = useState(false)
-  const [selectedPeople, setSelectedPeople] = useState<number[]>([])
+  // Lưu danh sách tên những người được chọn để checkout (bao gồm cả người đại diện)
+  const [selectedPeople, setSelectedPeople] = useState<string[]>([])
 
   // Hàm tải tất cả check-ins (tách ra để có thể gọi lại khi cần)
   const loadAllCheckIns = async () => {
@@ -78,12 +79,12 @@ export const GuestCheckout: FC = () => {
   }
 
   // Xử lý chọn/bỏ chọn người trong bảng
-  const handleTogglePerson = (index: number) => {
+  const handleTogglePerson = (name: string) => {
     setSelectedPeople(prev => {
-      if (prev.includes(index)) {
-        return prev.filter(i => i !== index)
+      if (prev.includes(name)) {
+        return prev.filter(n => n !== name)
       } else {
-        return [...prev, index]
+        return [...prev, name]
       }
     })
   }
@@ -147,9 +148,10 @@ export const GuestCheckout: FC = () => {
     try {
       setIsCheckingOut(true)
 
-      const guestsToCheckout = selectedPeople
-        .map(i => selectedCheckIn.additionalGuests?.[i])
-        .filter((name): name is string => typeof name === 'string')
+      // Gửi danh sách tên đã chọn (bao gồm cả người đại diện nếu có)
+      const guestsToCheckout = selectedPeople.filter(
+        (name): name is string => typeof name === 'string' && name.trim() !== ''
+      )
       await partialCheckout(selectedCheckIn.id, guestsToCheckout)
 
       alert(t.guestCheckout.checkoutSuccess)
@@ -168,15 +170,13 @@ export const GuestCheckout: FC = () => {
   const guestList = [
     {
       name: selectedCheckIn?.displayName,
-      index: -1,
       isRepresentative: true,
     },
     ...(Array.isArray(selectedCheckIn?.additionalGuests)
-      ? selectedCheckIn.additionalGuests.map((name, i) => ({
-        name,
-        index: i,
-        isRepresentative: false,
-      }))
+      ? selectedCheckIn.additionalGuests.map((name) => ({
+          name,
+          isRepresentative: false,
+        }))
       : []),
   ]
 
@@ -317,14 +317,10 @@ export const GuestCheckout: FC = () => {
                               <td className="border border-gray-300 px-4 py-2 text-center">
                                 <input
                                   type="checkbox"
-                                  disabled={guest.isRepresentative}
-                                  checked={
-                                    !guest.isRepresentative &&
-                                    selectedPeople.includes(guest.index)
-                                  }
+                                  checked={!!guest.name && selectedPeople.includes(guest.name)}
                                   onChange={() => {
-                                    if (!guest.isRepresentative) {
-                                      handleTogglePerson(guest.index)
+                                    if (guest.name) {
+                                      handleTogglePerson(guest.name)
                                     }
                                   }}
                                   className="

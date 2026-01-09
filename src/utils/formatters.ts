@@ -7,9 +7,11 @@ export const formatDate = (date: string | Date): string => {
 }
 
 export const formatCurrency = (amount: number): string => {
-  return new Intl.NumberFormat('en-US', {
+  // Định dạng tiền tệ theo VND, ví dụ: 200.000 ₫
+  return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
-    currency: 'USD',
+    currency: 'VND',
+    maximumFractionDigits: 0,
   }).format(amount)
 }
 
