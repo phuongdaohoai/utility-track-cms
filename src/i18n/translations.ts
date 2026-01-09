@@ -66,7 +66,7 @@ export const translations = {
       checkInTime: 'Thời Gian Vào',
       checkOutTime: 'Thời Gian Ra',
       quantity: 'Số Lượng',
-      fee: 'Phí',
+      fee: 'Tổng Tiền',
       type: 'Loại',
       detail: 'Chi tiết',
       price: 'Giá',
