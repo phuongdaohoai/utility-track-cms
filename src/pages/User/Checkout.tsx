@@ -212,12 +212,12 @@ const Checkout: React.FC = () => {
   return (
     <>
       <div className="min-h-screen bg-white px-10 py-6 text-sm">
-        <button
+        {/* <button
           onClick={() => navigate('/mainmenu')}
           className="text-blue-600 hover:text-blue-800 flex items-center gap-2 mb-4"
         >
           ← Quay lại
-        </button>
+        </button> */}
         {/* SEARCH */}
         <div className="flex items-center gap-4 mb-4 max-w-3xl">
           <div className="relative flex-1">

@@ -62,6 +62,11 @@ export const getBreadcrumb = (pathname: string, locale: Locale = 'vi'): Breadcru
       { label: t.sidebar.systemConfig },
     ]
   }
-
+ // CHECKOUT
+  if (pathname === '/admin/checkout') {
+    return [
+      { label: "Checkout"},
+    ]
+  }
   return []
 }
