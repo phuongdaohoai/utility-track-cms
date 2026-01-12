@@ -232,7 +232,7 @@ export const CheckInOutside: FC = () => {
                   </thead>
                   <tbody>
                     {displayRows.map((person, index) => {
-                      const isLastRow = index === displayRows.length - 1
+            
                       const isEmptyRow = person.name.trim() === '' && person.id === 'empty-row'
                       
                       return (
