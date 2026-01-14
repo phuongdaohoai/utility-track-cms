@@ -66,7 +66,7 @@ export const translations = {
       checkInTime: 'Thời Gian Vào',
       checkOutTime: 'Thời Gian Ra',
       quantity: 'Số Lượng',
-      fee: 'Phí',
+      fee: 'Tổng Tiền',
       type: 'Loại',
       detail: 'Chi tiết',
       price: 'Giá',
@@ -212,6 +212,7 @@ export const translations = {
       noServices: 'Không có dịch vụ nào.',
       selectService: 'Nhấn để chọn dịch vụ này',
       error: 'Không thể tải danh sách dịch vụ.',
+      searchPlaceholder: 'Tìm dịch vụ...',
     },
     checkInOutside: {
       representative: 'Đại Diện',
@@ -365,6 +366,24 @@ export const translations = {
       selectOtherFile: 'Chọn file khác',
       noDataToImport: 'Không có dữ liệu để import',
       unsavedData: 'Dữ liệu chưa được lưu. Bạn có chắc chắn muốn đóng?',
+    },
+    csv: {
+      staff: {
+        fullName: 'Tên nhân sự',
+        email: 'Email',
+        phone: 'Số điện thoại',
+        roleId: 'Quyền',
+        password: 'Mật khẩu',
+      },
+      residents: {
+        fullName: 'Tên cư dân',
+        phone: 'Số điện thoại',
+        email: 'Email',
+        citizenCard: 'CCCD/CMND',
+        gender: 'Giới tính',
+        birthday: 'Ngày sinh',
+        apartmentId: 'Mã căn hộ (ID)',
+      },
     },
     filter: {
       advancedFilter: 'Bộ lọc nâng cao',
@@ -724,6 +743,7 @@ export const translations = {
       noServices: 'No services available.',
       selectService: 'Click to select this service',
       error: 'Unable to load services.',
+      searchPlaceholder: 'Search services...',
     },
     checkInOutside: {
       representative: 'Representative',
@@ -877,6 +897,24 @@ export const translations = {
       selectOtherFile: 'Select another file',
       noDataToImport: 'No data to import',
       unsavedData: 'Data has not been saved. Are you sure you want to close?',
+    },
+    csv: {
+      staff: {
+        fullName: 'Full name',
+        email: 'Email',
+        phone: 'Phone',
+        roleId: 'Role',
+        password: 'Password',
+      },
+      residents: {
+        fullName: 'Full name',
+        phone: 'Phone',
+        email: 'Email',
+        citizenCard: 'Citizen ID',
+        gender: 'Gender',
+        birthday: 'Birthday',
+        apartmentId: 'Apartment ID',
+      },
     },
     filter: {
       advancedFilter: 'Advanced Filter',

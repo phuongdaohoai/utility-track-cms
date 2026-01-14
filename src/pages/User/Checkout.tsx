@@ -72,7 +72,30 @@ const Checkout: React.FC = () => {
       setLoading(false);
     }
   };
+  function isTokenExpired(token: string): boolean {
+    try {
+      const payloadBase64 = token.split(".")[1]
+      if (!payloadBase64) return true
 
+      const payloadJson = atob(payloadBase64)
+      const payload = JSON.parse(payloadJson)
+
+      if (!payload.exp) return true
+
+      const currentTime = Math.floor(Date.now() / 1000)
+      return payload.exp < currentTime
+    } catch (error) {
+      return true // token lỗi → coi như hết hạn
+    }
+  }
+  useEffect(() => {
+    const accessToken = localStorage.getItem("accessToken")
+
+    if (!accessToken || isTokenExpired(accessToken)) {
+      localStorage.removeItem("accessToken")
+      navigate("/login", { replace: true })
+    }
+  }, [navigate])
   // Lấy danh sách check-in của nhân sự (chỉ để xem, không checkout)
   const fetchStaffData = async (page: number, search: string) => {
     setLoading(true);
@@ -96,22 +119,7 @@ const Checkout: React.FC = () => {
       setLoading(false);
     }
   };
-  function isTokenExpired(token: string): boolean {
-    try {
-      const payloadBase64 = token.split(".")[1]
-      if (!payloadBase64) return true
-
-      const payloadJson = atob(payloadBase64)
-      const payload = JSON.parse(payloadJson)
-
-      if (!payload.exp) return true
-
-      const currentTime = Math.floor(Date.now() / 1000)
-      return payload.exp < currentTime
-    } catch (error) {
-      return true // token lỗi → coi như hết hạn
-    }
-  }
+ 
 
   // Kiểm tra token, nếu hết hạn thì chuyển về màn hình login checkout
   useEffect(() => {
@@ -286,8 +294,8 @@ const Checkout: React.FC = () => {
                 setCurrentPage(1);
               }}
               className={`flex items-center gap-3 transition cursor-pointer ${filterType === "resident"
-                  ? "opacity-100 font-bold"
-                  : "opacity-70 hover:opacity-100"
+                ? "opacity-100 font-bold"
+                : "opacity-70 hover:opacity-100"
                 }`}
             >
               <span className="w-10 h-6 rounded bg-sky-500"></span>
@@ -305,8 +313,8 @@ const Checkout: React.FC = () => {
                 setCurrentPage(1);
               }}
               className={`flex items-center gap-3 transition cursor-pointer ${filterType === "guest"
-                  ? "opacity-100 font-bold"
-                  : "opacity-70 hover:opacity-100"
+                ? "opacity-100 font-bold"
+                : "opacity-70 hover:opacity-100"
                 }`}
             >
               <span className="w-10 h-6 rounded bg-yellow-400"></span>

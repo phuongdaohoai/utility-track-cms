@@ -21,10 +21,11 @@ export const GuestCheckout: FC = () => {
   const [selectedCheckIn, setSelectedCheckIn] = useState<CheckInItem | null>(null)
   const [loading, setLoading] = useState(false)
   const [isCheckingOut, setIsCheckingOut] = useState(false)
-  const [selectedPeople, setSelectedPeople] = useState<number[]>([])
+  // Lưu danh sách tên những người được chọn để checkout (bao gồm cả người đại diện)
+  const [selectedPeople, setSelectedPeople] = useState<string[]>([])
 
   // Hàm tải tất cả check-ins (tách ra để có thể gọi lại khi cần)
-  const loadAllCheckIns = async () => {
+  const loadAllCheckIns = async (): Promise<CheckInOption[]> => {
     try {
       setLoading(true)
       // Lấy tất cả check-ins (API mới)
@@ -44,8 +45,10 @@ export const GuestCheckout: FC = () => {
       }))
 
       setOptions(checkInOptions)
+      return checkInOptions
     } catch (error) {
       console.error('Lỗi khi tải danh sách check-in:', error)
+      return []
     } finally {
       setLoading(false)
     }
@@ -78,12 +81,12 @@ export const GuestCheckout: FC = () => {
   }
 
   // Xử lý chọn/bỏ chọn người trong bảng
-  const handleTogglePerson = (index: number) => {
+  const handleTogglePerson = (name: string) => {
     setSelectedPeople(prev => {
-      if (prev.includes(index)) {
-        return prev.filter(i => i !== index)
+      if (prev.includes(name)) {
+        return prev.filter(n => n !== name)
       } else {
-        return [...prev, index]
+        return [...prev, name]
       }
     })
   }
@@ -118,12 +121,10 @@ export const GuestCheckout: FC = () => {
       setIsCheckingOut(true)
       await checkoutById(selectedCheckIn.id)
       alert(t.guestCheckout.checkoutSuccess)
-      // Reset và load lại
+      // Reload danh sách check-ins để giữ gợi ý trong thanh search
+      await loadAllCheckIns()
       setSelectedCheckIn(null)
       setSelectedPeople([])
-      setInputValue('')
-      // Load lại danh sách check-ins
-      await loadAllCheckIns()
     } catch (error: any) {
       console.error('Lỗi checkout:', error)
       alert(error.message || t.guestCheckout.checkoutFailed)
@@ -147,16 +148,24 @@ export const GuestCheckout: FC = () => {
     try {
       setIsCheckingOut(true)
 
-      const guestsToCheckout = selectedPeople
-        .map(i => selectedCheckIn.additionalGuests?.[i])
-        .filter((name): name is string => typeof name === 'string')
+      // Gửi danh sách tên đã chọn (bao gồm cả người đại diện nếu có)
+      const guestsToCheckout = selectedPeople.filter(
+        (name): name is string => typeof name === 'string' && name.trim() !== ''
+      )
       await partialCheckout(selectedCheckIn.id, guestsToCheckout)
 
       alert(t.guestCheckout.checkoutSuccess)
-      setSelectedCheckIn(null)
+      // Load lại dữ liệu và giữ người checkout nếu còn trong danh sách
+      const newOptions = await loadAllCheckIns()
+      const updated = newOptions.find(o => o.value === selectedCheckIn.id)
+      if (updated) {
+        setSelectedCheckIn(updated.data)
+      } else {
+        // Nếu đã checkout hết (không còn trong danh sách) thì clear
+        setSelectedCheckIn(null)
+        setInputValue('')
+      }
       setSelectedPeople([])
-      setInputValue('')
-      await loadAllCheckIns()
     } catch (error: any) {
       console.error('Lỗi checkout:', error)
       alert(error.message || t.guestCheckout.checkoutFailed)
@@ -168,15 +177,13 @@ export const GuestCheckout: FC = () => {
   const guestList = [
     {
       name: selectedCheckIn?.displayName,
-      index: -1,
       isRepresentative: true,
     },
     ...(Array.isArray(selectedCheckIn?.additionalGuests)
-      ? selectedCheckIn.additionalGuests.map((name, i) => ({
-        name,
-        index: i,
-        isRepresentative: false,
-      }))
+      ? selectedCheckIn.additionalGuests.map((name) => ({
+          name,
+          isRepresentative: false,
+        }))
       : []),
   ]
 
@@ -205,6 +212,7 @@ export const GuestCheckout: FC = () => {
             <div className="mb-4">
               <Select
                 options={filteredOptions}
+                value={selectedCheckIn ? options.find(o => o.value === selectedCheckIn.id) ?? null : null}
                 filterOption={() => true} // ✅ QUAN TRỌNG NHẤT
                 onInputChange={(value, actionMeta) => {
                   if (actionMeta.action === 'input-change') {
@@ -317,14 +325,10 @@ export const GuestCheckout: FC = () => {
                               <td className="border border-gray-300 px-4 py-2 text-center">
                                 <input
                                   type="checkbox"
-                                  disabled={guest.isRepresentative}
-                                  checked={
-                                    !guest.isRepresentative &&
-                                    selectedPeople.includes(guest.index)
-                                  }
+                                  checked={!!guest.name && selectedPeople.includes(guest.name)}
                                   onChange={() => {
-                                    if (!guest.isRepresentative) {
-                                      handleTogglePerson(guest.index)
+                                    if (guest.name) {
+                                      handleTogglePerson(guest.name)
                                     }
                                   }}
                                   className="
@@ -376,7 +380,7 @@ export const GuestCheckout: FC = () => {
                   </div>
 
                   {/* Checkout theo số lượng đã chọn */}
-                  {selectedCheckIn.totalPeople >= 1 && selectedPeople.length > 0 && (
+                  {selectedCheckIn.totalPeople > 1 && selectedPeople.length > 0 && (
                     <div className="flex justify-center">
                       <button
                         onClick={handleCheckoutByQuantity}

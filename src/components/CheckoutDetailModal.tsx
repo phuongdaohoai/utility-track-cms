@@ -75,10 +75,8 @@ const CheckoutDetailModal: React.FC<CheckoutDetailModalProps> = ({
     console.log("item", item)
   }, [item]);
 
-  const selectableMembers = useMemo(
-    () => members.filter((m) => !m.isRepresentative),
-    [members]
-  );
+  // Danh sách thành viên có thể chọn để checkout (bao gồm cả người đại diện)
+  const selectableMembers = useMemo(() => members, [members]);
 
   const checkedCount = useMemo(
     () => selectableMembers.filter((m) => m.checked).length,
@@ -90,9 +88,7 @@ const CheckoutDetailModal: React.FC<CheckoutDetailModalProps> = ({
   const toggleMember = (id: string, checked: boolean) => {
     setMembers((prev) =>
       prev.map((m) =>
-        m.id === id
-          ? { ...m, checked: m.isRepresentative ? false : checked }
-          : m
+        m.id === id ? { ...m, checked } : m
       )
     );
   };
@@ -230,14 +226,12 @@ const CheckoutDetailModal: React.FC<CheckoutDetailModalProps> = ({
                         <div className="flex items-center gap-2">
                           <button
                             className={`rounded px-3 py-2 text-sm font-semibold text-white transition ${
-                              m.isRepresentative
+                              m.checked
                                 ? "bg-gray-300"
-                                : m.checked
-                                  ? "bg-gray-300"
-                                  : "bg-indigo-600 hover:bg-indigo-700"
+                                : "bg-indigo-600 hover:bg-indigo-700"
                             }`}
                             onClick={() => toggleMember(m.id, true)}
-                            disabled={m.checked || m.isRepresentative || disabled}
+                            disabled={m.checked || disabled}
                           >
                             {t.checkoutDetail.checkout}
                           </button>
@@ -248,7 +242,7 @@ const CheckoutDetailModal: React.FC<CheckoutDetailModalProps> = ({
                                 : "bg-gray-100 text-gray-400"
                             }`}
                             onClick={() => toggleMember(m.id, false)}
-                            disabled={!m.checked || m.isRepresentative || disabled}
+                            disabled={!m.checked || disabled}
                           >
                             {t.checkoutDetail.undo}
                           </button>

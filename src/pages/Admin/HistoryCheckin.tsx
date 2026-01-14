@@ -3,6 +3,7 @@ import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import { api } from "../../utils/api";
 import { useLocale } from "../../i18n/LocaleContext";
+import { formatCurrency } from "../../utils/formatters";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -26,6 +27,9 @@ interface UsageItem {
   id: number;
   quantity?: number;
   additionalGuests?: string;
+  // Giá dịch vụ và tổng tiền (nếu BE có trả về)
+  servicePrice?: number;
+  totalPrice?: number;
   checkInOut?: {
     checkInTime?: string;
     checkOutTime?: string;
@@ -54,6 +58,9 @@ interface UsageItem {
 interface HistoryDetail {
   id: number;
   usageTime: string;
+  // Tổng tiền cho lần sử dụng này (nếu BE có trả về)
+  totalPrice?: number;
+  servicePrice?: number;
   item: {
     displayName: string;
     remainingNames: string[];
@@ -84,6 +91,8 @@ const UsageHistory: React.FC = () => {
 
   const [allData, setAllData] = useState<UsageItem[]>([]);
   const [selectedUser, setSelectedUser] = useState<HistoryDetail | null>(null);
+  // Lưu lại item gốc từ bảng để dùng giá/tổng tiền nếu API chi tiết không có
+  const [selectedBaseItem, setSelectedBaseItem] = useState<UsageItem | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [totalItems, setTotalItems] = useState(0); // Thêm state cho tổng số items
@@ -156,9 +165,10 @@ const UsageHistory: React.FC = () => {
   const paginatedData = filteredData;
 
   /* ================== FETCH DETAIL ================== */
-  const openDetail = async (id: number) => {
+  const openDetail = async (baseItem: UsageItem) => {
     try {
-      const res: any = await api.get(`/history_checkin/${id}`);
+      setSelectedBaseItem(baseItem);
+      const res: any = await api.get(`/history_checkin/${baseItem.id}`);
       
       if (res.success || res.data) {
         setSelectedUser(res.data);
@@ -212,16 +222,24 @@ const UsageHistory: React.FC = () => {
         const responseData = res?.data || res;
         
         if (responseData?.data) {
-          const excelData = responseData.data.map((item: UsageItem) => ({
-            [t.history.type]: item.resident ? t.history.resident : t.history.guest,
-            [t.history.residentOrGuest]: getDisplayName(item),
-            [t.history.service]: item.service?.serviceName,
-            [t.history.system]: item.checkInOut?.method,
-            [t.history.checkInTime]: formatDateTime(item.checkInOut?.checkInTime),
-            [t.history.checkOutTime]: formatDateTime(item.checkInOut?.checkOutTime),
-            [t.history.quantity]: item.quantity ?? 1,
-            [t.history.fee]: item.service?.price,
-          }));
+          const excelData = responseData.data.map((item: UsageItem) => {
+            const quantity = item.quantity ?? 1;
+            const servicePrice = item.servicePrice ?? item.service?.price ?? 0;
+            const totalPrice =
+              item.totalPrice ?? servicePrice * quantity;
+
+            return {
+              [t.history.type]: item.resident ? t.history.resident : t.history.guest,
+              [t.history.residentOrGuest]: getDisplayName(item),
+              [t.history.service]: item.service?.serviceName,
+              [t.history.system]: item.checkInOut?.method,
+              [t.history.checkInTime]: formatDateTime(item.checkInOut?.checkInTime),
+              [t.history.checkOutTime]: formatDateTime(item.checkInOut?.checkOutTime),
+              [t.history.quantity]: quantity,
+              // Ghi tổng tiền để Excel có thể tính tiếp nếu cần
+              [t.history.fee]: totalPrice,
+            };
+          });
 
           const ws = XLSX.utils.json_to_sheet(excelData);
           const wb = XLSX.utils.book_new();
@@ -397,12 +415,16 @@ const UsageHistory: React.FC = () => {
               paginatedData.map((item) => {
                 const isResident = !!item.resident;
                 const displayName = getDisplayName(item);
+                const quantity = item.quantity ?? 1;
+                const servicePrice = item.servicePrice ?? item.service?.price ?? 0;
+                const totalPrice =
+                  item.totalPrice ?? servicePrice * quantity;
                 
                 return (
                   <tr
                     key={item.id}
                     style={rowStyle}
-                    onClick={() => openDetail(item.id)}
+                    onClick={() => openDetail(item)}
                   >
                     <td style={tdStyle}>
                       <div style={userCellStyle}>
@@ -434,8 +456,8 @@ const UsageHistory: React.FC = () => {
                     <td style={tdStyle}>
                       {formatDateTime(item.checkInOut?.checkOutTime)}
                     </td>
-                    <td style={tdStyle}>{item.quantity ?? 1}</td>
-                    <td style={tdStyle}>{item.service?.price?.toLocaleString()}</td>
+                    <td style={tdStyle}>{quantity}</td>
+                    <td style={tdStyle}>{formatCurrency(totalPrice)}</td>
                   </tr>
                 );
               })
@@ -471,7 +493,12 @@ const UsageHistory: React.FC = () => {
 
       {/* ===== DETAIL MODAL ===== */}
       {isModalOpen && selectedUser && (
-        <DetailModal user={selectedUser} onClose={() => setIsModalOpen(false)} t={t} />
+        <DetailModal
+          user={selectedUser}
+          baseItem={selectedBaseItem}
+          onClose={() => setIsModalOpen(false)}
+          t={t}
+        />
       )}
     </div>
   );
@@ -482,12 +509,24 @@ export default UsageHistory;
 /* ================== MODAL COMPONENT ================== */
 interface DetailModalProps {
   user: HistoryDetail;
+  baseItem: UsageItem | null;
   onClose: () => void;
   t: any;
 }
 
-const DetailModal: React.FC<DetailModalProps> = ({ user, onClose, t }) => {
+const DetailModal: React.FC<DetailModalProps> = ({ user, baseItem, onClose, t }) => {
   const remainingNames = user.item.remainingNames?.filter(Boolean) || [];
+  const quantity = user.item.totalGuests ?? baseItem?.quantity ?? 1;
+  const servicePrice =
+    user.servicePrice ??
+    baseItem?.servicePrice ??
+    user.service.price ??
+    baseItem?.service?.price ??
+    0;
+  const totalPrice =
+    user.totalPrice ??
+    baseItem?.totalPrice ??
+    servicePrice * quantity;
 
   return (
     <div style={overlayStyle}>
@@ -521,7 +560,8 @@ const DetailModal: React.FC<DetailModalProps> = ({ user, onClose, t }) => {
           <p><b>{t.history.checkInTime}:</b> {formatDateTime(user.item.checkInTime)}</p>
           <p><b>{t.history.checkOutTime}:</b> {formatDateTime(user.item.checkOutTime)}</p>
           <p><b>{t.checkInApartment.apartment}:</b> {user.apartment || "--"}</p>
-          <p><b>{t.history.price}:</b> {user.service.price?.toLocaleString()} đ</p>
+          <p><b>{t.history.price}:</b> {formatCurrency(servicePrice)}</p>
+          <p><b>{t.history.fee}:</b> {formatCurrency(totalPrice)}</p>
           <p><b>Staff:</b> {user.staff?.fullName || "--"}</p>
         </div>
       </div>

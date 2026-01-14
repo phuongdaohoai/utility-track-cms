@@ -20,7 +20,8 @@ export const useCSVImport = () => {
     ...csvImportState,
     openModal: (type: 'residents' | 'staff') => dispatch(openModal(type)),
     closeModal: () => dispatch(closeModal()),
-    parseCSVFile: (file: File) => dispatch(parseCSVFile(file)),
+    parseCSVFile: (payload: { file: File; type: 'residents' | 'staff' }) =>
+      dispatch(parseCSVFile(payload)),
     importCSVData: (type: 'residents' | 'staff', data: CSVRow[]) => 
       dispatch(importCSVData({ type, data })),
     updateRow: (rowIndex: number, field: string, value: string) =>
