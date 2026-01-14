@@ -3,7 +3,7 @@ import { CheckInItem } from "../services/checkInService";
 import { useLocale } from "../i18n/LocaleContext";
 
 type MemberState = {
-  id: string;
+  id: number | 'rep';
   name: string;
   checked: boolean;
   isRepresentative?: boolean;
@@ -13,7 +13,7 @@ interface CheckoutDetailModalProps {
   visible: boolean;
   item?: CheckInItem;
   onClose: () => void;
-  onSavePartial: (id: number, guests: string[]) => Promise<void>;
+  onSavePartial: (id: number, guests: number[]) => Promise<void>;
   onCheckoutAll: (id: number) => Promise<void>;
   loading?: boolean;
 }
@@ -36,24 +36,33 @@ const buildMembers = (item?: CheckInItem): MemberState[] => {
   // Đại diện (không được checkout riêng lẻ)
   const representativeName = item.displayName || item.representative || "Chưa có tên";
   const representative: MemberState = {
-    id: "rep",
+    id: 'rep',
     name: representativeName,
     checked: false,
     isRepresentative: true,
   };
 
-  // Khách đi kèm
-  const guests: string[] = Array.isArray(item.additionalGuests)
-    ? item.additionalGuests
-    : typeof item.additionalGuests === "string"
-      ? (item.additionalGuests as string).split(",").map((s: string) => s.trim()).filter(Boolean)
-      : [];
+  // Nếu API trả về members có id thì dùng id đó, ngược lại dùng additionalGuests
+  let guestMembers: MemberState[] = [];
+  if (Array.isArray(item.members) && item.members.length > 0) {
+    guestMembers = item.members.map((m, idx) => ({
+      id: typeof m.id === 'number' ? m.id : (m.id ? Number(m.id) : idx + 1),
+      name: m.fullName || m.name || `Khách ${idx + 1}`,
+      checked: false,
+    }));
+  } else {
+    const guests: string[] = Array.isArray(item.additionalGuests)
+      ? item.additionalGuests
+      : typeof item.additionalGuests === "string"
+        ? (item.additionalGuests as string).split(",").map((s: string) => s.trim()).filter(Boolean)
+        : [];
 
-  const guestMembers = guests.map((name, idx) => ({
-    id: `${idx}`,
-    name: name || "Chưa có tên",
-    checked: false,
-  }));
+    guestMembers = guests.map((name, idx) => ({
+      id: idx + 1,
+      name: name || `Khách ${idx + 1}`,
+      checked: false,
+    }));
+  }
 
   return [representative, ...guestMembers];
 };
@@ -85,7 +94,7 @@ const CheckoutDetailModal: React.FC<CheckoutDetailModalProps> = ({
 
   if (!visible || !item) return null;
 
-  const toggleMember = (id: string, checked: boolean) => {
+  const toggleMember = (id: number | 'rep', checked: boolean) => {
     setMembers((prev) =>
       prev.map((m) =>
         m.id === id ? { ...m, checked } : m
@@ -99,8 +108,8 @@ const CheckoutDetailModal: React.FC<CheckoutDetailModalProps> = ({
       return;
     }
     const guestsToCheckout = selectableMembers
-      .filter((m) => m.checked)
-      .map((m) => m.name);
+      .filter((m) => m.checked && m.id !== 'rep')
+      .map((m) => m.id as number);
 
     setLocalLoading(true);
     try {

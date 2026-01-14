@@ -175,7 +175,7 @@ const Checkout: React.FC = () => {
   };
 
   // 3. Checkout theo danh sách khách đã chọn (không checkout đại diện)
-  const handleSavePartial = async (id: number, guests: string[]) => {
+  const handleSavePartial = async (id: number, guests: number[]) => {
     if (!guests || guests.length === 0) {
       alert(t.checkout.selectGuests);
       return;
