@@ -21,7 +21,8 @@ export const CheckInOutside: FC = () => {
 
   const [representative, setRepresentative] = useState<string>('')
   const [phone, setPhone] = useState<string>('')
-  const [people, setPeople] = useState<Person[]>([])
+  const [people, setPeople] = useState<Person[]>([]) // Danh sách người đã thêm
+  const [newPersonName, setNewPersonName] = useState<string>('') // Input nhập tên mới
   const [checkinTime, setCheckinTime] = useState<string>('')
   const [loading, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
@@ -58,29 +59,28 @@ export const CheckInOutside: FC = () => {
   }, [])
 
   const handleAddPerson = () => {
-    // Tìm row trống hiện tại (nếu có)
-    const emptyPersonIndex = people.findIndex(p => p.name.trim() === '')
-    
-    if (emptyPersonIndex !== -1) {
-      // Nếu có row trống mà chưa nhập tên, không làm gì cả
-      // Hoặc có thể focus vào input đó
+    if (!newPersonName.trim()) {
+      // Không thêm nếu tên trống
       return
     }
     
-    // Thêm row trống mới
     const newPerson: Person = {
       id: Date.now().toString(),
-      name: '',
+      name: newPersonName.trim(),
     }
+    
     setPeople([...people, newPerson])
-  }
-
-  const handlePersonNameChange = (id: string, name: string) => {
-    setPeople(people.map((p) => (p.id === id ? { ...p, name } : p)))
+    setNewPersonName('') // Reset input sau khi thêm
   }
 
   const handleRemovePerson = (id: string) => {
     setPeople(people.filter((p) => p.id !== id))
+  }
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleAddPerson()
+    }
   }
 
   const handleCheckin = async () => {
@@ -100,17 +100,13 @@ export const CheckInOutside: FC = () => {
       return
     }
 
-    // Lọc bỏ các dòng trống (chưa nhập tên)
-    const validPeople = people.filter(p => p.name.trim() !== '')
-    
-    // Lấy tên đại diện (người đầu tiên trong danh sách hoặc representative)
-    const guestName = [
+    // Tổng hợp tất cả người (đại diện + danh sách đã thêm)
+    const allPeopleNames = [
       representative,
-      ...validPeople.map(p => p.name)
-    ]
-      .filter(Boolean)
-      .join(', ')
-      || t.checkInOutside.guestName;
+      ...people.map(p => p.name)
+    ].filter(Boolean)
+    
+    const guestName = allPeopleNames.join(', ') || t.checkInOutside.guestName;
     
     setLoading(true)
     setError(null)
@@ -154,13 +150,6 @@ export const CheckInOutside: FC = () => {
     } finally {
       setLoading(false)
     }
-  }
-
-  // Tạo mảng hiển thị: bao gồm tất cả people + 1 row trống
-  const displayRows = [...people]
-  // Luôn đảm bảo có ít nhất 1 row trống (trừ khi đã có row trống)
-  if (people.length === 0 || people[people.length - 1]?.name.trim() !== '') {
-    displayRows.push({ id: 'empty-row', name: '' })
   }
 
   return (
@@ -211,95 +200,97 @@ export const CheckInOutside: FC = () => {
               <span className="flex-1 text-gray-700">{checkinTime}</span>
             </div>
 
-            {/* Số Lượng */}
+            {/* Phần thêm người - KHÔNG có label "Số Lượng" */}
             <div className="flex items-start">
-              <label className="w-48 text-gray-700 font-medium pt-2">{t.checkInOutside.quantity}</label>
+              <div className="w-48"></div> {/* Spacer để căn chỉnh với các dòng trên */}
               <div className="flex-1">
-                {/* Bảng */}
-                <table className="w-full border-collapse">
-                  <thead>
-                    <tr className="bg-gray-100">
-                      <th className="border border-gray-300 px-4 py-2 text-left font-semibold text-gray-700">
-                        {t.checkInOutside.stt}
-                      </th>
-                      <th className="border border-gray-300 px-4 py-2 text-left font-semibold text-gray-700">
-                        {t.checkInOutside.fullName}
-                      </th>
-                      <th className="border border-gray-300 px-4 py-2 text-left font-semibold text-gray-700">
-                        {t.checkInOutside.action}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {displayRows.map((person, index) => {
-            
-                      const isEmptyRow = person.name.trim() === '' && person.id === 'empty-row'
-                      
-                      return (
+                {/* Input để nhập tên người mới */}
+                <div className="mb-4 flex gap-2">
+                  <input
+                    type="text"
+                    value={newPersonName}
+                    onChange={(e) => setNewPersonName(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    placeholder={t.checkInOutside.placeholderName}
+                    className="flex-1 px-3 py-2 bg-gray-100 border border-gray-300 rounded"
+                  />
+                  <button
+                    onClick={handleAddPerson}
+                    disabled={!newPersonName.trim()}
+                    className="bg-blue-600 text-white px-4 py-2 rounded flex items-center gap-1 hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    {t.checkInOutside.add}
+                  </button>
+                </div>
+
+                {/* Bảng hiển thị danh sách đã thêm */}
+                {people.length > 0 && (
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="bg-gray-100">
+                        <th className="border border-gray-300 px-4 py-2 text-left font-semibold text-gray-700">
+                          {t.checkInOutside.stt}
+                        </th>
+                        <th className="border border-gray-300 px-4 py-2 text-left font-semibold text-gray-700">
+                          {t.checkInOutside.fullName}
+                        </th>
+                        <th className="border border-gray-300 px-4 py-2 text-left font-semibold text-gray-700">
+                          {t.checkInOutside.action}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {people.map((person, index) => (
                         <tr key={person.id} className="bg-white">
                           <td className="border border-gray-300 px-4 py-2 text-gray-700">
-                            {isEmptyRow ? '' : index + 1}
+                            {index + 1}
+                          </td>
+                          <td className="border border-gray-300 px-4 py-2 text-gray-700">
+                            {person.name}
                           </td>
                           <td className="border border-gray-300 px-4 py-2">
-                            <input
-                              type="text"
-                              value={person.name}
-                              onChange={(e) => handlePersonNameChange(person.id, e.target.value)}
-                              placeholder={t.checkInOutside.placeholderName}
-                              className="w-full px-2 py-1 bg-white border-0 outline-none"
-                            />
-                          </td>
-                          <td className="border border-gray-300 px-4 py-2">
-                            <div className="flex gap-2">
-                              {/* Chỉ hiển thị nút Add ở dòng trống cuối cùng */}
-                              {isEmptyRow && (
-                                <button
-                                  onClick={handleAddPerson}
-                                  className="bg-blue-600 text-white px-3 py-1 rounded flex items-center gap-1 hover:bg-blue-700 transition-colors"
-                                >
-                                  <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    className="h-4 w-4"
-                                    viewBox="0 0 20 20"
-                                    fill="currentColor"
-                                  >
-                                    <path
-                                      fillRule="evenodd"
-                                      d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
-                                      clipRule="evenodd"
-                                    />
-                                  </svg>
-                                  {t.checkInOutside.add}
-                                </button>
-                              )}
-
-                              {/* Nút Xóa - chỉ hiển thị cho các dòng đã nhập tên */}
-                              {!isEmptyRow && person.name.trim() !== '' && (
-                                <button
-                                  onClick={() => handleRemovePerson(person.id)}
-                                  className="bg-red-600 text-white px-3 py-1 rounded flex items-center gap-1 hover:bg-red-700 transition-colors"
-                                >
-                                  <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    className="h-4 w-4"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                    strokeWidth={2}
-                                  >
-                                    <circle cx="12" cy="12" r="10" className="stroke-current" />
-                                    <line x1="8" y1="12" x2="16" y2="12" className="stroke-current" />
-                                  </svg>
-                                  {t.checkInOutside.remove}
-                                </button>
-                              )}
-                            </div>
+                            <button
+                              onClick={() => handleRemovePerson(person.id)}
+                              className="bg-red-600 text-white px-3 py-1 rounded flex items-center gap-1 hover:bg-red-700 transition-colors"
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-4 w-4"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                                strokeWidth={2}
+                              >
+                                <circle cx="12" cy="12" r="10" className="stroke-current" />
+                                <line x1="8" y1="12" x2="16" y2="12" className="stroke-current" />
+                              </svg>
+                              {t.checkInOutside.remove}
+                            </button>
                           </td>
                         </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+
+                {/* Hiển thị thông báo nếu chưa có ai được thêm */}
+                {people.length === 0 && (
+                  <div className="text-center py-4 text-gray-500 italic">
+                    {t.checkInOutside.noPeopleAdded}
+                  </div>
+                )}
               </div>
             </div>
 
