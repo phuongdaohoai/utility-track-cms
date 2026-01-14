@@ -133,7 +133,8 @@ export const GuestCheckout: FC = () => {
       alert(t.guestCheckout.checkoutSuccess)
       await loadAllCheckIns()
       setSelectedCheckIn(null)
-      setSelectedIndices([]) // ✅ Sửa selectedPeople thành selectedIndices
+      setSelectedIndices([])
+      navigate('/mainmenu') // ✅ Sửa selectedPeople thành selectedIndices
     } catch (error: any) {
       console.error('Lỗi checkout:', error)
       alert(error.message || t.guestCheckout.checkoutFailed)
