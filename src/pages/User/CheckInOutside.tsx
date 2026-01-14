@@ -166,7 +166,7 @@ export const CheckInOutside: FC = () => {
                 value={representative}
                 onChange={(e) => setRepresentative(e.target.value)}
                 placeholder={t.checkInOutside.placeholderRepresentative}
-                className="flex-1 px-3 py-2 bg-gray-100 border border-gray-300 rounded"
+                className="flex-1 px-3 py-2 bg-white border border-gray-300 rounded"
               />
             </div>
 
@@ -178,7 +178,7 @@ export const CheckInOutside: FC = () => {
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder={t.checkInOutside.placeholderPhone}
-                className="flex-1 px-3 py-2 bg-gray-100 border border-gray-300 rounded"
+                className="flex-1 px-3 py-2 bg-white border border-gray-300 rounded"
               />
             </div>
 
@@ -212,7 +212,7 @@ export const CheckInOutside: FC = () => {
                     onChange={(e) => setNewPersonName(e.target.value)}
                     onKeyPress={handleKeyPress}
                     placeholder={t.checkInOutside.placeholderName}
-                    className="flex-1 px-3 py-2 bg-gray-100 border border-gray-300 rounded"
+                    className="flex-1 px-3 py-2 bg-white border border-gray-300 rounded"
                   />
                   <button
                     onClick={handleAddPerson}
