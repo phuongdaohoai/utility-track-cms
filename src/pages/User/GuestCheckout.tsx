@@ -21,26 +21,41 @@ export const GuestCheckout: FC = () => {
   const [selectedCheckIn, setSelectedCheckIn] = useState<CheckInItem | null>(null)
   const [loading, setLoading] = useState(false)
   const [isCheckingOut, setIsCheckingOut] = useState(false)
-  // Lưu danh sách tên những người được chọn để checkout (bao gồm cả người đại diện)
-  const [selectedPeople, setSelectedPeople] = useState<string[]>([])
+  
+  // ✅ Đã đổi từ selectedPeople sang selectedIndices để lưu vị trí (index)
+  const [selectedIndices, setSelectedIndices] = useState<number[]>([])
 
-  // Hàm tải tất cả check-ins (tách ra để có thể gọi lại khi cần)
+  // ✅ Tạo danh sách khách (guestList) ngay đầu để các hàm bên dưới có thể sử dụng
+  const guestList = useMemo(() => {
+    if (!selectedCheckIn) return []
+    return [
+      {
+        name: selectedCheckIn.displayName,
+        isRepresentative: true,
+      },
+      ...(Array.isArray(selectedCheckIn.additionalGuests)
+        ? selectedCheckIn.additionalGuests.map((name) => ({
+            name,
+            isRepresentative: false,
+          }))
+        : []),
+    ]
+  }, [selectedCheckIn])
+
+  // Hàm tải tất cả check-ins
   const loadAllCheckIns = async (): Promise<CheckInOption[]> => {
     try {
       setLoading(true)
-      // Lấy tất cả check-ins (API mới)
       const items = await getAllCheckIns()
 
-      // Lọc chỉ lấy khách ngoài (room === "-" hoặc không có room)
       const guestCheckIns = items.filter((item: any) =>
         !item.room || item.room === '-' || item.room === ''
       )
 
-      // Tạo options cho Select
       const checkInOptions: CheckInOption[] = guestCheckIns.map((item: any) => ({
         value: item.id,
         label: `${item.displayName} - ${item.serviceName}`,
-        phone: item.phone || '', // đảm bảo là chuỗi
+        phone: item.phone || '',
         data: item
       }))
 
@@ -58,10 +73,8 @@ export const GuestCheckout: FC = () => {
     loadAllCheckIns()
   }, [])
 
-  // Lọc options theo input
   const filteredOptions = useMemo(() => {
     if (!inputValue) return options
-
     const searchLower = inputValue.toLowerCase().trim()
     return options.filter(option =>
       option.label.toLowerCase().includes(searchLower) ||
@@ -69,29 +82,27 @@ export const GuestCheckout: FC = () => {
     )
   }, [inputValue, options])
 
-  // Xử lý khi chọn check-in
   const handleSelectChange = (selected: CheckInOption | null) => {
     if (selected) {
       setSelectedCheckIn(selected.data)
-      setSelectedPeople([])
+      setSelectedIndices([]) // ✅ Reset mảng index
     } else {
       setSelectedCheckIn(null)
-      setSelectedPeople([])
+      setSelectedIndices([]) // ✅ Reset mảng index
     }
   }
 
-  // Xử lý chọn/bỏ chọn người trong bảng
-  const handleTogglePerson = (name: string) => {
-    setSelectedPeople(prev => {
-      if (prev.includes(name)) {
-        return prev.filter(n => n !== name)
+  // ✅ Hàm toggle nhận vào Index thay vì Name
+  const handleTogglePerson = (index: number) => {
+    setSelectedIndices(prev => {
+      if (prev.includes(index)) {
+        return prev.filter(i => i !== index)
       } else {
-        return [...prev, name]
+        return [...prev, index]
       }
     })
   }
 
-  // Format thời gian
   const formatTime = (isoString: string) => {
     if (!isoString) return ''
     const date = new Date(isoString)
@@ -110,7 +121,6 @@ export const GuestCheckout: FC = () => {
     return `${time}h - ${day}`
   }
 
-  // Xử lý checkout tất cả
   const handleCheckoutAll = async () => {
     if (!selectedCheckIn) return
 
@@ -121,10 +131,9 @@ export const GuestCheckout: FC = () => {
       setIsCheckingOut(true)
       await checkoutById(selectedCheckIn.id)
       alert(t.guestCheckout.checkoutSuccess)
-      // Reload danh sách check-ins để giữ gợi ý trong thanh search
       await loadAllCheckIns()
       setSelectedCheckIn(null)
-      setSelectedPeople([])
+      setSelectedIndices([]) // ✅ Sửa selectedPeople thành selectedIndices
     } catch (error: any) {
       console.error('Lỗi checkout:', error)
       alert(error.message || t.guestCheckout.checkoutFailed)
@@ -133,39 +142,38 @@ export const GuestCheckout: FC = () => {
     }
   }
 
-  // Xử lý checkout theo số lượng đã chọn
   const handleCheckoutByQuantity = async () => {
-    if (!selectedCheckIn || selectedPeople.length === 0) {
+    // ✅ Sửa selectedPeople.length thành selectedIndices.length
+    if (!selectedCheckIn || selectedIndices.length === 0) {
       alert('Vui lòng chọn ít nhất một người để checkout')
       return
     }
 
     const confirm = window.confirm(
-      `${t.guestCheckout.confirmCheckout}\n${t.guestCheckout.selectQuantity}: ${selectedPeople.length} người`
+      `${t.guestCheckout.confirmCheckout}\n${t.guestCheckout.selectQuantity}: ${selectedIndices.length} người` // ✅ Sửa length
     )
     if (!confirm) return
 
     try {
       setIsCheckingOut(true)
 
-      // Gửi danh sách tên đã chọn (bao gồm cả người đại diện nếu có)
-      const guestsToCheckout = selectedPeople.filter(
-        (name): name is string => typeof name === 'string' && name.trim() !== ''
-      )
+      // ✅ Map từ Index sang Name trước khi gửi API
+      const guestsToCheckout = selectedIndices
+        .map(index => guestList[index]?.name)
+        .filter((name): name is string => !!name && name.trim() !== '')
+
       await partialCheckout(selectedCheckIn.id, guestsToCheckout)
 
       alert(t.guestCheckout.checkoutSuccess)
-      // Load lại dữ liệu và giữ người checkout nếu còn trong danh sách
       const newOptions = await loadAllCheckIns()
       const updated = newOptions.find(o => o.value === selectedCheckIn.id)
       if (updated) {
         setSelectedCheckIn(updated.data)
       } else {
-        // Nếu đã checkout hết (không còn trong danh sách) thì clear
         setSelectedCheckIn(null)
         setInputValue('')
       }
-      setSelectedPeople([])
+      setSelectedIndices([]) // ✅ Reset index
     } catch (error: any) {
       console.error('Lỗi checkout:', error)
       alert(error.message || t.guestCheckout.checkoutFailed)
@@ -174,24 +182,9 @@ export const GuestCheckout: FC = () => {
     }
   }
 
-  const guestList = [
-    {
-      name: selectedCheckIn?.displayName,
-      isRepresentative: true,
-    },
-    ...(Array.isArray(selectedCheckIn?.additionalGuests)
-      ? selectedCheckIn.additionalGuests.map((name) => ({
-          name,
-          isRepresentative: false,
-        }))
-      : []),
-  ]
-
-
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
         <div className="mb-6">
           <button
             onClick={() => navigate('/mainmenu')}
@@ -213,7 +206,7 @@ export const GuestCheckout: FC = () => {
               <Select
                 options={filteredOptions}
                 value={selectedCheckIn ? options.find(o => o.value === selectedCheckIn.id) ?? null : null}
-                filterOption={() => true} // ✅ QUAN TRỌNG NHẤT
+                filterOption={() => true}
                 onInputChange={(value, actionMeta) => {
                   if (actionMeta.action === 'input-change') {
                     setInputValue(value)
@@ -227,8 +220,6 @@ export const GuestCheckout: FC = () => {
                 className="react-select-container"
                 classNamePrefix="react-select"
               />
-
-
             </div>
 
             {selectedCheckIn && (
@@ -315,46 +306,28 @@ export const GuestCheckout: FC = () => {
 
                               <td className="border border-gray-300 px-4 py-2 text-gray-700">
                                 {guest.name}
-                                {guest.isRepresentative && (
-                                  <span className="ml-2 text-xs text-blue-600 font-semibold">
-                                
-                                  </span>
-                                )}
+                              
                               </td>
 
                               <td className="border border-gray-300 px-4 py-2 text-center">
                                 <input
                                   type="checkbox"
-                                  checked={!!guest.name && selectedPeople.includes(guest.name)}
-                                  onChange={() => {
-                                    if (guest.name) {
-                                      handleTogglePerson(guest.name)
-                                    }
-                                  }}
-                                  className="
-          w-5 h-5
-          text-indigo-600
-          border-gray-300
-          rounded
-          disabled:opacity-40
-          disabled:cursor-not-allowed
-        "
+                                  checked={selectedIndices.includes(rowIndex)} // ✅ Kiểm tra theo vị trí
+                                  onChange={() => handleTogglePerson(rowIndex)}
+                                  className="w-5 h-5 text-indigo-600 border-gray-300 rounded disabled:opacity-40 disabled:cursor-not-allowed"
                                 />
                               </td>
                             </tr>
                           ))}
-
                         </tbody>
-
-
                       </table>
                     </div>
                   </div>
 
-                  {/* Thông báo */}
-                  {selectedPeople.length > 0 && (
+                  {/* Thông báo - ✅ Sửa selectedPeople thành selectedIndices */}
+                  {selectedIndices.length > 1 && (
                     <div className="mt-4 p-3 bg-blue-50 border border-blue-200 text-blue-700 rounded">
-                      Đã chọn {selectedPeople.length} người để checkout
+                      Đã chọn {selectedIndices.length} người để checkout
                     </div>
                   )}
 
@@ -363,7 +336,7 @@ export const GuestCheckout: FC = () => {
                     <button
                       onClick={() => {
                         setSelectedCheckIn(null)
-                        setSelectedPeople([])
+                        setSelectedIndices([]) // ✅ Reset
                         setInputValue('')
                       }}
                       className="bg-gray-500 text-white px-8 py-3 rounded-lg font-semibold text-lg hover:bg-gray-600 transition-colors"
@@ -379,15 +352,15 @@ export const GuestCheckout: FC = () => {
                     </button>
                   </div>
 
-                  {/* Checkout theo số lượng đã chọn */}
-                  {selectedCheckIn.totalPeople > 1 && selectedPeople.length > 0 && (
+                  {/* Checkout theo số lượng đã chọn - ✅ Sửa biến và điều kiện */}
+                  {selectedCheckIn.totalPeople > 1 && selectedIndices.length > 0 && (
                     <div className="flex justify-center">
                       <button
                         onClick={handleCheckoutByQuantity}
-                        disabled={isCheckingOut || selectedPeople.length === 0}
+                        disabled={isCheckingOut || selectedIndices.length === 0}
                         className="bg-yellow-500 text-black px-16 py-3 rounded-lg font-semibold text-lg hover:bg-yellow-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                       >
-                        {isCheckingOut ? t.common.loading : `Checkout ${selectedPeople.length} người`}
+                        {isCheckingOut ? t.common.loading : `Checkout ${selectedIndices.length} người`}
                       </button>
                     </div>
                   )}
