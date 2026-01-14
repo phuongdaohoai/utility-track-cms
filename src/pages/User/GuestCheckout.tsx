@@ -25,7 +25,7 @@ export const GuestCheckout: FC = () => {
   const [selectedPeople, setSelectedPeople] = useState<string[]>([])
 
   // Hàm tải tất cả check-ins (tách ra để có thể gọi lại khi cần)
-  const loadAllCheckIns = async () => {
+  const loadAllCheckIns = async (): Promise<CheckInOption[]> => {
     try {
       setLoading(true)
       // Lấy tất cả check-ins (API mới)
@@ -45,8 +45,10 @@ export const GuestCheckout: FC = () => {
       }))
 
       setOptions(checkInOptions)
+      return checkInOptions
     } catch (error) {
       console.error('Lỗi khi tải danh sách check-in:', error)
+      return []
     } finally {
       setLoading(false)
     }
@@ -119,12 +121,10 @@ export const GuestCheckout: FC = () => {
       setIsCheckingOut(true)
       await checkoutById(selectedCheckIn.id)
       alert(t.guestCheckout.checkoutSuccess)
-      // Reset và load lại
+      // Reload danh sách check-ins để giữ gợi ý trong thanh search
+      await loadAllCheckIns()
       setSelectedCheckIn(null)
       setSelectedPeople([])
-      setInputValue('')
-      // Load lại danh sách check-ins
-      await loadAllCheckIns()
     } catch (error: any) {
       console.error('Lỗi checkout:', error)
       alert(error.message || t.guestCheckout.checkoutFailed)
@@ -155,10 +155,17 @@ export const GuestCheckout: FC = () => {
       await partialCheckout(selectedCheckIn.id, guestsToCheckout)
 
       alert(t.guestCheckout.checkoutSuccess)
-      setSelectedCheckIn(null)
+      // Load lại dữ liệu và giữ người checkout nếu còn trong danh sách
+      const newOptions = await loadAllCheckIns()
+      const updated = newOptions.find(o => o.value === selectedCheckIn.id)
+      if (updated) {
+        setSelectedCheckIn(updated.data)
+      } else {
+        // Nếu đã checkout hết (không còn trong danh sách) thì clear
+        setSelectedCheckIn(null)
+        setInputValue('')
+      }
       setSelectedPeople([])
-      setInputValue('')
-      await loadAllCheckIns()
     } catch (error: any) {
       console.error('Lỗi checkout:', error)
       alert(error.message || t.guestCheckout.checkoutFailed)
@@ -205,6 +212,7 @@ export const GuestCheckout: FC = () => {
             <div className="mb-4">
               <Select
                 options={filteredOptions}
+                value={selectedCheckIn ? options.find(o => o.value === selectedCheckIn.id) ?? null : null}
                 filterOption={() => true} // ✅ QUAN TRỌNG NHẤT
                 onInputChange={(value, actionMeta) => {
                   if (actionMeta.action === 'input-change') {
@@ -372,7 +380,7 @@ export const GuestCheckout: FC = () => {
                   </div>
 
                   {/* Checkout theo số lượng đã chọn */}
-                  {selectedCheckIn.totalPeople >= 1 && selectedPeople.length > 0 && (
+                  {selectedCheckIn.totalPeople > 1 && selectedPeople.length > 0 && (
                     <div className="flex justify-center">
                       <button
                         onClick={handleCheckoutByQuantity}
