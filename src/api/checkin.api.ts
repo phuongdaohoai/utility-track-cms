@@ -127,7 +127,7 @@ export const checkoutById = async (checkinId: number) => {
  * Endpoint: POST /check-in/partial-check-out/{checkinId}
  * Body: { guestsToCheckout: ["Khách 1", "Khách 2"] }
  */
-export const partialCheckout = async (checkinId: number, guestsToCheckout: string[]) => {
+export const partialCheckout = async (checkinId: number, guestsToCheckout: number[]) => {
   const response = await api.post(`/check-in/partial-check-out/${checkinId}`, {
     guestsToCheckout
   })

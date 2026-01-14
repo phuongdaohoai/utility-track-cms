@@ -83,7 +83,7 @@ const checkoutWithQuantity = async (checkinId: number, quantity: number) => {
 // 4. Checkout theo danh sách khách (không checkout đại diện)
 const partialCheckoutByGuests = async (
   checkinId: number,
-  guestsToCheckout: string[]
+  guestsToCheckout: Array<number | string>
 ) => {
   const response = await api.post(
     `/check-in/partial-check-out/${checkinId}`,

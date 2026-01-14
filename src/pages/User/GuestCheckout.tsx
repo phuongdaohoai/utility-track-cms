@@ -159,9 +159,8 @@ export const GuestCheckout: FC = () => {
       setIsCheckingOut(true)
 
       // ✅ Map từ Index sang Name trước khi gửi API
-      const guestsToCheckout = selectedIndices
-        .map(index => guestList[index]?.name)
-        .filter((name): name is string => !!name && name.trim() !== '')
+      const guestsToCheckout = selectedIndices;
+         
 
       await partialCheckout(selectedCheckIn.id, guestsToCheckout)
 
