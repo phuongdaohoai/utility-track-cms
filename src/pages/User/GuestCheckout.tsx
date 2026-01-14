@@ -242,7 +242,9 @@ export const GuestCheckout: FC = () => {
                 <div className="space-y-4">
                   {/* Đại Diện */}
                   <div className="flex items-center">
-                    <label className="w-48 text-gray-700 font-medium">Đại Diện</label>
+                    <label className="w-48 text-gray-700 font-medium">
+                      {t.checkInOutside.representative}
+                    </label>
                     <span className="flex-1 text-gray-700 font-semibold">
                       {selectedCheckIn.displayName}
                     </span>
@@ -250,7 +252,9 @@ export const GuestCheckout: FC = () => {
 
                   {/* Số Điện Thoại */}
                   <div className="flex items-center">
-                    <label className="w-48 text-gray-700 font-medium">Số Điện Thoại</label>
+                    <label className="w-48 text-gray-700 font-medium">
+                      {t.checkInOutside.phone}
+                    </label>
                     <span className="flex-1 text-gray-700 font-semibold">
                       {selectedCheckIn.phone}
                     </span>
@@ -258,7 +262,9 @@ export const GuestCheckout: FC = () => {
 
                   {/* Dịch Vụ */}
                   <div className="flex items-center">
-                    <label className="w-48 text-gray-700 font-medium">Dịch Vụ</label>
+                    <label className="w-48 text-gray-700 font-medium">
+                      {t.checkInOutside.service}
+                    </label>
                     <span className="flex-1 text-gray-700 font-semibold">
                       {selectedCheckIn.serviceName}
                     </span>
@@ -266,34 +272,40 @@ export const GuestCheckout: FC = () => {
 
                   {/* Phương Thức Checkin */}
                   <div className="flex items-center">
-                    <label className="w-48 text-gray-700 font-medium">Phương Thức Checkin</label>
+                    <label className="w-48 text-gray-700 font-medium">
+                      {t.checkInOutside.checkinMethod}
+                    </label>
                     <span className="flex-1 text-gray-700">
-                      {selectedCheckIn.method || 'Thủ Công'}
+                      {selectedCheckIn.method || t.checkInOutside.manual}
                     </span>
                   </div>
 
                   {/* Thời Gian Vào */}
                   <div className="flex items-center">
-                    <label className="w-48 text-gray-700 font-medium">Thời Gian Vào</label>
+                    <label className="w-48 text-gray-700 font-medium">
+                      {t.checkInOutside.checkinTime}
+                    </label>
                     <span className="flex-1 text-gray-700">{formatTime(selectedCheckIn.checkInTime)}</span>
                   </div>
 
                   {/* Số Lượng */}
                   <div className="flex items-start">
-                    <label className="w-48 text-gray-700 font-medium pt-2">Số Lượng</label>
+                    <label className="w-48 text-gray-700 font-medium pt-2">
+                      {t.checkInOutside.quantity}
+                    </label>
                     <div className="flex-1">
                       {/* Bảng */}
                       <table className="w-full border-collapse">
                         <thead>
                           <tr className="bg-gray-100">
                             <th className="border border-gray-300 px-4 py-2 text-left font-semibold text-gray-700">
-                              STT
+                              {t.checkInOutside.stt}
                             </th>
                             <th className="border border-gray-300 px-4 py-2 text-left font-semibold text-gray-700">
-                              Họ Và Tên
+                              {t.checkInOutside.fullName}
                             </th>
                             <th className="border border-gray-300 px-4 py-2 text-left font-semibold text-gray-700">
-                              Chọn
+                              {t.checkInOutside.action}
                             </th>
                           </tr>
                         </thead>
@@ -325,7 +337,7 @@ export const GuestCheckout: FC = () => {
                   </div>
 
                   {/* Thông báo - ✅ Sửa selectedPeople thành selectedIndices */}
-                  {selectedIndices.length > 1 && (
+                  {selectedIndices.length > 0 && selectedCheckIn.totalPeople > 1 &&  (
                     <div className="mt-4 p-3 bg-blue-50 border border-blue-200 text-blue-700 rounded">
                       Đã chọn {selectedIndices.length} người để checkout
                     </div>
