@@ -103,7 +103,7 @@ const UsageHistory: React.FC = () => {
       setLoading(true);
       try {
         const params: any = {
-          searchName: searchText,
+          search: searchText,
           page: currentPage, // Dùng currentPage cho API
           limit: ITEMS_PER_PAGE // Dùng ITEMS_PER_PAGE thay vì 1000
         };
@@ -209,7 +209,7 @@ const UsageHistory: React.FC = () => {
     const fetchAllDataForExport = async () => {
       try {
         const params: any = {
-          searchName: searchText,
+          search: searchText,
           page: 1,
           limit: 1000 // Lấy nhiều data để export
         };
